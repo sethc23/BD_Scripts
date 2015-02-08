@@ -1,0 +1,6 @@
+every hour,
+turn wifi on,
+check for alpha network,
+if alpha network,
+then initiate sink.
+

@@ -1,0 +1,9 @@
+SHELL=/bin/bash
+PATH=/opt/local/bin:/opt/local/sbin:/opt/local/include:/opt/local/lib:/usr/local/bin:/usr/local/sbin:/usr/local/include:/usr/local/lib:/usr/bin:/usr/sbin:/bin
+MAILTO=6174295700@vtext.com
+
+@reboot /Users/admin/SERVER3/ipython/ENV/bin/python /Users/admin/SERVER2/BD_Scripts/files_folders/mounted_shares.py mnt_s3_always # S3_connection_on_reboot
+@hourly /Users/admin/SERVER3/ipython/ENV/bin/python /Users/admin/SERVER2/BD_Scripts/files_folders/mounted_shares.py mnt_s3_always # S3_connection_every_hour
+* 7-19 * * * cd /Users/admin/SERVER3/aprinto/tests/features; /Users/admin/SERVER3/aprinto/ENV/bin/behave active_servers.feature > /dev/null 2>&1 # S3_aprinto_online
+0 6 * * * cd /Users/admin/SERVER3/aprinto/tests/features; /Users/admin/SERVER3/aprinto/ENV/bin/behave driver_availability.feature > /dev/null 2>&1 # S3_driver_availability
+@hourly /Users/admin/.scripts/sh_caller.sh git_calendar > /dev/null 2>&1 # s3_git_calendar

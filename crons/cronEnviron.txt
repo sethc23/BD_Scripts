@@ -1,0 +1,1 @@
+USER=sethchaseHOME=/Users/adminSHELL=/Users/admin/.bash_profilePATH=/sbin:/bin:/usr/sbin:/usr/bin:/Library/Frameworks/Python.framework/Versions/Current/binPYTHONPATH=/Users/admin/SERVER2/BD_ScriptsMAILTO=sethchaseLANG=en_US

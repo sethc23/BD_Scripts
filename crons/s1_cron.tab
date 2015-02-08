@@ -1,0 +1,6 @@
+SHELL=/bin/bash
+PATH=/opt/local/bin:/opt/local/sbin:/opt/local/include:/opt/local/lib:/usr/local/bin:/usr/local/sbin:/usr/local/include:/usr/local/lib:/usr/bin:/usr/sbin:/bin
+MAILTO=6174295700@vtext.com
+
+@reboot /Users/admin/SERVER1/ipython/ENV/bin/python /Users/admin/SERVER2/BD_Scripts/files_folders/mounted_shares.py mnt_s1_always # S1_connection_on_reboot
+@hourly /Users/admin/SERVER1/ipython/ENV/bin/python /Users/admin/SERVER2/BD_Scripts/files_folders/mounted_shares.py mnt_s1_always # S1_connection_every_hour

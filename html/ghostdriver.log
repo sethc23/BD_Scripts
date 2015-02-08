@@ -1,0 +1,19 @@
+PhantomJS is launching GhostDriver...
+[INFO  - 2015-01-02T05:36:53.905Z] GhostDriver - Main - running on port 61826
+[INFO  - 2015-01-02T05:36:54.285Z] Session [5c0c7f90-9241-11e4-89b6-134d301ce6d2] - page.settings - {"XSSAuditingEnabled":false,"javascriptCanCloseWindows":true,"javascriptCanOpenWindows":true,"javascriptEnabled":true,"loadImages":true,"localToRemoteUrlAccessEnabled":false,"userAgent":"Mozilla/5.0 (Macintosh; PPC Mac OS X) AppleWebKit/534.34 (KHTML, like Gecko) PhantomJS/1.9.8 Safari/534.34","webSecurityEnabled":true}
+[INFO  - 2015-01-02T05:36:54.285Z] Session [5c0c7f90-9241-11e4-89b6-134d301ce6d2] - page.customHeaders:  - {}
+[INFO  - 2015-01-02T05:36:54.285Z] Session [5c0c7f90-9241-11e4-89b6-134d301ce6d2] - Session.negotiatedCapabilities - {"browserName":"phantomjs","version":"1.9.8","driverName":"ghostdriver","driverVersion":"1.1.0","platform":"mac-10.10 (Yosemite)-64bit","javascriptEnabled":true,"takesScreenshot":true,"handlesAlerts":false,"databaseEnabled":false,"locationContextEnabled":false,"applicationCacheEnabled":false,"browserConnectionEnabled":false,"cssSelectorsEnabled":true,"webStorageEnabled":false,"rotatable":false,"acceptSslCerts":false,"nativeEvents":true,"proxy":{"proxyType":"direct"}}
+[INFO  - 2015-01-02T05:36:54.286Z] SessionManagerReqHand - _postNewSessionCommand - New Session Created: 5c0c7f90-9241-11e4-89b6-134d301ce6d2
+[INFO  - 2015-01-02T05:41:53.904Z] SessionManagerReqHand - _cleanupWindowlessSessions - Asynchronous Sessions clean-up phase starting NOW
+[INFO  - 2015-01-02T05:46:53.904Z] SessionManagerReqHand - _cleanupWindowlessSessions - Asynchronous Sessions clean-up phase starting NOW
+[INFO  - 2015-01-02T05:51:53.905Z] SessionManagerReqHand - _cleanupWindowlessSessions - Asynchronous Sessions clean-up phase starting NOW
+[INFO  - 2015-01-02T05:56:53.906Z] SessionManagerReqHand - _cleanupWindowlessSessions - Asynchronous Sessions clean-up phase starting NOW
+[INFO  - 2015-01-02T06:01:53.906Z] SessionManagerReqHand - _cleanupWindowlessSessions - Asynchronous Sessions clean-up phase starting NOW
+[ERROR - 2015-01-02T06:02:19.062Z] Session [5c0c7f90-9241-11e4-89b6-134d301ce6d2] - page.onError - msg: TypeError: 'undefined' is not a function (evaluating 'Array.prototype.forEach.call.bind(Array.prototype.forEach)')
+[ERROR - 2015-01-02T06:02:19.062Z] Session [5c0c7f90-9241-11e4-89b6-134d301ce6d2] - page.onError - stack:
+  (anonymous function) (https://assets-cdn.github.com/assets/frameworks-fc447938e306b7b2c26a33cfee9dfda9052aeb1aa6ad84b72f1b35fd008efe9e.js:29)
+  (anonymous function) (https://assets-cdn.github.com/assets/frameworks-fc447938e306b7b2c26a33cfee9dfda9052aeb1aa6ad84b72f1b35fd008efe9e.js:29)
+[ERROR - 2015-01-02T06:02:19.087Z] Session [5c0c7f90-9241-11e4-89b6-134d301ce6d2] - page.onError - msg: ReferenceError: Can't find variable: $
+[ERROR - 2015-01-02T06:02:19.087Z] Session [5c0c7f90-9241-11e4-89b6-134d301ce6d2] - page.onError - stack:
+  (anonymous function) (https://assets-cdn.github.com/assets/github-56c56f7fe2ed90ca50b9eefebccd56f3b9729a85d7ba17f0f9c9ebd02f20a7e3.js:1)
+  (anonymous function) (https://assets-cdn.github.com/assets/github-56c56f7fe2ed90ca50b9eefebccd56f3b9729a85d7ba17f0f9c9ebd02f20a7e3.js:1)

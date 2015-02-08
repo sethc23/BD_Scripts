@@ -1,0 +1,153 @@
+<html>
+<head>
+<link type="text/css" rel="stylesheet" href="/stylesheets/main.css" />
+</head>
+<body>
+<p><br>
+</p>
+<table width="747" border="0">
+  <tr>
+    <form action="/getdata" method="post">
+      <div align="left">
+        <td width="142"><input type="submit" value="More Data">
+        </td>
+      </div>
+    </form>
+    <form action="/sethierarchy" method="post">
+      <div align="left">
+        <td width="142"><select  name="action" id="action">
+            <option value="cities">Cities</option>
+            <option value="categories">Hierarchy</option>
+          </select>
+          <input type="submit" value="Go">
+        </td>
+      </div>
+    </form>
+    <form action="/getpostcount" method="post">
+      <input type="hidden" name="Get Post Count" value="True">
+      <div align="left">
+        <td width="108"><input type="submit" value="Get Post Count">
+        </td>
+      </div>
+    </form>
+    <form action="/dbcenter" method="post">
+      <div align="left">
+        <td width="148"><input type="hidden" name="action" value="count">
+          <select  name="specific" id="specific">
+            <option value="Categories">Categories</option>
+            <option value="Hierarchy">Hierarchy</option>
+            <option value="Locations">Locations</option>
+            <option value="PostCount">PostCount</option>
+            <option value="errorData">errorData</option>
+            <option value="htmlData">htmlData</option>
+            <option value="RunTimeVariable">RunTimeVariable</option>
+          </select>
+          <input type="submit" name="app" value="Count">
+          <input type="submit" name="app" value="Query">
+        </td>
+      </div>
+      <div align="left">
+        <td width="185">{% if count_result %}{{count_result}}{% endif %}</td>
+      </div>
+    </form>
+  </tr>
+</table>
+<table width="747" border="0">
+  <tr>
+    <form action="/sethierarchy" method="post">
+      <div align="left">
+        <td width="142"><select  name="specific" id="specific">
+            <option value="Categories">Categories</option>
+            <option value="Hierarchy">Hierarchy</option>
+            <option value="Locations">Locations</option>
+            <option value="errorData">errorData</option>
+            <option value="htmlData">htmlData</option>
+            <option value="RunTimeVariable">RunTimeVariable</option>
+          </select>
+          <input type="hidden" name="action" value="deleteAll">
+          <input type="submit" value="Delete">
+        </td>
+      </div>
+    </form>
+    <td width="144">{% if hier_result %}{{hier_result}}{% endif %}</td>
+    <td width="106">{% if getcount_result %}{{getcount_result}}{% endif %}</td>
+    <td width="148">&nbsp;</td>
+    <td width="185">&nbsp;</td>
+  </tr>
+</table>
+<br>
+<table width="692" border="0">
+  <tr>
+    <td width="100">&nbsp;</td>
+    <td width="137">&nbsp;</td>
+    <td width="210">&nbsp;</td>
+    <td width="87">&nbsp;</td>
+    <td width="64"><form action="/sortdata" method="post">
+        <input type="hidden" name="origFirst" value="{{origFirst}}">
+        <input type="hidden" name="pageNumber" value="{{pageNumber}}">
+        <input type="hidden" name="firstPost" value="{{firstPost}}">
+        {% if prevPage %}
+        <input type="submit" name="Prev 10" value="Prev 10">
+        {% else %}
+        <input type="submit" disabled="True" name="Prev 10" value="Prev 10">
+        {% endif %}
+      </form></td>
+    <td width="68"><form action="/sortdata" method="post">
+        <input type="hidden" name="origFirst" value="{{origFirst}}">
+        <input type="hidden" name="pageNumber" value="{{pageNumber}}">
+        <input type="hidden" name="lastPost" value="{{lastPost}}">
+        {% if nextPage %}
+        <input type="submit" name="Next 10" value="Next 10">
+        {% else %}
+        <input type="submit" disabled="True" name="Next 10" value="Next 10">
+        {% endif %}
+      </form></td>
+  </tr>
+</table>
+<table width="693" height="50" border="1">
+  <tr>
+    <td width="76">Location</td>
+    <td width="108">Category</td>
+    <td width="107">Date</td>
+    <td width="328">Title</td>
+    <td width="40">Link</td>
+  </tr>
+  {% for ad in posts %}
+  <tr>
+    <td>{{ ad.location }}</td>
+    <td>{{ ad.name }}</td>
+    <td>{{ad.postDate}}</td>
+    <td>{{ ad.title }}</td>
+    <td><a href="{{ ad.link }}" target="_blank">Go</a></td>
+  </tr>
+  {% endfor %}
+</table>
+<p></p>
+<p></p>
+<br>
+<br>
+<table width="692" border="0">
+  <tr>
+    <td width="110"><form action="/sendemail" method="post">
+        <div align="center">
+          <input type="text" name="to">
+          <br>
+          <input type="submit" align="right" value="Send Email">
+        </div>
+      </form></td>
+    <form action="/gdata" method="post">
+      <td width="120"><div align="center">
+          <input type="submit" name="action" value="gdata prep">
+        </div></td>
+      <td width="120"><div align="center">
+          <input type="submit" name="action" value="gdata copy">
+        </div></td>
+    <td width="120"><div align="center">
+          <input type="submit" name="action" value="run gdata">
+        </div></td>
+        </form>
+    <td width="68">{% if gdata_result %}{{gdata_result}}{% endif %}</td>
+  </tr>
+</table>
+</body>
+</html>

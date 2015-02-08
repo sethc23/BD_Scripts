@@ -1,0 +1,44 @@
+
+sudo mount /dev/xvdh1 /tmp/vol
+
+copy files back to S2 (but keep working files)
+
+git init --bare git@github.com:sethc23/system_config.git
+
+serv@serv:/home/jail/home/serv/EXT_HD/system_config.git
+sudo mount --bind /Volumes/EXT_HD /home/jail/home/serv/EXT_HD
+
+sudo mount -t hfsplus -o force,defaults,users,umask=0 /dev/sdb2 /Volumes/EXT_HD
+
+sudo chown -R serv:serv EXT_HD/
+sudo mount -o rw,users,uid=1000,gid=1000 /dev/sdb2 /Volumes/EXT_HD
+sudo mount -o bind,uid=1002,gid=1005 /Volumes/EXT_HD /home/jail/home/serv/EXT_HD
+
+
+# Disk Service
+sudo service autofs stop
+
+
+sudo chown -R serv:serv EXT_HD/
+
+# Get Disk Information
+sudo lshw
+
+# Get Disk Space
+df -h
+
+# Print Kernel Msgs
+dmesg
+
+sudo badblocks -sv /dev/sdb2
+
+# identify disks and locations
+sudo lsblk -f
+
+# find process keeping drive busy
+sudo fuser -m /dev/sdb3
+
+# EXTRA force umount
+
+# Clean/Repair Disk
+sudo fsck /dev/sdb2

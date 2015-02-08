@@ -1,0 +1,92 @@
+sudo ./configure \
+--with-debug \
+--with-luajit \
+--without-http_redis2_module \
+--with-http_drizzle_module \
+--with-http_iconv_module \
+--with-libdrizzle=/usr/local \
+--with-http_postgres_module \
+--with-select_module \
+--add-module=openresty_mods/nginx-http-rdns-master \
+--add-module=openresty_mods/ngx_aws_auth-master \
+--add-module=openresty_mods/ngx_http_lower_upper_case-master \
+--add-module=openresty_mods/ngx_http_internal_redirect-master \
+--add-module=openresty_mods/ngx_upstream_jdomain-master \
+--with-http_sub_module \
+--with-http_addition_module \
+--without-lua_redis_parser \
+--with-http_spdy_module \
+--with-http_ssl_module \
+--with-pg_config=/opt/local/lib/postgresql93/bin/pg_config
+
+
+
+sudo make && sudo make install
+
+
+--add-module=openresty_mods/gnosek-nginx-upstream-fair-a18b409 \
+
+--add-module=/Users/admin/Desktop/OPENRESTY/openresty_mods/nginx-http-sysguard-master \
+--add-module=/Users/admin/Desktop/OPENRESTY/openresty_mods/nginx-backtrace-master \
+
+
+## —————————————————————
+## —————————————————————
+	Drizzle7
+## —————————————————————
+## —————————————————————
+
+
+
+in ‘m4/pandora_have_libboost_thread.m4’:
+
+changed ‘  AC_LIB_HAVE_LINKFLAGS(boost_thread-mt,,[‘
+to	‘  AC_LIB_HAVE_LINKFLAGS(boost_thread-mt,boost_system-mt,[‘
+
+and	‘    AC_LIB_HAVE_LINKFLAGS(boost_thread,,[‘
+to	‘    AC_LIB_HAVE_LINKFLAGS(boost_thread,boost_system,[‘
+
+sudo mv /opt/local/bin/libtool /opt/local/bin/libtool_
+
+sudo ./config/autorun.sh
+
+automake --add-missing --copy --force --foreign
+
+export LDFLAGS=-L/opt/local/lib:-L/usr/local/lib:-L/usr/lib
+-- export LIBS=-l/opt/local/lib:-l/usr/lib
+export CPPFLAGS=-I/opt/local/include:-I/opt/local/include/boost:-I/usr/include
+
+sudo ./configure \
+--build=x86_64-apple-darwin13.3 \
+--prefix=/usr/local \
+--exec-prefix=/opt/local \
+--disable-rabbitmq-plugin \
+--without-gearman-udf-plugin \
+--without-logging-gearman-plugin \
+--without-auth-ldap-plugin \
+--without-server
+
+sudo make libdrizzle-1.0
+sudo make install-libdrizzle-1.0
+
+changed Makefile.in to Makefile2.in
+copied Makefile to Makefile.in
+changed po/Makefile.in.in to po/Makefile2.in.in
+
+sudo make -k
+
+sudo make -k > make_k_stdout.log 2> make_k_stderr.log && sudo make -k install > make_k_install_stdout.log 2> make_k_install_stderr.log
+
+libv8
+libpam
+
+
+pgrouting@2.0.0_1+postgresql93
+postgis2@2.1.3+postgresql93+topology
+
+
+
+
+sudo runhaskell Setup.hs configure --ghc
+
+/opt/local/include/postgresql93/server/libpq

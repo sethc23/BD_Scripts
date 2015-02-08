@@ -1,0 +1,1 @@
+0 8 * * * python /Users/admin/Python/Scripts/gmail/gmail_tasks.py "seth.t.chase" "F*rrari1"

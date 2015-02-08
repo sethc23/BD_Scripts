@@ -1,0 +1,134 @@
+<html>
+<head>
+<link type="text/css" rel="stylesheet" href="/stylesheets/main.css" />
+</head>
+<body>
+<p><br>
+</p>
+<table width="747" border="0">
+  <tr>
+    <form action="/makequery" method="post">
+      <div align="left">
+        <td width="136">
+          <select  name="database" id="database">
+            <option value="Categories">Categories</option>
+            <option value="Hierarchy">Hierarchy</option>
+            <option value="Locations">Locations</option>
+            <option value="PostCount">PostCount</option>
+          </select>
+        </td>
+      </div>
+    
+
+      <div align="center">
+        <td width="107"><input name="submit" type="submit" value="Run Query"></td>
+      </div>
+      <div align="center">
+      <td width="115"><input name="submit" type="submit" value="Make Count"></td>
+	</div>
+      <div align="left"><td width="164">&nbsp;</td>
+      </div>
+     <div align="left"> <td width="203">&nbsp;</td>
+     </div>
+</form>
+  </tr>
+  
+</table>
+<table width="747" border="0">
+  <tr>
+    <td width="90">
+    	<select  name="whereFilt" id="whereFilt">
+            <option value="None">None</option>
+            <option value="WhereGreater">Where ... > ____</option>
+            <option value="WhereLess">Where  ... < ____</option>
+            <option value="WhereEqual">Where ... = ____</option>
+          </select>
+            </td>
+    <td width="147"><input name="filterName1" type="text" id="filterName1" value="" size="25"></td>
+    <div align="center"><td width="117">> , < , = </td></div>
+    <td width="147"><input name="filterValue1" type="text" id="filterValue1" value="" size="25"></td>
+    <td width="205">&nbsp;</td>
+</tr>
+    </table>
+    <table width="747" border="0">
+  <tr>
+    <td width="127">           <select  name="andFilt" id="andFilt">
+            <option value="None">None</option>
+            <option value="AndGreater">And ... > ____</option>
+            <option value="AndLess">And  ... < ____</option>
+            <option value="AndEqual">And ... = ____</option>
+          </select>
+            </td>
+    <td width="202"><input name="filterName2" type="text" id="filterName2" value="" size="25"></td>
+    <div align="center"><td width="73">> , < , = </td>
+    </div>
+    <td width="202"><input name="filterValue2" type="text" id="filterValue2" value="" size="25"></td>
+    <td width="119">&nbsp;</td>
+</tr>
+    </table>
+        <table width="747" border="0">
+  <tr>
+  <div align="center">
+    <td width="127">Order By:            </td>
+  </div>
+    <td width="202"><input name="orderBy" type="text" id="orderBy" value="" size="25"></td>
+<div align="center"><td width="103"><select  name="orderType" id="orderType">
+            <option value="Ascending">Ascending</option>
+            <option value="Descending">Descending</option>
+          </select> </td>
+    </div>
+    <td width="184"></td>
+    <td width="109">&nbsp;</td>
+</tr>
+    </table><br>
+<table width="692" border="0">
+  <tr>
+    <td width="100">&nbsp;</td>
+    <td width="137">&nbsp;</td>
+    <td width="210">&nbsp;</td>
+    <td width="87">&nbsp;</td>
+    <td width="64"><form action="/sortdata" method="post">
+        <input type="hidden" name="origFirst" value="{{origFirst}}">
+        <input type="hidden" name="pageNumber" value="{{pageNumber}}">
+        <input type="hidden" name="firstPost" value="{{firstPost}}">
+        {% if prevPage %}
+        <input type="submit" name="Prev 10" value="Prev 10">
+        {% else %}
+        <input type="submit" disabled="True" name="Prev 10" value="Prev 10">
+        {% endif %}
+      </form></td>
+    <td width="68"><form action="/sortdata" method="post">
+        <input type="hidden" name="origFirst" value="{{origFirst}}">
+        <input type="hidden" name="pageNumber" value="{{pageNumber}}">
+        <input type="hidden" name="lastPost" value="{{lastPost}}">
+        {% if nextPage %}
+        <input type="submit" name="Next 10" value="Next 10">
+        {% else %}
+        <input type="submit" disabled="True" name="Next 10" value="Next 10">
+        {% endif %}
+      </form></td>
+  </tr>
+</table>
+<table width="693" height="50" border="1">
+
+  {% if queryProp %}
+  <tr>
+  {% for prop in queryProp %}
+    <td width="80"><div align="center">{{ prop }}</div></td>
+    {% endfor %}
+  </tr>
+  {% endif %}
+  
+  
+  {% for ad in posts %}
+  <tr>
+    <td>{{ ad.location }}</td>
+    <td>{{ ad.name }}</td>
+    <td>{{ad.postDate}}</td>
+    <td>{{ ad.title }}</td>
+    <td><a href="{{ ad.link }}" target="_blank">Go</a></td>
+  </tr>
+  {% endfor %}
+</table>
+</body>
+</html>

@@ -1,0 +1,61 @@
+<html>
+  <head>
+    <link type="text/css" rel="stylesheet" href="/stylesheets/main.css" />
+  </head>
+  <body>
+      <form action="/getdata" method="post">
+      <div><textarea name="content" rows="3" cols="60"></textarea></div>
+      <div><input type="submit" value="Get Data"></div>
+    </form>
+      <p><br>
+      </p>
+  <table width="692" border="0">
+  <tr>
+    <td width="102"></td>
+    <td width="293">&nbsp;</td>
+    <td width="64">    <form action="/sortdata" method="post">
+    	<input type="hidden" name="origFirst" value="{{origFirst}}">
+        <input type="hidden" name="pageNumber" value="{{pageNumber}}">
+    	<input type="hidden" name="firstPost" value="{{firstPost}}">
+      {% if prevPage %}      
+      <input type="submit" name="Prev 10" value="Prev 10">
+      {% else %}    
+      <input type="submit" disabled="True" name="Prev 10" value="Prev 10">
+      {% endif %}        
+    </form></td>
+    <td width="67">
+        
+    <form action="/sortdata" method="post">
+    	<input type="hidden" name="origFirst" value="{{origFirst}}">
+        <input type="hidden" name="pageNumber" value="{{pageNumber}}">
+    	<input type="hidden" name="lastPost" value="{{lastPost}}">
+      {% if nextPage %}
+      <input type="submit" name="Next 10" value="Next 10">
+      {% else %}
+      <input type="submit" disabled="True" name="Next 10" value="Next 10">
+      {% endif %}
+    </form>
+    
+    </td>
+  </tr>
+</table>
+  <table width="693" height="50" border="1">
+    <tr>
+      <td width="76">Location</td>
+      <td width="108">Category</td>
+      <td width="107">Date</td>
+      <td width="328">Title</td>
+      <td width="40">Link</td>
+    </tr>
+    {% for ad in posts %}
+  <tr>
+    <td>{{ ad.location }}</td>
+    <td>{{ ad.name }}</td>
+    <td>{{ad.postDate}}</td>
+    <td>{{ ad.title }}</td>
+    <td><a href="{{ ad.link }}" target="_blank">Go</a></td>
+  </tr>
+    {% endfor %}
+  </table>
+</body>
+</html>

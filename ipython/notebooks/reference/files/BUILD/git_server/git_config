@@ -1,0 +1,49 @@
+
+[user]
+        name = ub2
+        email = blinddiver@gmail.com
+[github]
+        user = sethc23
+        token = e27b3b9e1d3395124d1a7f5eb722d9e457ca983f
+[core]
+	autocrlf = input
+        excludesfile = ~/.git/.gitignore_global
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+	logallrefupdates = true
+#	sparseCheckout = true
+[add]
+        ignore-errors = true
+[push]
+        default = matching
+[color]
+        ui = auto
+[color "branch"]
+       current = yellow bold
+       local = green bold
+       remote = cyan bold
+[color "diff"]
+       meta = yellow bold
+       frag = magenta bold
+       old = red bold
+       new = green bold
+       whitespace = red reverse
+[color "status"]
+       added = green bold
+       changed = yellow bold
+       untracked = red bold
+[diff]
+	tool = meld
+[remote "git_repo"]
+	url = git@github.com:sethc23/system_config.git
+	fetch = +refs/heads/*:refs/remotes/git_repo/*
+[remote "local_repo"]
+	url = git@git:/home/git/system_config.git
+	fetch = +refs/heads/*:refs/remotes/local_repo/*
+[remote "aprinto_repo"]
+	url = git@github.com:sethc23/aprinto.git
+	fetch = +refs/heads/*:refs/remotes/aprinto_repo/*
+[remote "local_serv"]
+	url = serv@serv:/home/jail/home/serv/EXT_HD/system_config.git
+	fetch = +refs/heads/*:refs/remotes/local_serv/*

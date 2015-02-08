@@ -1,0 +1,5 @@
+
+05 * * * * /Users/admin/SERVER2/BD_Scripts/crons/pyCron.sh /Users/admin/SERVER2/BD_Scripts/crons/manage_cron.py run
+0 * * * * /Users/admin/SERVER2/BD_Scripts/crons/pyCron.sh /Users/admin/SERVER2/BD_Scripts/crons/ip_address_update.py
+0 7 * * * /Users/admin/SERVER2/BD_Scripts/crons/pyCron.sh /Users/admin/SERVER2/BD_Scripts/crons/BOND_update_listings.py
+30 16 * * * /Users/admin/SERVER2/BD_Scripts/crons/pyCron.sh /Users/admin/SERVER2/BD_Scripts/crons/BOND_update_listings.py

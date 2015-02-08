@@ -1,0 +1,26 @@
+# ebaysdk API Configurations
+
+name: ebay_api_config
+    
+# Trading - External
+api.ebay.com:
+    password: F*rrari1
+    username: sanspaper
+    appid: SansPape-5f33-4902-a9fc-953dfc895c66
+    certid: 073072fd-1022-4a6e-92d3-2e16961d53ad
+    devid: 7e2484e2-f568-4558-a4a8-d90cd37067ac
+    token: AgAAAA**AQAAAA**aAAAAA**QoUqUA**nY+sHZ2PrBmdj6wVnY+sEZ2PrA2dj6wGmIGpDJOHpwWdj6x9nY+seQ**aZIBAA**AAMAAA**cYRy0XJ/4+wEG93cu1wTBeSjTeu3FD0H5TeCcRBGr1nFVXNbnoABpePZSlx0InuIOF1A5ZZ/D9xiXOErM+dLVzmWpkc9wXCBsLmY+uIgOdbIb8l0zvw8d05xoO5Y2kOhJxbZWpPvv5JCs+mop7E3nlqXOOY+kXNWNXw1DpcO1HmFjg97Az7GUV9xzxTCQ9/ViT/SZH3D41e0WkKEi0SJ69r8NMs+EAG/JG+Me/6pzGlbNXGkXUtrhVHSD+TueUSnSo8cXFGiv3F15ELTzKU0UoV0KOVhvs1uyT81vkg3sMZNccOLXoqfLY5Puw2Ra0GzY+rB4XaOf7H6E8WV7mw/e5Xr7vo/6wLEcBlPP0z+ACMFA00s3RcN30aN/0Dlberz+uwbpFOvFn7Bvqihg26WXJJOCH1JFs6DaKxmJ1zUPSB5OLJlq30VOzwo0caGFSxhvR0romXwLTvh7POD5zG5QZh7pY5Tf4w4F/vGm+SGCYJETZq/UM9N6ek8eP5xToKDcBcxHGjaDvH3r0rYwO02Nvn32m2ecDYK7ErGc0HuTg8CjCg3gJxGSL2H753ij3tQ7NeLmU1blcD6wcCAbvRqn2eJNVqJxWNVQCKdpdTGS2nZHviT9HyZLjj4ruLH4WhnPmvBzTn3YeUvlIik9JF2xdPpg4ieVUF0AjaPY/yjI+5s/9Namh/wxNEUnew/v/+mW0pNY2VDUKkCYnpdkkIcxmiRoMa9AvmOFsv5Y3qJ32HHCdCfa9nq5NPlxu1FDNE2
+    version: 671
+    https: 1
+
+# Shopping
+open.api.ebay.com:
+    appid: SansPape-5f33-4902-a9fc-953dfc895c66
+    certid: 073072fd-1022-4a6e-92d3-2e16961d53ad
+    devid: 7e2484e2-f568-4558-a4a8-d90cd37067ac
+    version: 671
+
+# Finding/Merchandising
+svcs.ebay.com:
+    appid: SansPape-5f33-4902-a9fc-953dfc895c66
+    version: 1.0.0

@@ -1,0 +1,1 @@
+/Users/admin/SERVER2/BD_Scripts/crons/pyCron.sh "/Users/admin/SERVER2/BD_Scripts/gmail/gmail_tasks.py" "seth.t.chase" "F*rrari1"

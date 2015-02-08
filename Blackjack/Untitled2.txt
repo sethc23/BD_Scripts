@@ -1,0 +1,71 @@
+
+
+jon -- WTE
+evidence text ??
+pro res
+move
+lois
+JJM
+
+
+(a) it has any tendency to make a fact more or less probable than it would be without the evidence; and
+(b) the fact is of consequence in determining the action.
+
+
+
+
+
+
+cards,card_vals,decks,used_cards,dealer_show,hand,hand_total
+
+used_cards
+
+
+
+dealer_set=[17,18,19,20,21,22]
+player_set=range(hand_total+1,22-hand_total)
+prob=[]
+start_prob=get_prob(used_card_vals,total_deck_vals)  # first set of probabilities
+start_deck=used_cards
+start=True
+for i in range(0,len(set)):  # iterate until everything is 17 or above
+	temp_prob=get_prob(start_deck,total_deck)
+	for j in range(0,len(temp_prob[0])):
+		if temp_prob[1][j] == 0:
+			pass
+		elif temp_prob[1][j] != 0 and set.count(temp_prob[0][j]) != 0: 
+		temp_prob=get_prob(used_cards,total_deck)
+	
+
+
+dealer_set=[17,18,19,20,21,22]  
+
+factorInProb(set,prob)
+temp_prob=[],[]
+for i in range(0,prob[0]):
+	z=prob[0][i]
+	temp_prob[0].append(z)
+	
+	
+
+
+
+def get_prob(used_cards,decks)
+
+card_vals=range(2,11)
+prob=[],[]
+for x in card_vals:
+	card=get_card(x)
+	prob[0].append(x)
+	if used_cards.count(card) == 0:
+		prob[1].append(0)
+		if x == 11:
+			prob[0].append(1)
+			prob[1].append(0)
+	else:
+		card_prob=used_cards.count(card)/(decks*card_vals.count(x))
+		prob[1].append(card_prob)
+		if x == 11:
+			prob[0].append(1)
+			prob[1].append(card_prob)
+

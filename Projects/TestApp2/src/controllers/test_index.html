@@ -1,0 +1,70 @@
+<html>
+  <head>
+    <link type="text/css" rel="stylesheet" href="/stylesheets/main.css" />
+    <link href="../stylesheets/main.css" rel="stylesheet" type="text/css">
+    <style type="text/css">
+<!--
+.style1 {color: #FF0000}
+-->
+    </style>
+</head>
+  <body>
+<!--      <form action="/getdata" method="post">
+      <div><textarea name="content" rows="3" cols="60"></textarea></div>
+      <div><input type="submit" value="Get Data"></div>
+    </form>-->
+      <p></p>
+<!--  <table width="692" border="0">
+  <tr>
+    <td width="102"></td>
+    <td width="293">&nbsp;</td>
+    <td width="64">    <form action="/sortdata" method="post">
+    	<input type="hidden" name="origFirst" value="{{origFirst}}">
+        <input type="hidden" name="pageNumber" value="{{pageNumber}}">
+    	<input type="hidden" name="firstPost" value="{{firstPost}}">
+      {% if prevPage %}      
+      <input type="submit" name="Prev 10" value="Prev 10">
+      {% else %}    
+      <input type="submit" disabled="True" name="Prev 10" value="Prev 10">
+      {% endif %}        
+    </form></td>
+    <td width="67">
+        
+    <form action="/sortdata" method="post">
+    	<input type="hidden" name="origFirst" value="{{origFirst}}">
+        <input type="hidden" name="pageNumber" value="{{pageNumber}}">
+    	<input type="hidden" name="lastPost" value="{{lastPost}}">
+      {% if nextPage %}
+      <input type="submit" name="Next 10" value="Next 10">
+      {% else %}
+      <input type="submit" disabled="True" name="Next 10" value="Next 10">
+      {% endif %}
+    </form>
+    
+    </td>
+  </tr>
+</table>-->
+  <table width="658" height="60" border="1">
+    <tr>
+      <td width="100"><span class="style1">City</span></td>
+      <td width="115" class="style1">Category</td>
+      <td width="135" class="style1">PostDate</td>
+      <td width="140" class="style1">PostCount</td>
+    </tr>
+
+    
+       {% for i in posts %}
+  <tr>
+    <td height="22">{{i.city}}</td>
+    <td height="22">{{i.category}}</td>
+    <td height="22">{{i.postDate}}</td>
+    <td height="22">{{i.postCount}}</td>
+  </tr>
+    {% endfor %}
+    
+
+
+  </table>
+  
+</body>
+</html>

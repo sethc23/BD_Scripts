@@ -1,0 +1,166 @@
+<p>For example, here's how to search for issues with the word
+<b>calculation</b> in the summary field.</p>
+<form action="list" method="GET">
+ <p><input type="text" size="25" name="q" value="summary:calculation" >
+ <input type="submit" name="btn" value="Search" ></p>
+</form>
+<p>When searching for issues owned by a specific user, you can use his
+or her username. When referring to yourself, you can also use the
+special term <b>me</b>. For example, this restricts the search to
+issues that are owned by you.</p>
+<form action="list" method="GET">
+ <p><input type="text" size="25" name="q" value="owner:username" >
+ <input type="submit" name="btn" value="Search" >
+</form>
+<form action="list" method="GET">
+ <p><input type="text" size="25" name="q" value="owner:me" >
+ <input type="submit" name="btn"  value="Search" >
+ </p>
+</form>
+<p>Rather than have a large number of predefined fields, our issue
+tracker stores many issue details as labels.</p>
+<p>For example, if you labeled security-related issues with the label
+<b>Security</b>, here's how to search for them.</p>
+<form action="list" method="GET">
+ <p><input type="text" size="25" name="q" value="label:security" >
+ <input type="submit" name="btn" value="Search" ></p>
+</form>
+<p>In addition to simple one-word labels, you can use two part labels
+that specify an attribute and a value, like <b>Priority-High</b>,
+<b>Priority-Medium</b>, and <b>Priority-Low</b>. You can search for
+these with the label: operator, or you can use the first part of the
+label name like an operator.</p>
+<p>For example, if you labeled high priority issues with
+<b>Priority-High</b>, here's one way to search for them.</p>
+<form action="list" method="GET">
+ <p><input type="text" size="25" name="q" value="label:Priority-High" >
+ <input type="submit" name="btn" value="Search" ></p>
+</form>
+<p>And, here is a more compact way to do the same search.</p>
+<form action="list" method="GET">
+ <p><input type="text" size="25" name="q" value="Priority:High" >
+ <input type="submit" name="btn" value="Search" ></p>
+</form>
+<p>
+You can search for issues that are blocked or blocking by using <b>blockedon:NNN</b> or
+<b>blocking:NNN</b>. You can also search for issues that are blocked on anything with
+<b>is:blocked</b>.
+</p>
+<form action="list" method="GET">
+ <p><input type="text" size="25" name="q" value="is:blocked" >
+ <input type="submit" name="btn" value="Search" ></p>
+</form>
+<h3>Empty (or non-empty) field search</h3>
+<p>For each built-in field operator, you can use the 'has' operator to search for
+issues with empty or non-empty fields.</p>
+<p>For example, here's how to search for issues whose owner field is non-empty,
+assigned to someone.</p>
+<form action="list" method="GET">
+ <p><input type="text" size="25" name="q" value="has:owner" >
+ <input type="submit" name="btn" value="Search" >
+</form>
+<p>Or, you can use '-has' operator for negation, to search for issues with empty
+fields.</p>
+<p>For example, here's how to search for issues whose owner field is empty
+because no one is assigned to it.</p>
+<form action="list" method="GET">
+ <p><input type="text" size="25" name="q" value="-has:owner" >
+ <input type="submit" name="btn" value="Search" >
+</form>
+<h3>"OR" search</h3>
+<p>Normally, each added search term narrows your search. If you would
+like to find issues that include either of two terms, add an uppercase
+"OR" between them.</p>
+<p>For example, here's how to search for issues that are labeled with
+either <b>Priority-High</b> or <b>Priority-Medium</b>.</p>
+<form action="list" method="GET">
+ <p><input type="text" size="25" name="q" value="Priority:High OR Priority:Medium" >
+ <input type="submit" name="btn" value="Search" ></p>
+</form>
+<p>A shorter way to search for two values for one field, or two labels
+with the same prefix, is to use commas.</p>
+<form action="list" method="GET">
+ <p><input type="text" size="25" name="q" value="Priority:High,Medium" >
+ <input type="submit" name="btn" value="Search" ></p>
+</form>
+<h3>Exact value search</h3>
+<p>You can search for issues that exactly match the given term by using
+the search operator '='.</p>
+<p>For example, searching for 'Milestone=2009' only matches issues with the
+label 'Milestone-2009', while searching for 'Milestone:2009' matches issues
+with the labels 'Milestone-2009', 'Milestone-2009-Q1', 'Milestone-2009-Q3',
+etc.</p>
+<form action="list" method="GET">
+ <p><input type="text" size="25" name="q" value="Milestone=2009" >
+ <input type="submit" name="btn" value="Search" ></p>
+</form>
+<h3>Star search</h3>
+<p>Any logged in user can mark any issue with a star. The star
+indicates interest in the issue.</p>
+<p>For example, to quickly see all the issues in this project that you
+have starred, you could use the following:</p>
+<form action="list" method="GET">
+ <p><input type="text" size="25" name="q" value="is:starred" >
+ <input type="submit" name="btn"  value="Search" >
+ </p>
+</form>
+<p>And, to see the issues that at least three users have starred, use
+the following:</p>
+<form action="list" method="GET">
+ <p><input type="text" size="25" name="q" value="stars:3" >
+ <input type="submit" name="btn" value="Search" ></p>
+</form>
+<h3>Jump to issue and numeric search</h3>
+<p>You can jump directly to a specific issue by entering its ID in the
+search field.</p>
+<p>For example, to jump to issue 1, just search for 1. If there is no
+existing issue with that ID, the system will search for issues that
+contain that number anywhere in the issue.</p>
+<form action="list" method="GET">
+ <p><input type="text" size="25" name="q" value="1" >
+ <input type="submit" name="btn" value="Search" ></p>
+</form>
+<p>If you just want to search for issues that contain the number 1, without
+jumping to issue 1, enclose the number in quotation marks.</p>
+<form action="list" method="GET">
+ <p><input type="text" size="25" name="q" value="&quot;1&quot;" >
+ <input type="submit" name="btn" value="Search" ></p>
+</form>
+<h3>Attachment search</h3>
+<p>Users can attach files to any issues, either when issues are created or as
+part of issue comments.</p>
+<p>To quickly see all the issues that have attachments, use the following:</p>
+<form action="list" method="GET">
+ <p><input type="text" size="25" name="q" value="has:attachment" >
+ <input type="submit" name="btn" value="Search" ></p>
+</form>
+<p>Or, you can search for a specific filename of the attachment.</p>
+<form action="list" method="GET">
+ <p><input type="text" size="25" name="q" value="attachment:screenshot" >
+ <input type="submit" name="btn" value="Search" ></p>
+</form>
+<p>You can also search for the file extension of the attachment.</p>
+<form action="list" method="GET">
+ <p><input type="text" size="25" name="q" value="attachment:png" >
+ <input type="submit" name="btn" value="Search" ></p>
+</form>
+<h3>Date range search</h3>
+<p>You can perform searches based on date ranges.</p>
+<p>This search syntax is divided into two parts, the action and the date,
+[action]:[date]</p>
+<p>Supported actions are: 'opened-after', 'opened-before',
+'modified-after', 'modified-before', 'closed-after', and 'closed-before'.
+And the date must to be specified as 'YYYY-MM-DD', 'YYYY/MM/DD' or 'today-N'.</p>
+<p>For example, if you want to search for issues opened after 2009/4/1, you
+could do the following:</p>
+<form action="list" method="GET">
+ <p><input type="text" size="25" name="q" value="opened-after:2009/4/1" >
+ <input type="submit" name="btn" value="Search" ></p>
+</form>
+<p>Or, if you want to search for issues modified 20 days before today's date,
+you could do the following:</p>
+<form action="list" method="GET">
+ <p><input type="text" size="25" name="q" value="modified-before:today-20" >
+ <input type="submit" name="btn" value="Search" ></p>
+</form>
+</div>

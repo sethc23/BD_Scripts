@@ -1,0 +1,58 @@
+RESEARCH
+
+GetPostCountApp
+start timer
+while timer < 10 sec and Date not found:
+	getOneCategory
+		look to see if any variables already stored for counting purpose
+			if so, pick up where left off
+		if no previous count, return {location,category,fullurl}
+	return timer
+	runCateCount	-	postDate,count
+		getPostCount	-	error,action {("next page",currentUrl,None),("complete",postCount,None),("step2",currentUrl,indexInfo)
+			step1/
+				None/nextPage	-	siteHTML,None OR siteHTML,newUrl
+				None/dateCheck	-	count zero,fromDate,make count,toDate,next page
+					done(count zero/fromDate)
+					step1(next page)
+					step2(make count,toDate)
+Date Found:
+	return count
+	update "counted" and "date counted"
+	delete saved variables if any
+	check see if another OneCategory
+		yes/	return- run again
+		no/		return- all counted
+Date Not Found:
+	save:
+		last post # on page
+		count up to this number
+		last link clicked
+		fullurl
+	return- run again
+
+	o	getOneCategory	-	city,category,fullurl
+	o	runCateCount		-	postdate,count
+		¥	getPostCount		-	postCount
+	o	sendPostCount	-	success, sendData failure+
+
+¥	ShowPostCountApp
+
+¥	SortPostCountApp
+
+SetHierarchyApp
+	Cities		-	success, error		-	Bounce
+		getCities	-	sites,siteUrls
+			checkWebPage(url)	-	webpage,False
+				False/saveWebPage(url)
+				webpage/getSiteUrls(url)	-	sites,siteUrls
+		checkCityUrl	-	(T/F),None
+			None/sendOneCity(name,url)
+			
+	Categories	-	success, error		-	Bounce
+		getCategories	-	Nothing to Update, {cityname,cate_names,full_cate_urls}
+			getOneCity	-	{city},Nothing to Update
+		checkCityCateUrl(fullurl)	-	True,False
+			False/setPostSchedule(location,category,url)	-	success, sendData failure+
+				sendCityCate	-	success, sendData failure+
+		success/updateOneCity	-	Updated, Error

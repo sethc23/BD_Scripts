@@ -1,0 +1,43 @@
+showdata			/
+getnewdata			/getdata
+SortData			/sortdata
+SendEmail			/sendemail?to=
+GetPostCount		/getpostcount
+ShowPostCount		/showpostcount
+get updated citylist		/sethierarchy?action=cities
+update categories		/sethierarchy?action=categories
+clean schedule		/sethierarchy?action=deleteAll&specific=Hierarchy
+
+
+GET POST COUNT - 
+local:
+nohup /opt/local/bin/wget --max-redirect=1000 "http://localhost:8102/getpostcount" > /Users/admin/Desktop/redirectLog.txt &
+
+nohup /opt/local/bin/wget --max-redirect=1000 "http://money-press.appspot.com/getpostcount" > /Users/admin/Desktop/redirectLog.txt &
+
+COUNT DATABASE
+
+nohup /opt/local/bin/wget --max-redirect=1000 "http://money-press.appspot.com/dbcenter?action=count&specific=PostCount" > /Users/admin/Desktop/WGETLog.txt &
+
+
+
+
+GET CITIES	-	each 2 redirects picks up 10 cities, so 33*2= 66 runs
+
+nohup /opt/local/bin/wget --max-redirect=66 "http://money-press.appspot.com/sethierarchy?action=cities" > /Users/admin/Desktop/redirectLog.txt &
+
+local:
+nohup wget --max-redirect=300 "http://localhost:8102/sethierarchy?action=cities" > /Users/admin/Desktop/redirectLog.txt &
+
+GET CATEGORIES - -	each 2 redirects picks up 1 cities, so 326*2 = 651 runs
+
+nohup wget --max-redirect=651 "http://money-press.appspot.com/sethierarchy?action=categories" > /Users/admin/Desktop/redirectLog.txt &
+
+local:
+nohup wget --max-redirect=96 "http://localhost:8102/sethierarchy?action=categories" > /Users/admin/Desktop/redirectLog.txt &
+
+
+KILL DATASTORE
+Hierarchy:
+nohup wget --max-redirect=100 "http://money-press.appspot.com/sethierarchy?action=deleteAll&specific=Hierarchy" > /Users/admin/Desktop/redirectLog.txt &
+

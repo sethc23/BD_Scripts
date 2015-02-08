@@ -1,0 +1,15 @@
+k.underline_note:dark_blue
+k.underline_note:orange
+k.underline_note:black
+k.underline_note:light_blue
+k.highlight_note:orange
+k.underline_note:purple
+k.underline_note:red
+k.underline_note:pink
+k.underline_note:light_green
+k.underline_note:grey
+k.highlight_note:yellow
+k.highlight_note:light_green
+k.underline_note:dark_green
+k.underline_note:yellow
+k.highlight_note:light_blue

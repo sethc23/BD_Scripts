@@ -1,0 +1,29 @@
+
+
+For recycling EDA DG,
+
+	chose DG with { min( now - immutable_time ) }
+	find best route with closest points.
+
+For new orders, see what DG are available
+
+For a DG without orders, see if any orders can be picked up.
+If yes, head to pick up.
+
+For DG with orders, see if any additional orders can be picked up,
+provided, however, that all current deliveries are made on time.
+If yes, head to pick up.
+
+
+What prevents an order from never being picked up?
+
+sql.read_frame("SELECT * FROM table_name;", cnx)
+
+cnx = pandas.io.sql.connect(host='srv',user='me',password='pw',database='db')
+df = pandas.io.sql.read_frame('sql_query',cnx)
+
+df = pandas.io.sql.read_frame('sql_query', index=['date_column_name'], con=cnx)
+
+where 'date_column_name' is the name of the column in the database that contains date elements
+
+

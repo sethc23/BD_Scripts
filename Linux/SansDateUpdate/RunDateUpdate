@@ -1,0 +1,9 @@
+#! /bin/sh
+
+#`localUpdateDate.txt`
+#var=`sans`
+#echo `sans`
+cd /Users/admin/Sites/SansPaper/sanspaper
+#echo `pwd`
+`./localUpdateDate.txt`
+#echo $var

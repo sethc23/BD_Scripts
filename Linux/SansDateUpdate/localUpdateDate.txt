@@ -1,0 +1,82 @@
+#!/bin/sh
+
+#date -v+12d +'%e'
+
+#cd $HOME/html
+cd /Users/admin/Sites/SansPaper/sanspaper
+dirVar=`echo pwd`
+echo $dirVar
+
+
+fileVar="dateVar.txt"
+txtVar=`cat $fileVar`
+#echo $txtVar
+old=`echo $txtVar`
+#echo $old
+counter=`date +'%e' | grep -c " "`
+#echo $counter
+if [ $counter -eq 1 ]
+then
+  new=`date +'%B%e, %Y'`
+else
+  new=`date +'%B %e, %Y'`
+fi
+#echo $new
+
+file="welcome.html"
+test=`grep -s $old $file`
+if [ "$test" != "" ]
+then
+  sed -e "s/$old/$new/" $file > /tmp/tempfile.tmp
+  mv /tmp/tempfile.tmp $file
+fi
+file="aboutus.html"
+test=`grep -s $old $file`
+if [ "$test" != "" ]
+then
+  sed -e "s/$old/$new/" $file > /tmp/tempfile.tmp
+  mv /tmp/tempfile.tmp $file
+fi
+file="paperservices.html"
+test=`grep -s $old $file`
+if [ "$test" != "" ]
+then
+  sed -e "s/$old/$new/" $file > /tmp/tempfile.tmp
+  mv /tmp/tempfile.tmp $file
+fi
+file="electronicservices.html"
+test=`grep -s $old $file`
+if [ "$test" != "" ]
+then
+  sed -e "s/$old/$new/" $file > /tmp/tempfile.tmp
+  mv /tmp/tempfile.tmp $file
+fi
+file="spadvantage.html"
+test=`grep -s $old $file`
+if [ "$test" != "" ]
+then
+  sed -e "s/$old/$new/" $file > /tmp/tempfile.tmp
+  mv /tmp/tempfile.tmp $file
+fi
+file="contactus.html"
+test=`grep -s $old $file`
+if [ "$test" != "" ]
+then
+  sed -e "s/$old/$new/" $file > /tmp/tempfile.tmp
+  mv /tmp/tempfile.tmp $file
+fi
+file="calculations.html"
+test=`grep -s $old $file`
+if [ "$test" != "" ]
+then
+  sed -e "s/$old/$new/" $file > /tmp/tempfile.tmp
+  mv /tmp/tempfile.tmp $file
+fi
+
+file=$fileVar
+test=`grep -s $old $file`
+if [ "$test" != "" ]
+then
+  sed -e "s/$old/$new/" $file > /tmp/tempfile.tmp
+  mv /tmp/tempfile.tmp $file
+fi

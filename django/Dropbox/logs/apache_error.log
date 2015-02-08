@@ -1,0 +1,432 @@
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1] mod_wsgi (pid=32622): Exception occurred processing WSGI script '/Users/admin/SERVER2/BD_Scripts/django/Dropbox/aprinto/aprinto/wsgi.py'.
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1] Traceback (most recent call last):
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/wsgi.py", line 206, in __call__
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]     response = self.get_response(request)
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/base.py", line 194, in get_response
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]     response = self.handle_uncaught_exception(request, resolver, sys.exc_info())
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/base.py", line 229, in handle_uncaught_exception
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]     return debug.technical_500_response(request, *exc_info)
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/views/debug.py", line 69, in technical_500_response
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]     html = reporter.get_traceback_html()
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/views/debug.py", line 324, in get_traceback_html
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]     return t.render(c)
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/template/base.py", line 140, in render
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]     return self._render(context)
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/template/base.py", line 134, in _render
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]     return self.nodelist.render(context)
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/template/base.py", line 840, in render
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]     bit = self.render_node(node, context)
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/template/debug.py", line 78, in render_node
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]     return node.render(context)
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/template/debug.py", line 88, in render
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]     output = self.filter_expression.resolve(context)
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/template/base.py", line 613, in resolve
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]     new_obj = func(obj, *arg_vals)
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/template/defaultfilters.py", line 705, in date
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]     return format(value, arg)
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/utils/dateformat.py", line 312, in format
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]     return df.format(format_string)
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/utils/dateformat.py", line 35, in format
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]     pieces.append(force_text(getattr(self, piece)()))
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/utils/dateformat.py", line 216, in r
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]     return self.format('D, j M Y H:i:s O')
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/utils/dateformat.py", line 35, in format
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]     pieces.append(force_text(getattr(self, piece)()))
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/utils/encoding.py", line 100, in force_text
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]     s = s.__unicode__()
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/utils/functional.py", line 138, in __text_cast
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]     return func(*self.__args, **self.__kw)
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/utils/translation/__init__.py", line 76, in ugettext
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]     return _trans.ugettext(message)
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/utils/translation/trans_real.py", line 281, in ugettext
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]     return do_translate(message, 'ugettext')
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/utils/translation/trans_real.py", line 263, in do_translate
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]     _default = translation(settings.LANGUAGE_CODE)
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/utils/translation/trans_real.py", line 177, in translation
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]     default_translation = _fetch(settings.LANGUAGE_CODE)
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/utils/translation/trans_real.py", line 159, in _fetch
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]     app = import_module(appname)
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/utils/importlib.py", line 40, in import_module
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1]     __import__(name)
+[Wed Jul 30 04:04:16 2014] [error] [client 127.0.0.1] ImportError: No module named django_extensions
+127.0.0.1 - - [30/Jul/2014:04:04:10 +0000] "GET / HTTP/1.1" 500 535 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+[Wed Jul 30 00:14:59 2014] [error] [client 127.0.0.1] mod_wsgi (pid=33629): Exception occurred processing WSGI script '/Users/admin/SERVER2/BD_Scripts/django/Dropbox/aprinto/aprinto/wsgi.py'.
+[Wed Jul 30 00:14:59 2014] [error] [client 127.0.0.1] Traceback (most recent call last):
+[Wed Jul 30 00:14:59 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/wsgi.py", line 187, in __call__
+[Wed Jul 30 00:14:59 2014] [error] [client 127.0.0.1]     self.load_middleware()
+[Wed Jul 30 00:14:59 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/base.py", line 44, in load_middleware
+[Wed Jul 30 00:14:59 2014] [error] [client 127.0.0.1]     for middleware_path in settings.MIDDLEWARE_CLASSES:
+[Wed Jul 30 00:14:59 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 54, in __getattr__
+[Wed Jul 30 00:14:59 2014] [error] [client 127.0.0.1]     self._setup(name)
+[Wed Jul 30 00:14:59 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 49, in _setup
+[Wed Jul 30 00:14:59 2014] [error] [client 127.0.0.1]     self._wrapped = Settings(settings_module)
+[Wed Jul 30 00:14:59 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 132, in __init__
+[Wed Jul 30 00:14:59 2014] [error] [client 127.0.0.1]     % (self.SETTINGS_MODULE, e)
+[Wed Jul 30 00:14:59 2014] [error] [client 127.0.0.1] ImportError: Could not import settings 'aprinto.settings' (Is it on sys.path? Is there an import error in the settings file?): cannot import name Celery
+127.0.0.1 - - [30/Jul/2014:00:14:56 -0400] "GET / HTTP/1.1" 500 535 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+[Wed Jul 30 00:15:27 2014] [error] [client 127.0.0.1] mod_wsgi (pid=33632): Exception occurred processing WSGI script '/Users/admin/SERVER2/BD_Scripts/django/Dropbox/aprinto/aprinto/wsgi.py'.
+[Wed Jul 30 00:15:27 2014] [error] [client 127.0.0.1] Traceback (most recent call last):
+[Wed Jul 30 00:15:27 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/wsgi.py", line 187, in __call__
+[Wed Jul 30 00:15:27 2014] [error] [client 127.0.0.1]     self.load_middleware()
+[Wed Jul 30 00:15:27 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/base.py", line 44, in load_middleware
+[Wed Jul 30 00:15:27 2014] [error] [client 127.0.0.1]     for middleware_path in settings.MIDDLEWARE_CLASSES:
+[Wed Jul 30 00:15:27 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 54, in __getattr__
+[Wed Jul 30 00:15:27 2014] [error] [client 127.0.0.1]     self._setup(name)
+[Wed Jul 30 00:15:27 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 49, in _setup
+[Wed Jul 30 00:15:27 2014] [error] [client 127.0.0.1]     self._wrapped = Settings(settings_module)
+[Wed Jul 30 00:15:27 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 132, in __init__
+[Wed Jul 30 00:15:27 2014] [error] [client 127.0.0.1]     % (self.SETTINGS_MODULE, e)
+[Wed Jul 30 00:15:27 2014] [error] [client 127.0.0.1] ImportError: Could not import settings 'aprinto.settings' (Is it on sys.path? Is there an import error in the settings file?): cannot import name Celery
+127.0.0.1 - - [30/Jul/2014:00:15:27 -0400] "GET / HTTP/1.1" 500 535 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+[Wed Jul 30 00:20:25 2014] [error] [client 127.0.0.1] mod_wsgi (pid=33629): Exception occurred processing WSGI script '/Users/admin/SERVER2/BD_Scripts/django/Dropbox/aprinto/aprinto/wsgi.py'.
+[Wed Jul 30 00:20:25 2014] [error] [client 127.0.0.1] Traceback (most recent call last):
+[Wed Jul 30 00:20:25 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/wsgi.py", line 187, in __call__
+[Wed Jul 30 00:20:25 2014] [error] [client 127.0.0.1]     self.load_middleware()
+[Wed Jul 30 00:20:25 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/base.py", line 44, in load_middleware
+[Wed Jul 30 00:20:25 2014] [error] [client 127.0.0.1]     for middleware_path in settings.MIDDLEWARE_CLASSES:
+[Wed Jul 30 00:20:25 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 54, in __getattr__
+[Wed Jul 30 00:20:25 2014] [error] [client 127.0.0.1]     self._setup(name)
+[Wed Jul 30 00:20:25 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 49, in _setup
+[Wed Jul 30 00:20:25 2014] [error] [client 127.0.0.1]     self._wrapped = Settings(settings_module)
+[Wed Jul 30 00:20:25 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 132, in __init__
+[Wed Jul 30 00:20:25 2014] [error] [client 127.0.0.1]     % (self.SETTINGS_MODULE, e)
+[Wed Jul 30 00:20:25 2014] [error] [client 127.0.0.1] ImportError: Could not import settings 'aprinto.settings' (Is it on sys.path? Is there an import error in the settings file?): cannot import name Celery
+127.0.0.1 - - [30/Jul/2014:00:20:25 -0400] "GET / HTTP/1.1" 500 535 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+[Wed Jul 30 00:22:13 2014] [error] [client 127.0.0.1] mod_wsgi (pid=33684): Exception occurred processing WSGI script '/Users/admin/SERVER2/BD_Scripts/django/Dropbox/aprinto/aprinto/wsgi.py'.
+[Wed Jul 30 00:22:13 2014] [error] [client 127.0.0.1] Traceback (most recent call last):
+[Wed Jul 30 00:22:13 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/wsgi.py", line 187, in __call__
+[Wed Jul 30 00:22:13 2014] [error] [client 127.0.0.1]     self.load_middleware()
+[Wed Jul 30 00:22:13 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/base.py", line 44, in load_middleware
+[Wed Jul 30 00:22:13 2014] [error] [client 127.0.0.1]     for middleware_path in settings.MIDDLEWARE_CLASSES:
+[Wed Jul 30 00:22:13 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 54, in __getattr__
+[Wed Jul 30 00:22:13 2014] [error] [client 127.0.0.1]     self._setup(name)
+[Wed Jul 30 00:22:13 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 49, in _setup
+[Wed Jul 30 00:22:13 2014] [error] [client 127.0.0.1]     self._wrapped = Settings(settings_module)
+[Wed Jul 30 00:22:13 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 132, in __init__
+[Wed Jul 30 00:22:13 2014] [error] [client 127.0.0.1]     % (self.SETTINGS_MODULE, e)
+[Wed Jul 30 00:22:13 2014] [error] [client 127.0.0.1] ImportError: Could not import settings 'aprinto.settings' (Is it on sys.path? Is there an import error in the settings file?): cannot import name Celery
+127.0.0.1 - - [30/Jul/2014:00:22:10 -0400] "GET / HTTP/1.1" 500 535 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+[Wed Jul 30 00:22:44 2014] [error] [client 127.0.0.1] mod_wsgi (pid=33685): Exception occurred processing WSGI script '/Users/admin/SERVER2/BD_Scripts/django/Dropbox/aprinto/aprinto/wsgi.py'.
+[Wed Jul 30 00:22:44 2014] [error] [client 127.0.0.1] Traceback (most recent call last):
+[Wed Jul 30 00:22:44 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/wsgi.py", line 187, in __call__
+[Wed Jul 30 00:22:44 2014] [error] [client 127.0.0.1]     self.load_middleware()
+[Wed Jul 30 00:22:44 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/base.py", line 44, in load_middleware
+[Wed Jul 30 00:22:44 2014] [error] [client 127.0.0.1]     for middleware_path in settings.MIDDLEWARE_CLASSES:
+[Wed Jul 30 00:22:44 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 54, in __getattr__
+[Wed Jul 30 00:22:44 2014] [error] [client 127.0.0.1]     self._setup(name)
+[Wed Jul 30 00:22:44 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 49, in _setup
+[Wed Jul 30 00:22:44 2014] [error] [client 127.0.0.1]     self._wrapped = Settings(settings_module)
+[Wed Jul 30 00:22:44 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 132, in __init__
+[Wed Jul 30 00:22:44 2014] [error] [client 127.0.0.1]     % (self.SETTINGS_MODULE, e)
+[Wed Jul 30 00:22:44 2014] [error] [client 127.0.0.1] ImportError: Could not import settings 'aprinto.settings' (Is it on sys.path? Is there an import error in the settings file?): cannot import name Celery
+127.0.0.1 - - [30/Jul/2014:00:22:43 -0400] "GET / HTTP/1.1" 500 535 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+[Wed Jul 30 00:36:35 2014] [error] [client 127.0.0.1] mod_wsgi (pid=33845): Exception occurred processing WSGI script '/Users/admin/SERVER2/BD_Scripts/django/Dropbox/aprinto/aprinto/wsgi.py'.
+[Wed Jul 30 00:36:35 2014] [error] [client 127.0.0.1] Traceback (most recent call last):
+[Wed Jul 30 00:36:35 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/wsgi.py", line 187, in __call__
+[Wed Jul 30 00:36:35 2014] [error] [client 127.0.0.1]     self.load_middleware()
+[Wed Jul 30 00:36:35 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/base.py", line 44, in load_middleware
+[Wed Jul 30 00:36:35 2014] [error] [client 127.0.0.1]     for middleware_path in settings.MIDDLEWARE_CLASSES:
+[Wed Jul 30 00:36:35 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 54, in __getattr__
+[Wed Jul 30 00:36:35 2014] [error] [client 127.0.0.1]     self._setup(name)
+[Wed Jul 30 00:36:35 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 49, in _setup
+[Wed Jul 30 00:36:35 2014] [error] [client 127.0.0.1]     self._wrapped = Settings(settings_module)
+[Wed Jul 30 00:36:35 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 132, in __init__
+[Wed Jul 30 00:36:35 2014] [error] [client 127.0.0.1]     % (self.SETTINGS_MODULE, e)
+[Wed Jul 30 00:36:35 2014] [error] [client 127.0.0.1] ImportError: Could not import settings 'aprinto.settings' (Is it on sys.path? Is there an import error in the settings file?): cannot import name Celery
+127.0.0.1 - - [30/Jul/2014:00:36:32 -0400] "GET / HTTP/1.1" 500 535 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+[Wed Jul 30 00:37:06 2014] [error] [client 127.0.0.1] mod_wsgi (pid=33849): Exception occurred processing WSGI script '/Users/admin/SERVER2/BD_Scripts/django/Dropbox/aprinto/aprinto/wsgi.py'.
+[Wed Jul 30 00:37:06 2014] [error] [client 127.0.0.1] Traceback (most recent call last):
+[Wed Jul 30 00:37:06 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/wsgi.py", line 187, in __call__
+[Wed Jul 30 00:37:06 2014] [error] [client 127.0.0.1]     self.load_middleware()
+[Wed Jul 30 00:37:06 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/base.py", line 44, in load_middleware
+[Wed Jul 30 00:37:06 2014] [error] [client 127.0.0.1]     for middleware_path in settings.MIDDLEWARE_CLASSES:
+[Wed Jul 30 00:37:06 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 54, in __getattr__
+[Wed Jul 30 00:37:06 2014] [error] [client 127.0.0.1]     self._setup(name)
+[Wed Jul 30 00:37:06 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 49, in _setup
+[Wed Jul 30 00:37:06 2014] [error] [client 127.0.0.1]     self._wrapped = Settings(settings_module)
+[Wed Jul 30 00:37:06 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 132, in __init__
+[Wed Jul 30 00:37:06 2014] [error] [client 127.0.0.1]     % (self.SETTINGS_MODULE, e)
+[Wed Jul 30 00:37:06 2014] [error] [client 127.0.0.1] ImportError: Could not import settings 'aprinto.settings' (Is it on sys.path? Is there an import error in the settings file?): cannot import name Celery
+127.0.0.1 - - [30/Jul/2014:00:37:06 -0400] "GET / HTTP/1.1" 500 535 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+[Wed Jul 30 00:37:14 2014] [error] [client 127.0.0.1] mod_wsgi (pid=33845): Exception occurred processing WSGI script '/Users/admin/SERVER2/BD_Scripts/django/Dropbox/aprinto/aprinto/wsgi.py'.
+[Wed Jul 30 00:37:14 2014] [error] [client 127.0.0.1] Traceback (most recent call last):
+[Wed Jul 30 00:37:14 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/wsgi.py", line 187, in __call__
+[Wed Jul 30 00:37:14 2014] [error] [client 127.0.0.1]     self.load_middleware()
+[Wed Jul 30 00:37:14 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/base.py", line 44, in load_middleware
+[Wed Jul 30 00:37:14 2014] [error] [client 127.0.0.1]     for middleware_path in settings.MIDDLEWARE_CLASSES:
+[Wed Jul 30 00:37:14 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 54, in __getattr__
+[Wed Jul 30 00:37:14 2014] [error] [client 127.0.0.1]     self._setup(name)
+[Wed Jul 30 00:37:14 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 49, in _setup
+[Wed Jul 30 00:37:14 2014] [error] [client 127.0.0.1]     self._wrapped = Settings(settings_module)
+[Wed Jul 30 00:37:14 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 132, in __init__
+[Wed Jul 30 00:37:14 2014] [error] [client 127.0.0.1]     % (self.SETTINGS_MODULE, e)
+[Wed Jul 30 00:37:14 2014] [error] [client 127.0.0.1] ImportError: Could not import settings 'aprinto.settings' (Is it on sys.path? Is there an import error in the settings file?): cannot import name Celery
+127.0.0.1 - - [30/Jul/2014:00:37:14 -0400] "GET / HTTP/1.1" 500 535 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+[Wed Jul 30 00:39:45 2014] [error] [client 127.0.0.1] mod_wsgi (pid=33874): Exception occurred processing WSGI script '/Users/admin/SERVER2/BD_Scripts/django/Dropbox/aprinto/aprinto/wsgi.py'.
+[Wed Jul 30 00:39:45 2014] [error] [client 127.0.0.1] Traceback (most recent call last):
+[Wed Jul 30 00:39:45 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/wsgi.py", line 187, in __call__
+[Wed Jul 30 00:39:45 2014] [error] [client 127.0.0.1]     self.load_middleware()
+[Wed Jul 30 00:39:45 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/base.py", line 44, in load_middleware
+[Wed Jul 30 00:39:45 2014] [error] [client 127.0.0.1]     for middleware_path in settings.MIDDLEWARE_CLASSES:
+[Wed Jul 30 00:39:45 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 54, in __getattr__
+[Wed Jul 30 00:39:45 2014] [error] [client 127.0.0.1]     self._setup(name)
+[Wed Jul 30 00:39:45 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 49, in _setup
+[Wed Jul 30 00:39:45 2014] [error] [client 127.0.0.1]     self._wrapped = Settings(settings_module)
+[Wed Jul 30 00:39:45 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 132, in __init__
+[Wed Jul 30 00:39:45 2014] [error] [client 127.0.0.1]     % (self.SETTINGS_MODULE, e)
+[Wed Jul 30 00:39:45 2014] [error] [client 127.0.0.1] ImportError: Could not import settings 'aprinto.settings' (Is it on sys.path? Is there an import error in the settings file?): cannot import name Celery
+127.0.0.1 - - [30/Jul/2014:00:39:45 -0400] "GET / HTTP/1.1" 500 535 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+[Wed Jul 30 00:44:22 2014] [error] [client 127.0.0.1] mod_wsgi (pid=33929): Exception occurred processing WSGI script '/Users/admin/SERVER2/BD_Scripts/django/Dropbox/aprinto/aprinto/wsgi.py'.
+[Wed Jul 30 00:44:22 2014] [error] [client 127.0.0.1] Traceback (most recent call last):
+[Wed Jul 30 00:44:22 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/wsgi.py", line 187, in __call__
+[Wed Jul 30 00:44:22 2014] [error] [client 127.0.0.1]     self.load_middleware()
+[Wed Jul 30 00:44:22 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/base.py", line 44, in load_middleware
+[Wed Jul 30 00:44:22 2014] [error] [client 127.0.0.1]     for middleware_path in settings.MIDDLEWARE_CLASSES:
+[Wed Jul 30 00:44:22 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 54, in __getattr__
+[Wed Jul 30 00:44:22 2014] [error] [client 127.0.0.1]     self._setup(name)
+[Wed Jul 30 00:44:22 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 49, in _setup
+[Wed Jul 30 00:44:22 2014] [error] [client 127.0.0.1]     self._wrapped = Settings(settings_module)
+[Wed Jul 30 00:44:22 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 132, in __init__
+[Wed Jul 30 00:44:22 2014] [error] [client 127.0.0.1]     % (self.SETTINGS_MODULE, e)
+[Wed Jul 30 00:44:22 2014] [error] [client 127.0.0.1] ImportError: Could not import settings 'aprinto.settings' (Is it on sys.path? Is there an import error in the settings file?): cannot import name Celery
+127.0.0.1 - - [30/Jul/2014:00:44:21 -0400] "GET / HTTP/1.1" 500 535 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+[Wed Jul 30 00:44:25 2014] [error] [client 127.0.0.1] mod_wsgi (pid=33929): Exception occurred processing WSGI script '/Users/admin/SERVER2/BD_Scripts/django/Dropbox/aprinto/aprinto/wsgi.py'.
+[Wed Jul 30 00:44:25 2014] [error] [client 127.0.0.1] Traceback (most recent call last):
+[Wed Jul 30 00:44:25 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/wsgi.py", line 187, in __call__
+[Wed Jul 30 00:44:25 2014] [error] [client 127.0.0.1]     self.load_middleware()
+[Wed Jul 30 00:44:25 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/base.py", line 44, in load_middleware
+[Wed Jul 30 00:44:25 2014] [error] [client 127.0.0.1]     for middleware_path in settings.MIDDLEWARE_CLASSES:
+[Wed Jul 30 00:44:25 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 54, in __getattr__
+[Wed Jul 30 00:44:25 2014] [error] [client 127.0.0.1]     self._setup(name)
+[Wed Jul 30 00:44:25 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 49, in _setup
+[Wed Jul 30 00:44:25 2014] [error] [client 127.0.0.1]     self._wrapped = Settings(settings_module)
+[Wed Jul 30 00:44:25 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 132, in __init__
+[Wed Jul 30 00:44:25 2014] [error] [client 127.0.0.1]     % (self.SETTINGS_MODULE, e)
+[Wed Jul 30 00:44:25 2014] [error] [client 127.0.0.1] ImportError: Could not import settings 'aprinto.settings' (Is it on sys.path? Is there an import error in the settings file?): cannot import name Celery
+127.0.0.1 - - [30/Jul/2014:00:44:25 -0400] "GET / HTTP/1.1" 500 535 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+[Wed Jul 30 00:44:46 2014] [error] [client 127.0.0.1] mod_wsgi (pid=33929): Exception occurred processing WSGI script '/Users/admin/SERVER2/BD_Scripts/django/Dropbox/aprinto/aprinto/wsgi.py'.
+[Wed Jul 30 00:44:46 2014] [error] [client 127.0.0.1] Traceback (most recent call last):
+[Wed Jul 30 00:44:46 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/wsgi.py", line 187, in __call__
+[Wed Jul 30 00:44:46 2014] [error] [client 127.0.0.1]     self.load_middleware()
+[Wed Jul 30 00:44:46 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/base.py", line 44, in load_middleware
+[Wed Jul 30 00:44:46 2014] [error] [client 127.0.0.1]     for middleware_path in settings.MIDDLEWARE_CLASSES:
+[Wed Jul 30 00:44:46 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 54, in __getattr__
+[Wed Jul 30 00:44:46 2014] [error] [client 127.0.0.1]     self._setup(name)
+[Wed Jul 30 00:44:46 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 49, in _setup
+[Wed Jul 30 00:44:46 2014] [error] [client 127.0.0.1]     self._wrapped = Settings(settings_module)
+[Wed Jul 30 00:44:46 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 132, in __init__
+[Wed Jul 30 00:44:46 2014] [error] [client 127.0.0.1]     % (self.SETTINGS_MODULE, e)
+[Wed Jul 30 00:44:46 2014] [error] [client 127.0.0.1] ImportError: Could not import settings 'aprinto.settings' (Is it on sys.path? Is there an import error in the settings file?): cannot import name Celery
+127.0.0.1 - - [30/Jul/2014:00:44:46 -0400] "GET / HTTP/1.1" 500 535 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+[Wed Jul 30 00:50:34 2014] [error] [client 127.0.0.1] mod_wsgi (pid=33984): Exception occurred processing WSGI script '/Users/admin/SERVER2/BD_Scripts/django/Dropbox/aprinto/aprinto/wsgi.py'.
+[Wed Jul 30 00:50:34 2014] [error] [client 127.0.0.1] Traceback (most recent call last):
+[Wed Jul 30 00:50:34 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/wsgi.py", line 187, in __call__
+[Wed Jul 30 00:50:34 2014] [error] [client 127.0.0.1]     self.load_middleware()
+[Wed Jul 30 00:50:34 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/base.py", line 44, in load_middleware
+[Wed Jul 30 00:50:34 2014] [error] [client 127.0.0.1]     for middleware_path in settings.MIDDLEWARE_CLASSES:
+[Wed Jul 30 00:50:34 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 54, in __getattr__
+[Wed Jul 30 00:50:34 2014] [error] [client 127.0.0.1]     self._setup(name)
+[Wed Jul 30 00:50:34 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 49, in _setup
+[Wed Jul 30 00:50:34 2014] [error] [client 127.0.0.1]     self._wrapped = Settings(settings_module)
+[Wed Jul 30 00:50:34 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 132, in __init__
+[Wed Jul 30 00:50:34 2014] [error] [client 127.0.0.1]     % (self.SETTINGS_MODULE, e)
+[Wed Jul 30 00:50:34 2014] [error] [client 127.0.0.1] ImportError: Could not import settings 'aprinto.settings' (Is it on sys.path? Is there an import error in the settings file?): No module named importlib
+127.0.0.1 - - [30/Jul/2014:00:50:33 -0400] "GET / HTTP/1.1" 500 535 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+[Wed Jul 30 00:50:37 2014] [error] [client 127.0.0.1] mod_wsgi (pid=33988): Exception occurred processing WSGI script '/Users/admin/SERVER2/BD_Scripts/django/Dropbox/aprinto/aprinto/wsgi.py'.
+[Wed Jul 30 00:50:37 2014] [error] [client 127.0.0.1] Traceback (most recent call last):
+[Wed Jul 30 00:50:37 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/wsgi.py", line 187, in __call__
+[Wed Jul 30 00:50:37 2014] [error] [client 127.0.0.1]     self.load_middleware()
+[Wed Jul 30 00:50:37 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/base.py", line 44, in load_middleware
+[Wed Jul 30 00:50:37 2014] [error] [client 127.0.0.1]     for middleware_path in settings.MIDDLEWARE_CLASSES:
+[Wed Jul 30 00:50:37 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 54, in __getattr__
+[Wed Jul 30 00:50:37 2014] [error] [client 127.0.0.1]     self._setup(name)
+[Wed Jul 30 00:50:37 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 49, in _setup
+[Wed Jul 30 00:50:37 2014] [error] [client 127.0.0.1]     self._wrapped = Settings(settings_module)
+[Wed Jul 30 00:50:37 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 132, in __init__
+[Wed Jul 30 00:50:37 2014] [error] [client 127.0.0.1]     % (self.SETTINGS_MODULE, e)
+[Wed Jul 30 00:50:37 2014] [error] [client 127.0.0.1] ImportError: Could not import settings 'aprinto.settings' (Is it on sys.path? Is there an import error in the settings file?): No module named importlib
+127.0.0.1 - - [30/Jul/2014:00:50:37 -0400] "GET / HTTP/1.1" 500 535 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+[Wed Jul 30 00:50:48 2014] [error] [client 127.0.0.1] mod_wsgi (pid=33984): Exception occurred processing WSGI script '/Users/admin/SERVER2/BD_Scripts/django/Dropbox/aprinto/aprinto/wsgi.py'.
+[Wed Jul 30 00:50:48 2014] [error] [client 127.0.0.1] Traceback (most recent call last):
+[Wed Jul 30 00:50:48 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/wsgi.py", line 187, in __call__
+[Wed Jul 30 00:50:48 2014] [error] [client 127.0.0.1]     self.load_middleware()
+[Wed Jul 30 00:50:48 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/base.py", line 44, in load_middleware
+[Wed Jul 30 00:50:48 2014] [error] [client 127.0.0.1]     for middleware_path in settings.MIDDLEWARE_CLASSES:
+[Wed Jul 30 00:50:48 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 54, in __getattr__
+[Wed Jul 30 00:50:48 2014] [error] [client 127.0.0.1]     self._setup(name)
+[Wed Jul 30 00:50:48 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 49, in _setup
+[Wed Jul 30 00:50:48 2014] [error] [client 127.0.0.1]     self._wrapped = Settings(settings_module)
+[Wed Jul 30 00:50:48 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 132, in __init__
+[Wed Jul 30 00:50:48 2014] [error] [client 127.0.0.1]     % (self.SETTINGS_MODULE, e)
+[Wed Jul 30 00:50:48 2014] [error] [client 127.0.0.1] ImportError: Could not import settings 'aprinto.settings' (Is it on sys.path? Is there an import error in the settings file?): No module named importlib
+127.0.0.1 - - [30/Jul/2014:00:50:48 -0400] "GET / HTTP/1.1" 500 535 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+[Wed Jul 30 00:56:12 2014] [error] [client 127.0.0.1] mod_wsgi (pid=34060): Exception occurred processing WSGI script '/Users/admin/SERVER2/BD_Scripts/django/Dropbox/aprinto/aprinto/wsgi.py'.
+[Wed Jul 30 00:56:12 2014] [error] [client 127.0.0.1] Traceback (most recent call last):
+[Wed Jul 30 00:56:12 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/wsgi.py", line 187, in __call__
+[Wed Jul 30 00:56:12 2014] [error] [client 127.0.0.1]     self.load_middleware()
+[Wed Jul 30 00:56:12 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/base.py", line 44, in load_middleware
+[Wed Jul 30 00:56:12 2014] [error] [client 127.0.0.1]     for middleware_path in settings.MIDDLEWARE_CLASSES:
+[Wed Jul 30 00:56:12 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 54, in __getattr__
+[Wed Jul 30 00:56:12 2014] [error] [client 127.0.0.1]     self._setup(name)
+[Wed Jul 30 00:56:12 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 49, in _setup
+[Wed Jul 30 00:56:12 2014] [error] [client 127.0.0.1]     self._wrapped = Settings(settings_module)
+[Wed Jul 30 00:56:12 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 132, in __init__
+[Wed Jul 30 00:56:12 2014] [error] [client 127.0.0.1]     % (self.SETTINGS_MODULE, e)
+[Wed Jul 30 00:56:12 2014] [error] [client 127.0.0.1] ImportError: Could not import settings 'aprinto.settings' (Is it on sys.path? Is there an import error in the settings file?): No module named importlib
+127.0.0.1 - - [30/Jul/2014:00:56:12 -0400] "GET / HTTP/1.1" 500 535 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+[Wed Jul 30 00:56:16 2014] [error] [client 127.0.0.1] mod_wsgi (pid=34062): Exception occurred processing WSGI script '/Users/admin/SERVER2/BD_Scripts/django/Dropbox/aprinto/aprinto/wsgi.py'.
+[Wed Jul 30 00:56:16 2014] [error] [client 127.0.0.1] Traceback (most recent call last):
+[Wed Jul 30 00:56:16 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/wsgi.py", line 187, in __call__
+[Wed Jul 30 00:56:16 2014] [error] [client 127.0.0.1]     self.load_middleware()
+[Wed Jul 30 00:56:16 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/base.py", line 44, in load_middleware
+[Wed Jul 30 00:56:16 2014] [error] [client 127.0.0.1]     for middleware_path in settings.MIDDLEWARE_CLASSES:
+[Wed Jul 30 00:56:16 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 54, in __getattr__
+[Wed Jul 30 00:56:16 2014] [error] [client 127.0.0.1]     self._setup(name)
+[Wed Jul 30 00:56:16 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 49, in _setup
+[Wed Jul 30 00:56:16 2014] [error] [client 127.0.0.1]     self._wrapped = Settings(settings_module)
+[Wed Jul 30 00:56:16 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 132, in __init__
+[Wed Jul 30 00:56:16 2014] [error] [client 127.0.0.1]     % (self.SETTINGS_MODULE, e)
+[Wed Jul 30 00:56:16 2014] [error] [client 127.0.0.1] ImportError: Could not import settings 'aprinto.settings' (Is it on sys.path? Is there an import error in the settings file?): No module named importlib
+127.0.0.1 - - [30/Jul/2014:00:56:16 -0400] "GET / HTTP/1.1" 500 535 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+[Wed Jul 30 00:56:20 2014] [error] [client 127.0.0.1] mod_wsgi (pid=34060): Exception occurred processing WSGI script '/Users/admin/SERVER2/BD_Scripts/django/Dropbox/aprinto/aprinto/wsgi.py'.
+[Wed Jul 30 00:56:20 2014] [error] [client 127.0.0.1] Traceback (most recent call last):
+[Wed Jul 30 00:56:20 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/wsgi.py", line 187, in __call__
+[Wed Jul 30 00:56:20 2014] [error] [client 127.0.0.1]     self.load_middleware()
+[Wed Jul 30 00:56:20 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/base.py", line 44, in load_middleware
+[Wed Jul 30 00:56:20 2014] [error] [client 127.0.0.1]     for middleware_path in settings.MIDDLEWARE_CLASSES:
+[Wed Jul 30 00:56:20 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 54, in __getattr__
+[Wed Jul 30 00:56:20 2014] [error] [client 127.0.0.1]     self._setup(name)
+[Wed Jul 30 00:56:20 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 49, in _setup
+[Wed Jul 30 00:56:20 2014] [error] [client 127.0.0.1]     self._wrapped = Settings(settings_module)
+[Wed Jul 30 00:56:20 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 132, in __init__
+[Wed Jul 30 00:56:20 2014] [error] [client 127.0.0.1]     % (self.SETTINGS_MODULE, e)
+[Wed Jul 30 00:56:20 2014] [error] [client 127.0.0.1] ImportError: Could not import settings 'aprinto.settings' (Is it on sys.path? Is there an import error in the settings file?): No module named importlib
+127.0.0.1 - - [30/Jul/2014:00:56:20 -0400] "GET / HTTP/1.1" 500 535 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+[Wed Jul 30 00:56:29 2014] [error] [client 127.0.0.1] mod_wsgi (pid=34062): Exception occurred processing WSGI script '/Users/admin/SERVER2/BD_Scripts/django/Dropbox/aprinto/aprinto/wsgi.py'.
+[Wed Jul 30 00:56:29 2014] [error] [client 127.0.0.1] Traceback (most recent call last):
+[Wed Jul 30 00:56:29 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/wsgi.py", line 187, in __call__
+[Wed Jul 30 00:56:29 2014] [error] [client 127.0.0.1]     self.load_middleware()
+[Wed Jul 30 00:56:29 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/core/handlers/base.py", line 44, in load_middleware
+[Wed Jul 30 00:56:29 2014] [error] [client 127.0.0.1]     for middleware_path in settings.MIDDLEWARE_CLASSES:
+[Wed Jul 30 00:56:29 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 54, in __getattr__
+[Wed Jul 30 00:56:29 2014] [error] [client 127.0.0.1]     self._setup(name)
+[Wed Jul 30 00:56:29 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 49, in _setup
+[Wed Jul 30 00:56:29 2014] [error] [client 127.0.0.1]     self._wrapped = Settings(settings_module)
+[Wed Jul 30 00:56:29 2014] [error] [client 127.0.0.1]   File "/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/django/conf/__init__.py", line 132, in __init__
+[Wed Jul 30 00:56:29 2014] [error] [client 127.0.0.1]     % (self.SETTINGS_MODULE, e)
+[Wed Jul 30 00:56:29 2014] [error] [client 127.0.0.1] ImportError: Could not import settings 'aprinto.settings' (Is it on sys.path? Is there an import error in the settings file?): No module named importlib
+127.0.0.1 - - [30/Jul/2014:00:56:29 -0400] "GET / HTTP/1.1" 500 535 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:04:58:33 +0000] "GET / HTTP/1.1" 200 1482 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:04:59:03 +0000] "POST / HTTP/1.1" 500 59490 "http://printer.aporodelivery.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:05:08:49 +0000] "POST / HTTP/1.1" 500 59585 "http://printer.aporodelivery.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:05:08:54 +0000] "GET / HTTP/1.1" 200 1482 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:05:09:01 +0000] "POST / HTTP/1.1" 500 59585 "http://printer.aporodelivery.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:05:09:52 +0000] "POST / HTTP/1.1" 500 59562 "http://printer.aporodelivery.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:05:10:19 +0000] "GET /8080 HTTP/1.1" 404 2798 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:05:10:32 +0000] "GET /8080/docs HTTP/1.1" 404 2813 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:05:10:39 +0000] "GET /8080/ HTTP/1.1" 404 2801 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:05:21:06 +0000] "GET / HTTP/1.1" 200 1482 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:05:21:34 +0000] "POST / HTTP/1.1" 500 60275 "http://printer.aporodelivery.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:05:22:25 +0000] "GET / HTTP/1.1" 200 1482 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:05:23:11 +0000] "POST / HTTP/1.1" 500 86335 "http://printer.aporodelivery.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:05:24:14 +0000] "GET / HTTP/1.1" 200 1482 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:05:24:25 +0000] "POST / HTTP/1.1" 500 86394 "http://0.0.0.0/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:05:26:10 +0000] "POST / HTTP/1.1" 500 86396 "http://0.0.0.0/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:05:27:35 +0000] "POST / HTTP/1.1" 500 86397 "http://0.0.0.0/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:05:27:48 +0000] "POST / HTTP/1.1" 500 86378 "http://0.0.0.0/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:05:27:53 +0000] "GET / HTTP/1.1" 200 1482 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:05:28:03 +0000] "POST / HTTP/1.1" 500 86377 "http://0.0.0.0/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:05:39:31 +0000] "GET / HTTP/1.1" 200 1482 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:05:39:37 +0000] "GET /docs/ HTTP/1.1" 500 64490 "http://printer.aporodelivery.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:05:40:16 +0000] "GET /docs/ HTTP/1.1" 500 64435 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:05:57:44 +0000] "POST / HTTP/1.1" 500 120647 "-" "Python-urllib/2.7"
+127.0.0.1 - - [30/Jul/2014:06:08:08 +0000] "GET / HTTP/1.1" 200 1482 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:06:08:16 +0000] "GET /docs/ HTTP/1.1" 200 1415 "http://printer.aporodelivery.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:06:09:15 +0000] "POST / HTTP/1.1" 200 103 "http://printer.aporodelivery.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:07:08:11 +0000] "GET / HTTP/1.1" 200 1494 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:07:08:19 +0000] "GET /docs/ HTTP/1.1" 200 1481 "http://printer.aporodelivery.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:07:08:23 +0000] "GET /F75ED6F0F66D4DF2A0EC46F946238BE5/ HTTP/1.1" 500 82203 "http://printer.aporodelivery.com/docs/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:07:09:55 +0000] "GET /F75ED6F0F66D4DF2A0EC46F946238BE5/ HTTP/1.1" 200 1616 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:07:09:58 +0000] "GET / HTTP/1.1" 200 1494 "http://printer.aporodelivery.com/F75ED6F0F66D4DF2A0EC46F946238BE5/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:07:10:00 +0000] "GET /docs/ HTTP/1.1" 200 1481 "http://printer.aporodelivery.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:07:10:01 +0000] "GET /F75ED6F0F66D4DF2A0EC46F946238BE5/ HTTP/1.1" 200 1616 "http://printer.aporodelivery.com/docs/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:08:18:08 +0000] "GET / HTTP/1.1" 200 1494 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:08:18:17 +0000] "GET /docs/ HTTP/1.1" 200 1481 "http://printer.aporodelivery.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:08:18:24 +0000] "GET /F75ED6F0F66D4DF2A0EC46F946238BE5/ HTTP/1.1" 200 1616 "http://printer.aporodelivery.com/docs/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:08:23:07 +0000] "GET /F75ED6F0F66D4DF2A0EC46F946238BE5/ HTTP/1.1" 200 1695 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:08:24:03 +0000] "GET /F75ED6F0F66D4DF2A0EC46F946238BE5/ HTTP/1.1" 200 1847 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:08:41:29 +0000] "GET / HTTP/1.1" 200 1494 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:08:41:33 +0000] "GET /docs/ HTTP/1.1" 200 1481 "http://printer.aporodelivery.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:08:41:35 +0000] "GET /F75ED6F0F66D4DF2A0EC46F946238BE5/ HTTP/1.1" 200 1847 "http://printer.aporodelivery.com/docs/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:08:46:11 +0000] "POST / HTTP/1.1" 500 59000 "-" "Python-urllib/2.6"
+127.0.0.1 - - [30/Jul/2014:08:56:03 +0000] "GET /docs/ HTTP/1.1" 500 150002 "http://printer.aporodelivery.com/451B949CAC42473B8BD686095CD7005C/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:08:57:26 +0000] "GET /docs/ HTTP/1.1" 200 1485 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:08:57:31 +0000] "GET /20e059c7-0806-484c-b91c-5c2ad05aedeb/ HTTP/1.1" 200 1859 "http://printer.aporodelivery.com/docs/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:10:47:42 +0000] "GET / HTTP/1.1" 200 1494 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:10:51:47 +0000] "POST /api/order/ HTTP/1.1" 404 2884 "-" "Python-urllib/2.6"
+127.0.0.1 - - [30/Jul/2014:11:45:29 +0000] "GET / HTTP/1.1" 200 1494 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [30/Jul/2014:20:14:55 +0000] "POST / HTTP/1.1" 200 1708 "-" "-"
+127.0.0.1 - - [31/Jul/2014:16:06:10 +0000] "POST / HTTP/1.1" 200 1708 "-" "-"
+127.0.0.1 - - [31/Jul/2014:16:11:05 +0000] "POST / HTTP/1.1" 200 1708 "-" "-"
+127.0.0.1 - - [31/Jul/2014:16:45:21 +0000] "POST / HTTP/1.1" 200 104 "-" "Python-urllib/2.6"
+127.0.0.1 - - [31/Jul/2014:16:49:51 +0000] "POST / HTTP/1.1" 200 104 "-" "Python-urllib/2.7"
+127.0.0.1 - - [31/Jul/2014:16:51:08 +0000] "POST / HTTP/1.1" 200 104 "-" "Python-urllib/2.6"
+127.0.0.1 - - [31/Jul/2014:16:51:12 +0000] "POST / HTTP/1.1" 200 104 "-" "Python-urllib/2.7"
+127.0.0.1 - - [31/Jul/2014:17:02:39 +0000] "POST / HTTP/1.1" 200 1710 "-" "Python-urllib/2.6"
+127.0.0.1 - - [31/Jul/2014:17:15:06 +0000] "POST //api/check/ HTTP/1.1" 404 2902 "-" "Python-urllib/2.6"
+127.0.0.1 - - [31/Jul/2014:17:15:31 +0000] "POST /api/check/ HTTP/1.1" 404 2902 "-" "Python-urllib/2.6"
+127.0.0.1 - - [31/Jul/2014:21:34:29 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:21:34:49 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:22:50:25 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:22:51:42 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:22:51:55 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:22:53:03 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:22:53:56 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:22:56:03 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:22:56:37 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:22:57:06 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:22:58:20 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:23:01:09 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:23:08:44 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:23:12:59 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:23:13:06 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:23:13:19 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:23:13:40 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:23:14:07 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:23:14:34 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:23:18:12 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:23:19:46 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:23:20:15 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:23:24:56 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:23:28:30 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:23:28:51 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:23:29:34 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:23:30:19 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:23:30:49 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:23:31:31 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:23:32:09 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:23:32:45 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:23:33:13 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:23:33:40 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:23:37:05 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:23:37:29 +0000] "POST / HTTP/1.1" 200 1710 "-" "-"
+127.0.0.1 - - [31/Jul/2014:23:40:08 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:23:41:18 +0000] "POST / HTTP/1.1" 200 1710 "-" "-"
+127.0.0.1 - - [31/Jul/2014:23:42:19 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [31/Jul/2014:23:42:26 +0000] "POST / HTTP/1.1" 200 1710 "-" "-"
+127.0.0.1 - - [01/Aug/2014:19:09:59 +0000] "GET / HTTP/1.1" 200 1494 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [01/Aug/2014:19:10:00 +0000] "GET /favicon.ico HTTP/1.1" 404 2839 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [01/Aug/2014:19:10:32 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "Python-urllib/2.7"
+127.0.0.1 - - [01/Aug/2014:19:10:32 +0000] "POST / HTTP/1.1" 200 104 "-" "Python-urllib/2.7"
+127.0.0.1 - - [01/Aug/2014:19:11:02 +0000] "GET /docs/ HTTP/1.1" 500 149848 "http://printer.aporodelivery.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [01/Aug/2014:19:18:22 +0000] "GET / HTTP/1.1" 200 1494 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [01/Aug/2014:19:18:25 +0000] "GET /docs/ HTTP/1.1" 500 149387 "http://printer.aporodelivery.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [01/Aug/2014:19:24:03 +0000] "GET /docs/ HTTP/1.1" 500 149333 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [01/Aug/2014:19:24:07 +0000] "GET / HTTP/1.1" 200 1494 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [01/Aug/2014:19:44:20 +0000] "POST /api/check/ HTTP/1.1" 201 155 "-" "-"
+127.0.0.1 - - [01/Aug/2014:19:44:22 +0000] "POST / HTTP/1.1" 200 1710 "-" "-"
+::1 - - [04/Aug/2014:04:05:39 +0000] "GET / HTTP/1.1" 200 1494 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [04/Aug/2014:15:41:38 +0000] "GET / HTTP/1.1" 200 1494 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [04/Aug/2014:15:41:48 +0000] "GET /favicon.ico HTTP/1.1" 404 2839 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [04/Aug/2014:15:42:05 +0000] "GET /docs/ HTTP/1.1" 500 149391 "http://printer.aporodelivery.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
+127.0.0.1 - - [04/Aug/2014:11:42:46 -0400] "GET / HTTP/1.1" 500 97112 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36"
