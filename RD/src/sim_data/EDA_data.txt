@@ -1,0 +1,6 @@
+id	dg_X	dg_Y	status	deliveryNum	deliveryID	orderTime	startTime	start_X	start_Y	endTime	end_X	end_Y	totalOrderTime	travelTime
+397	9	0	on route	1	starting	14	14	9	0	15	10	0	1	1
+137	9	3	on route	1	starting	17	17	9	3	18	10	3	1	1
+287	9	1	on route	1	starting	17	17	9	1	18	9	0	1	1
+435	19	1	on route	1	starting	18	18	19	1	19	18	1	1	1
+107	4	0	on route	1	starting	18	18	4	0	19	5	0	1	1

@@ -1,0 +1,219 @@
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+  1461                                           @profile
+  1462                                           def RUN_SIMULATION(simType='expedited'):
+  1463         1      1241406 1241406.0      1.9      global_simulation_vars()
+  1464         1            5      5.0      0.0      makeData=False
+  1465         1            3      3.0      0.0      load=True
+  1466         1            4      4.0      0.0      t1A=time()
+  1467                                           
+  1468         1           43     43.0      0.0      sim_data_Path=getcwd()+'/sim_data/vendor_sim_data.txt'
+  1469         1            4      4.0      0.0      if makeData==True:
+  1470                                                   df = make_simulation_data(savePath=sim_data_Path)
+  1471                                               else:
+  1472         1            3      3.0      0.0          if simType=='normal':
+  1473                                                       vendors=open_simulation_data(sim_data_Path)
+  1474         1            3      3.0      0.0          if simType=='expedited':
+  1475         1        15224  15224.0      0.0              df = pandas.read_hdf(sim_data_Path.rstrip('.txt')+'.h5', 'table')
+  1476         1            4      4.0      0.0      if simType=='normal':
+  1477                                                   data=NormalDelivery(vendors)
+  1478                                                   displayNormalDelData()
+  1479                                                   return
+  1480                                           
+  1481                                               # ELSE --> EXPEDITED DELIVERY SIMULATION
+  1482                                           
+  1483         1         3621   3621.0      0.0      df = df.sort_index(by=['orderTime','vend_Y','vend_X'], ascending=[True,True,True])
+  1484         1           63     63.0      0.0      dg_head = DG().printHeader(printer=False,fullHeading=True).split('\t')
+  1485         1        10829  10829.0      0.0      dg_pool = init_dg_pool(load,save=True)
+  1486         1         2159   2159.0      0.0      order_q = pandas.DataFrame(columns=dg_head)
+  1487         1         1904   1904.0      0.0      delivered=pandas.DataFrame(columns=dg_head)
+  1488         1         4800   4800.0      0.0      dg_pool = pandas.merge(dg_pool,delivered,how='left')
+  1489                                           
+  1490        11           50      4.5      0.0      trav_cols = [ABC[i].lower() for i in range(0,max_delivery_count*2)]
+  1491         1            4      4.0      0.0      desc_cols = ['-i','-ID','-OT','-St','-En']
+  1492         1            7      7.0      0.0      dg_queue_cols = range(0,1+(max_delivery_count*2))+['mockCombo','travelTime']+trav_cols+['combined']
+  1493        31          109      3.5      0.0      dg_queue_cols += [ ABC[pt]+label for pt in range(0,max_delivery_count) for label in desc_cols ]
+  1494         1            5      5.0      0.0      dg_queue_cols += ['deliveryIDs','travelTimes','delTimes','maxDelTime','ave_X','ave_Y','tripMean','tripStd']
+  1495         1         4924   4924.0      0.0      dg_q = pandas.DataFrame(columns=dg_queue_cols)
+  1496                                           
+  1497         1           23     23.0      0.0      totalTime=Assumption('vend_hours_delivering')*60
+  1498        16           72      4.5      0.0      for i in range(0,15):#totalTime):
+  1499        15           51      3.4      0.0          now=i
+  1500                                                   # remove completed orders on this minute, if any
+  1501        15        10589    705.9      0.0          completedOrders=order_q[(order_q.endTime <= now)]
+  1502        15          336     22.4      0.0          pieces = [delivered,completedOrders]
+  1503        15        14229    948.6      0.0          delivered=pandas.concat(pieces)
+  1504        15        12270    818.0      0.0          order_q=order_q[order_q.endTime > now].reset_index(drop=True)
+  1505        15        24546   1636.4      0.0          delivered['ready']=delivered['id'].apply(lambda s: (order_q.id.tolist().count(s) == 0 and dg_pool.id.tolist().count(s) == 0))
+  1506        15        10933    728.9      0.0          if len(delivered[delivered.ready == True]) != 0:
+  1507                                                       re_pool = delivered[delivered.ready == True]
+  1508                                                       re_pool['dg_X'],re_pool['dg_Y'] = re_pool['end_X'],re_pool['end_Y']
+  1509                                                       re_pool = re_pool.drop('ready',axis=1).reset_index(drop=True)
+  1510                                                       dg_pool = pandas.concat([re_pool,dg_pool]).reset_index(drop=True).groupby('id').first().reset_index()
+  1511        15        21066   1404.4      0.0          delivered = delivered.drop('ready',axis=1).reset_index(drop=True)
+  1512                                                   # process all current orders
+  1513        15        12948    863.2      0.0          ordersNow=df[(df.orderTime == now)]
+  1514        15           79      5.3      0.0          t1=time()
+  1515        85          468      5.5      0.0          for j in range(0,len(ordersNow.index)):
+  1516        70        22785    325.5      0.0              thisOrder=ordersNow.iloc[j,:]#.copy()
+  1517        70     65086906 929812.9     97.9              order_q,dg_q,dg_pool = getBestDG(order_q,dg_q,dg_pool,thisOrder,ordersNow.index[j],showVars=False,saveOutput=False)
+  1518        15           69      4.6      0.0          t2=time()
+  1519        15         1392     92.8      0.0          if len(ordersNow.index) != 0: print 'minute'+'\t'+str(i)+'\t'+'orders='+'\t'+str(len(ordersNow.index))+'\t'+str((t2-t1)/len(ordersNow.index))
+  1520                                           
+  1521                                               # move remaining orders at close to 'delivered'
+  1522         1          722    722.0      0.0      completedOrders=order_q[(order_q.endTime >= now)]
+  1523         1           22     22.0      0.0      pieces = [delivered,completedOrders]
+  1524         1          682    682.0      0.0      delivered=pandas.concat(pieces)
+  1525                                           
+  1526         1           99     99.0      0.0      pd_EDA_dg_q_Path=getcwd()+'/sim_data/EDA_dg_q_data.txt'
+  1527                                               #order_q=dg_q.sort_index(by=['id','orderTime','deliveryNum'], ascending=[True,True,True])
+  1528         1          879    879.0      0.0      dg_q.to_csv(pd_EDA_dg_q_Path, index=False, header=True, sep='\t')
+  1529                                           
+  1530         1           25     25.0      0.0      pd_EDA_order_q_Path=getcwd()+'/sim_data/EDA_order_q_data.txt'
+  1531         1         1656   1656.0      0.0      order_q=order_q.sort_index(by=['id','orderTime','deliveryNum'], ascending=[True,True,True])
+  1532         1         1602   1602.0      0.0      order_q.to_csv(pd_EDA_order_q_Path, index=False, header=True, sep='\t')
+  1533                                           
+  1534         1           23     23.0      0.0      pd_EDA_data_Path=getcwd()+'/sim_data/EDA_delivered.txt'
+  1535         1         1452   1452.0      0.0      delivered=delivered.sort_index(by=['id','orderTime','deliveryNum'], ascending=[True,True,True])
+  1536         1         3196   3196.0      0.0      delivered.to_csv(pd_EDA_data_Path, index=False, header=True, sep='\t')
+  1537                                           
+  1538         1           22     22.0      0.0      pd_EDA_data_Path=getcwd()+'/sim_data/EDA_dg_pool.txt'
+  1539         1          481    481.0      0.0      dg_pool=dg_pool.sort_index(by=['id'], ascending=[True])
+  1540         1          979    979.0      0.0      dg_pool.to_csv(pd_EDA_data_Path, index=False, header=True, sep='\t')
+  1541                                           
+  1542         1            5      5.0      0.0      t2A=time()
+  1543         1           18     18.0      0.0      print 'done'
+  1544         1           11     11.0      0.0      print t2A-t1A
+
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+  1278                                           @profile
+  1279                                           def getBestDG(order_q,dg_q,dg_pool,new,deliveryID,showVars=False,saveOutput=False):
+  1280                                           #    deliveries=order_q[(order_q.status != " ") & (order_q.status != "on route")]
+  1281        70         1962     28.0      0.0      max_delivery_per_person=Assumption('max_delivery_per_person')
+  1282        70        41905    598.6      0.1      DG_waiting=order_q[order_q.status == " "]
+  1283        70        39290    561.3      0.1      DG_working=order_q[order_q.status != " "]
+  1284        70          262      3.7      0.0      if len(DG_working.index) == 0:
+  1285         1        13612  13612.0      0.0          order_q,dg_q,dg_pool = getNewDG(order_q,dg_q,dg_pool,new,deliveryID)
+  1286         1            2      2.0      0.0          if saveOutput==True:
+  1287                                                       pd_order_q_temp_path=getcwd()+'/sim_data/EDA_order_q_temp_data.txt'
+  1288                                                       order_q.to_csv(pd_order_q_temp_path, index=False, header=True, sep='\t')
+  1289         1            2      2.0      0.0          return order_q,dg_q,dg_pool
+  1290                                               # ELSE: if working, then either 'on route' (=heading to pickup) or 'on deck' (=scheduled to pickup/deliver order)
+  1291        69        41287    598.4      0.1      DG_on_route=DG_working[DG_working.status == "on route"]
+  1292        69        38087    552.0      0.1      DG_on_deck=DG_working[DG_working.status == "on deck"]
+  1293                                               # DG not available if already doing max number of deliveries
+  1294        69        87920   1274.2      0.1      DG_busy=DG_on_deck[DG_on_deck.id.isin(DG_on_deck[DG_on_deck.deliveryNum == max_delivery_per_person].id)]
+  1295        69        58254    844.3      0.1      DG_avail=DG_on_deck[DG_on_deck.id.isin(DG_busy.id)==False]
+   ...
+  1304                                               # split up dataframe and process by DG.id
+  1305        69        20555    297.9      0.0      DG_contracts = DG_avail.groupby(by='id')
+  1306       682         4261      6.2      0.0      groupList=[key for key,value in DG_contracts.groups.iteritems()] # this is the list of DG_IDs
+  1307        69          147      2.1      0.0      if showVars == True: print '\n\rGroups\n\r',DG_contracts.head()
+  1308        69          141      2.0      0.0      pt,updated=0,False
+  1309       388       117014    301.6      0.2      for i in range(0,len(DG_contracts.size().tolist())): # this weird thing is the number of DG groups
+  1310       370       439639   1188.2      0.7          DG_group_i=DG_contracts.get_group(groupList[i]).sort_index(by=['deliveryNum'], ascending=[True]).reset_index(drop=True)
+  1311       370         2157      5.8      0.0          if len(DG_group_i) == max_delivery_per_person:
+  1312                                                       print 'WHY?'
+  1313                                                       raise SystemExit
+  1314                                                   else:
+  1315       370       469311   1268.4      0.8              DG_group_i = updateCurrentLocation(DG_group_i,new['orderTime'])
+  1316                                           #                 if len(DG_group_starting) != 0: DG_group_starting = updateCurrentLocation(DG_group_starting,new['orderTime'])
+  1317       370     58104455 157039.1     96.0              order_result,dg_result = bestExpeditedDeliveryRoute(DG_group_i,new,deliveryID,showVars,saveOutput)
+  1318       370         1626      4.4      0.0              if type(order_result) == NoneType: pt,updated=pt+1,False
+  1319                                                       else:
+  1320        51        32514    637.5      0.1                  pieces = [DG_on_route,DG_avail[(DG_avail.id != groupList[i])],DG_busy,DG_waiting] # should include everything except what was processed
+  1321        51       773460  15165.9      1.3                  order_q = pandas.merge(pandas.concat(pieces),order_result,how='outer')
+  1322        51          174      3.4      0.0                  if saveOutput==True:
+  1323                                                               pd_order_q_temp_path=getcwd()+'/sim_data/EDA_order_q_temp_data.txt'
+  1324                                                               order_q.to_csv(pd_order_q_temp_path, index=False, header=True, sep='\t')
+  1325        51          153      3.0      0.0                  return order_q,dg_q,dg_pool
+  1326        18           38      2.1      0.0      if updated == False:
+  1327        18       218251  12125.1      0.4          order_q,dg_q,dg_pool = getNewDG(order_q,dg_q,dg_pool,new,deliveryID)
+  1328        18           58      3.2      0.0          if saveOutput==True:
+  1329                                                       pd_order_q_temp_path=getcwd()+'/sim_data/EDA_order_q_temp_data.txt'
+  1330                                                       order_q.to_csv(pd_order_q_temp_path, index=False, header=True, sep='\t')
+  1331        18           36      2.0      0.0          return order_q,dg_q,dg_pool
+
+
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+  1209                                           
+  1210                                           @profile
+  1211       370         6947     18.8      0.0  def bestExpeditedDeliveryRoute(dg_group_i,new,deliveryID,showVars=False,saveOutput=False):
+  1212       370         5313     14.4      0.0      start_loc=(new['start_X'],new['start_Y'])
+  1213       370         1459      3.9      0.0      end_loc=(new['end_X'],new['end_Y'])
+  1214       370        10270     27.8      0.0      delivery_count=len(dg_group_i.index)+1
+  1215       370         1060      2.9      0.0      max_delivery_per_person=Assumption('max_delivery_per_person')
+  1216                                               if delivery_count > max_delivery_per_person: return 'None'
+  1217       370         1042      2.8      0.0      var_group=delivery_count,dg_group_i,new,deliveryID,start_loc,end_loc
+   ...
+  1232       370     57417060 155181.2     97.1      new_order_result,new_dg_result = c_eval_combos(var_group,saveOutput)
+  1233       370         3746     10.1      0.0      #print '-orders\t'+str(delivery_count)+'\t'+str(time()-t1)
+  1234       319          848      2.7      0.0      if type(new_order_result) == NoneType:
+  1235                                                   return None,None
+  1236                                               else:
+
+  1240        51      1487278  29162.3      2.5          order_result = pandas.merge(dg_group_i,new_order_result,how='right').combine_first(dg_group_i)
+  1241        51        30556    599.1      0.1          order_result.id = dg_group_i.id[0]
+  1242        51        67555   1324.6      0.1          order_result.dg_X,order_result.dg_Y = order_result.dg_X.map(lambda s: dg_group_i.dg_X[0]),order_result.dg_Y.map(lambda s: dg_group_i.dg_Y[0])
+  1243        51        68960   1352.2      0.1          order_result.ave_X,order_result.ave_Y = order_result.ave_X.map(lambda s: dg_group_i.ave_X[0]),order_result.ave_Y.map(lambda s: dg_group_i.ave_Y[0])
+  1244        51        16669    326.8      0.0          order_result.status = 'on deck'
+  1245        51          179      3.5      0.0          dg_result = ''
+  1246        51          139      2.7      0.0          return order_result,dg_result
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+  1126                                           #@profile
+  1127                                           def c_eval_combos(var_group,saveOutput=False):
+  1128       370         1015      2.7      0.0      delivery_count,dg_group_i,new,deliveryID,start_loc,end_loc=var_group
+  1130       370       514870   1391.5      0.8      stPtx,stPty = dg_group_i.ix[0,['dg_X','dg_Y']]
+  1131       370         4655     12.6      0.0      tripStartTime=new['orderTime'] # TODO: adjust to include trip planning after DG starts but before arrives at next pt
+  1132       370       136493    368.9      0.2      orderTimes = numpy.ascontiguousarray(dg...
+  1133       370        46200    124.9      0.1      delivery_ids = numpy.ascontiguousarray(dg_group_i.deliveryID.tolist()+[deliveryID],dtype=numpy.long)
+  1134       370        20610     55.7      0.0      int_vars = numpy.asarray([delivery_count,tripStartTime,Assumption('travel_speed'),Assumption('max_delivery_time')],dtype=numpy.long)
+  1135       370         1598      4.3      0.0      delivery_count,tripStartTime,travel_speed,max_delivery_time=int_vars[0],int_vars[1],int_vars[2],int_vars[3]
+  1136       370       164195    443.8      0.3      realPoints = numpy.ascontiguousarray(numpy.array(….
+  1140       370         1626      4.4      0.0      get_combo_vars = long(stPtx),long(stPty),tripStartTime,orderTimes,travel_speed,max_delivery_time,delivery_count,delivery_ids,realPoints
+  1141                                           
+  1142       370       775510   2096.0      1.3      if delivery_count < max_delivery_count: testSet=orderSet[orderSet['mc'+str(delivery_count)]==True].reset_index(drop=True)
+  1143        42           84      2.0      0.0      else: testSet=orderSet
+  1144       370         1066      2.9      0.0      single=True
+  1145       370         2411      6.5      0.0      if delivery_count<4 or single==True:
+  1146       370         1406      3.8      0.0          pt=len(testSet.index)
+  1147       370         2371      6.4      0.0          c_global_vars_reduced = (c_travelTimes[:pt],c_startTimes[:pt],c_endTimes[:pt],c_odtTimes[:pt],
+  1148       370         1879      5.1      0.0                                   c_oMaxTimes[:pt],c_tddTimes[:pt],c_ctMarker[:pt],c_returnVars[:delivery_count])
+  1149       370     60027427 162236.3     97.3          order_results,dg_q_results = get_best_combo(testSet,get_combo_vars,c_global_vars_reduced,False)
+  1150       370         1451      3.9      0.0          return order_results,dg_q_results
+
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+  1172                                           # @profile
+  1173                                           def get_best_combo(testSet,get_combo_vars,c_global_vars,parallel=False):
+  1176       370         1571      4.2      0.0      stPtx,stPty,tripStartTime,orderTimes,travel_speed,max_delivery_time,delivery_count,delivery_ids,realPoints = get_combo_vars
+  1177       370          911      2.5      0.0      c_travelTimes_r,c_startTimes_r,c_endTimes_r,c_odtTimes_r,c_oMaxTimes_r,c_tddTimes_r,c_ctMarker_r,c_returnVars_r = c_global_vars
+  1178       370      1646528   4450.1      3.0      points=testSet.ix[:,'pt0':'pt'+str(delivery_count*2-1)]
+  1179       370      1167600   3155.7      2.1      orderSortKey=numpy.ascontiguousarray(testSet.ix[:,'i0':'i'+str(delivery_count-1)].as_matrix(),dtype=numpy.long)
+  1180       370      1949563   5269.1      3.5      ptsSortKey=numpy.ascontiguousarray(testSet.ix[:,'a1':ABC[delivery_count-1].lower()+'2'].as_matrix(),dtype=numpy.long)
+  1181       370       338473    914.8      0.6      mockCombos=numpy.ascontiguousarray(points.as_matrix(),dtype=numpy.long)
+  1182       370         4396     11.9      0.0      if delivery_count == 2: realCombos = c_mapper2(realPoints, mockCombos)
+  1183       370         9694     26.2      0.0      if delivery_count == 3: realCombos = c_mapper3(realPoints, mockCombos)
+  1184       370       946139   2557.1      1.7      if delivery_count == 4: realCombos = c_mapper4(realPoints, mockCombos)
+  1185       370     15005995  40556.7     27.2      if delivery_count == 5: realCombos = c_mapper5(realPoints, mockCombos)
+  1186       370         2229      6.0      0.0      if delivery_count == 6: realCombos = c_mapper6(realPoints, mockCombos)
+  1187       370         1390      3.8      0.0      if delivery_count == 7: realCombos = c_mapper7(realPoints, mockCombos)
+  1189       370         1087      2.9      0.0      c_vars = c_get_best_combo(stPtx,stPty,mockCombos, realCombos, orderSortKey, ptsSortKey, orderTimes,
+  1190       370          857      2.3      0.0                                delivery_ids, delivery_count, tripStartTime, travel_speed, max_delivery_time,
+  1191       370     34038810  91996.8     61.6                                c_travelTimes_r,...
+  1193       370         1233      3.3      0.0      order_q_c_vars = c_vars
+  1194       370          828      2.2      0.0      dg_q_results = ''
+  1195                                           
+  1196       370         6684     18.1      0.0      if order_q_c_vars[0][13] != 0:
+  1197      2316       124395     53.7      0.2          order_q_results = pandas.DataFrame([[col ...
+  1198        51         7960    156.1      0.0          a=order_q_results.totalOrderTime.tolist()
+  1199        51          354      6.9      0.0          b=sorted(a)
+  1203        51          118      2.3      0.0          return order_q_results,dg_q_results
+  1204       319          823      2.6      0.0      else: return None,None

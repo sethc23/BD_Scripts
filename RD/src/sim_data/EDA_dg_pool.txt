@@ -1,0 +1,11 @@
+dg_id	dg_node	dest_node	total_delivered	current_deliveries
+0	5653	0	0	0
+1	3543	0	0	0
+2	8094	0	0	0
+3	3403	0	0	0
+4	2219	0	0	0
+5	1482	0	0	0
+6	1989	0	0	0
+7	120	0	0	0
+8	1988	0	0	0
+9	7473	0	0	0

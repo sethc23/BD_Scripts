@@ -10,7 +10,6 @@ django/Dropbox/aporo
 django/Dropbox/aprinto
 geolocation/ogr2osm
 GitLibrary.git
-RD/src
 *.pyc
 nginx/OpenResty_Nginx/ngx_openresty-1.7.2.1/mods
 nginx/OpenResty_Nginx/nginx-1.7.4/src
@@ -20,3 +19,5 @@ ipython/notebooks/reference/files/BUILD/mods
 *.DS_Store
 Projects/GAE/src/SampleApps
 geolocation/address_standardizer/
+RD/src/perm_data/
+RD/src/ENV/

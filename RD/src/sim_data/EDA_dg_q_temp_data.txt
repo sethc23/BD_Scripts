@@ -1,0 +1,1 @@
+0	1	2	3	4	5	6	7	8	9	10	mockCombo	travelTime	a	b	c	d	e	f	g	h	i	j	combined	A-i	A-ID	A-OT	A-St	A-En	B-i	B-ID	B-OT	B-St	B-En	C-i	C-ID	C-OT	C-St	C-En	D-i	D-ID	D-OT	D-St	D-En	E-i	E-ID	E-OT	E-St	E-En	deliveryIDs	travelTimes	delTimes	maxDelTime	ave_X	ave_Y	tripMean	tripStd

@@ -1,0 +1,1 @@
+id	dg_X	dg_Y	ave_X	ave_Y	status	deliveryNum	travelTimeToLoc	deliveryID	orderTime	start_X	start_Y	startTime	endTime	end_X	end_Y	totalOrderTime	travelTime

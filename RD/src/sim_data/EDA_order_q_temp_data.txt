@@ -1,0 +1,4 @@
+id	dg_X	dg_Y	status	deliveryNum	deliveryID	orderTime	startTime	start_X	start_Y	endTime	end_X	end_Y	totalOrderTime	travelTime	travelTimeToLoc
+152	20	0	on route	0	starting	0	0	20	0	0	20	0	 	0	
+152	20.0	0.0	on deck	2	1310	0	37	20	0	37	17	-6	37	37	15.0
+152			on deck	1	9569	0	13	5	1	13	12	7	13	13	0.0
