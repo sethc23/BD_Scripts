@@ -252,7 +252,6 @@ def scrape_sl_search_results(query_str=''):
 
         d                       =   pd.read_sql(src,routing_eng)
 
-        #i=0
         for i in range(len(d)):
             street,zipcode,gid  =   d.ix[i,['address','zipcode','gid']].astype(str)
             address             =   street.title() + ', New York, NY, ' + zipcode
@@ -419,23 +418,19 @@ def scrape_sl_search_results(query_str=''):
             sleep(                  8)
         br.quit()
 
-    src                         =   """   select gid,address,zipcode from scrape_lattice
-                                    where address is null
-                                    or sl_updated is null
-                                    or age('now'::timestamp with time zone,seamless_updated) > interval '1 day'
+    src                         =   """ select gid,address,zipcode from scrape_lattice
+                                        where address is null
+                                        or sl_updated is null
+                                        or age('now'::timestamp with time zone,seamless_updated) > interval '1 day'
                                     """
     src                         =   src if not query_str else query_str
 
     try:
-        get_sl_addr_search_results()
-        # beep()
-        # beep()
-        SYS_r._growl(               'Seamless Update l:419')
+        get_sl_addr_search_results(src)
+        SYS_r._growl(               'Seamless@%s: SL Address Search Scrape Complete (L:429)' % os_environ['USER'] )
         print 'done!'
     except:
-        # beep()
-        SYS_r._growl(               'Seamless Update L:423')
-        # br=scraper('firefox').browser
+        SYS_r._growl(               'Seamless@%s: ISSUE -- SL Address Search Scrape (L:434)' % os_environ['USER'] )
         br=scraper(                 'phantom').browser
         only_delivery           =   True
 
@@ -757,7 +752,7 @@ def scrape_known_sl_vendors(query_str=''):
 
 # YELP FUNCTIONS
 #   yelp:     0 of 2
-def scrape_yelp_search_results():
+def scrape_yelp_search_results(query_str=''):
     """
     get results from yelp address search and update pgsql
     """
@@ -766,10 +761,13 @@ def scrape_yelp_search_results():
     reload(sys)
     sys.setdefaultencoding(         'UTF8')
 
-    s = pd.read_sql(                """ select gid,address,zipcode
+    t                           =   """ select gid,address,zipcode
                                         from scrape_lattice
                                         where yelp_updated > '2014-11-24 18:22:59.045361-05'::timestamp with time zone;
-                                    """,routing_eng)
+                                    """
+
+    query_str                   =   t if not query_str else query_str
+    s                           =   pd.read_sql( query_str,routing_eng )
 
     p                           =   map(lambda s: str(s[0].title()+', New York, NY '+str(s[1])),
                                         zip(s.address,s.zipcode))
@@ -880,21 +878,26 @@ def scrape_yelp_search_results():
                 conn.set_isolation_level(0)
                 cur.execute(        "drop table tmp;")
 
-    # beep()
-    SYS_r._growl(                   'Yelp Update L:878')
+    SYS_r._growl(                   'Yelp Update: Search Results Scraped. (L:886)')
     return True
 #   yelp:     1 of 2
-def scrape_yelp_api():
+def scrape_yelp_api(query_str=''):
     """
     get results from yelp Search API with scape lattice addresses and update pgsql -- worked 2014.11.17
     """
 
-    from rauth import OAuth1Session
-    from json import dumps as j_dump
+    from rauth                  import OAuth1Session
+    from json                   import dumps            as j_dump
+
     CONSUMER_KEY                =   'QzH1O3EktEQt89kegeaUxQ'
     CONSUMER_SECRET             =   'Q_GtZiKGtRvqQSTjGOSgsuogkTE'
     TOKEN                       =   '6T7dDEQhf41FA2DIajIDZxsm4RwvBdM9'
     TOKEN_SECRET                =   'YNaWq3LCjlQu9ir4Ibo-Zp6ELKI'
+
+    def yelp_business_api(biz_id):
+        params                  =   {}
+        api_url                 =   'http://api.yelp.com/v2/business/' + biz_id
+        return get_results(params,api_url)
     def yelp_search_api(location,radius_in_meters):
         params                  =   {}
         params["term"]          =   "restaurant"
@@ -904,20 +907,24 @@ def scrape_yelp_api():
         return get_results(params,api_url)
     def get_results(params,url):
         session                 =   OAuth1Session(
-                                        consumer_key = CONSUMER_KEY
-                                        ,consumer_secret = CONSUMER_SECRET
-                                        ,access_token = TOKEN
-                                        ,access_token_secret = TOKEN_SECRET)
+                                        consumer_key            = CONSUMER_KEY,
+                                        consumer_secret         = CONSUMER_SECRET,
+                                        access_token            = TOKEN,
+                                        access_token_secret     = TOKEN_SECRET)
         request                 =   session.get(url,params=params)
         data                    =   request.json()
         session.close()
         return data
 
-    s                           =   pd.read_sql(""" select gid,address,zipcode from scrape_lattice
-                                                    where yelp_updated is null
-                                                    or age('now'::timestamp with time zone,yelp_updated)
-                                                    > interval '1 day'
-                                                """,routing_eng)
+    t                           =   """ select gid,address,zipcode from scrape_lattice
+                                        where yelp_updated is null
+                                        or age('now'::timestamp with time zone,yelp_updated)
+                                        > interval '1 day'
+                                    """
+
+    query_str                   =   t if not query_str else query_str
+
+    s                           =   pd.read_sql( query_str,routing_eng )
 
     p                           =   map(lambda s: str(s[0].title()+', New York, NY '+str(s[1])),
                                         zip(s.address,s.zipcode))
@@ -982,7 +989,7 @@ def scrape_yelp_api():
             else:
                 df['menu_date_updated'] = df.menu_date_updated.map(lambda x:
                     None if str(x)[0].isdigit()==False
-                    else datetime.fromtimestamp(  int(x)  ).strftime('%Y-%m-%d %H:%M:%S')
+                    else dt.datetime.fromtimestamp(  int(x)  ).strftime('%Y-%m-%d %H:%M:%S')
                                                                     )
             df                  =   df.ix[:,['id',
                                              'vend_name',
@@ -1012,10 +1019,6 @@ def scrape_yelp_api():
 
             conn.set_isolation_level(0)
             cur.execute(            """
-
-                                    alter table tmp add column gid serial primary key;
-                                    update tmp set gid = nextval(pg_get_serial_sequence('tmp','gid'));
-
                                     update tmp set phone = null where phone::text = 'NaN';
                                     update tmp set postal_code = null where postal_code::text = 'NaN';
 
@@ -1112,19 +1115,85 @@ def scrape_yelp_api():
             cur.execute(            cmd)
 
     print 'done!'
-    # beep()
-    SYS_r._growl('Yelp Update L:1108')
+    SYS_r._growl(                   'Yelp@%s: API Scraped (L:1122)' % os_environ['USER'] )
 #   yelp:     2 of 2
-def scrape_yelp_vendor_pages():
+def scrape_yelp_vendor_pages(query_str=''):
     """
     use yelp.url to get hours from each page and update pgsql
     """
 
-    d                           =   pd.read_sql(""" select gid,url from yelp
-                                                    where hours_updated is null
-                                                    or age(hours_updated,'now'::timestamp with time zone)
-                                                    > interval '1 day'
-                                                """,routing_eng)
+    def save_comments(br,html,vend_url):
+        stop                    =   False
+        while stop!=True:
+            review_list         =   getTagsByAttr(html, 'div',
+                                                  {'class':'review review--with-sidebar'},
+                                                  contents=False)
+            rev_cols            =   ['vend_url','review_id','review_date','review_rating','review_msg']
+            df                  =   pd.DataFrame(columns=rev_cols)
+            for rev in review_list:
+                review_id       =   getTagsByAttr(str(rev), 'div',
+                                                  {'class':'review review--with-sidebar'},
+                                                  contents=False)[0].attrs['data-review-id']
+                review_date     =   getTagsByAttr(str(rev), 'meta',
+                                                  {'itemprop':'datePublished'},
+                                                  contents=False)[0].attrs['content']
+                f_review_date   =   dt.datetime.strptime(review_date,'%Y-%m-%d').isoformat()
+                review_rating   =   float(getTagsByAttr(str(rev), 'meta',
+                                                        {'itemprop':'ratingValue'},
+                                                        contents=False)[0].attrs['content'])
+                review_msg      =   str(getTagsByAttr(str(rev), 'p',
+                                                  {'itemprop':'description'},
+                                                  contents=False)[0])
+            df                  =   df.append(dict(zip(rev_cols,
+                                                       [vend_url,review_id,f_review_date,
+                                                        review_rating,review_msg])),ignore_index=True)
+            try:
+                next_pg_url     =   getTagsByAttr(html, 'a',
+                                                  {'class':'page-option prev-next next'},
+                                                  contents=False)[0].attrs['href']
+                br.open_page(               next_pg)
+                html            =   codecs.encode(br.source(),'utf8','ignore')
+            except:
+                stop            =   True
+                break
+
+        conn.set_isolation_level(   0)
+        cur.execute(                'drop table if exists tmp;')
+        df.to_sql(                  'tmp',routing_eng,index=False)
+        conn.set_isolation_level(   0)
+        cmd                     =   """
+                                    insert into customer_comments
+                                        (vend_url,
+                                        review_id,
+                                        review_date,
+                                        review_rating,
+                                        review_msg)
+                                    select t.vend_url,
+                                        t.review_id,
+                                        t.review_date::timestamp with time zone,
+                                        t.review_rating,
+                                        t.review_msg
+                                    from
+                                        tmp t,
+                                        (  select array_agg(f.review_id) existing_review_ids
+                                           from customer_comments f  ) as f1
+                                    where (not existing_review_ids && array[t.review_id]
+                                            or existing_review_ids is null);
+
+                                    DROP TABLE IF EXISTS tmp;
+                                    """
+        cur.execute(                cmd)
+        return
+
+
+    t                           =   """ select uid,url from yelp
+                                        where hours_updated is null
+                                        or age(hours_updated,'now'::timestamp with time zone)
+                                        > interval '1 day'
+                                    """
+
+    query_str                   =   t if not query_str else query_str
+    d                           =   pd.read_sql( query_str,routing_eng )
 
     y_links                     =   d.url.tolist()
     br                          =   scraper('phantom').browser
@@ -1217,6 +1286,10 @@ def scrape_yelp_vendor_pages():
                                     """%(vend_data)
         conn.set_isolation_level(   0)
         cur.execute(                cmd)
+
+
+        # Save Comments To Separate Table
+        save_comments(br,html,vend_data['url'])
 
     print 'done!'
     SYS_r._growl(                   'Yelp Update L:1205')
