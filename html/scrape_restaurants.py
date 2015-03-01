@@ -561,9 +561,8 @@ def scrape_sl_search_results(query_str=''):
                                         update seamless s
                                         set
                                             search_link_blob = t.search_link_blob,
-                                            upd_search_links = now
+                                            upd_search_links = 'now'::timestamp with time zone
                                         from %(tmp)s t
-                                        left join (select 'now'::timestamp with time zone) as f1 on true is true
                                         where s.vend_id = t.vend_id
                                         returning s.vend_id vend_id
                                     )
@@ -573,10 +572,9 @@ def scrape_sl_search_results(query_str=''):
                                         search_link_blob,
                                         upd_search_links
                                         )
-                                    select t.sl_link,t.vend_id,t.search_link_blob,now
+                                    select t.sl_link,t.vend_id,t.search_link_blob,'now'::timestamp with time zone
                                     from
                                         %(tmp)s t,
-                                        (select 'now'::timestamp with time zone) as f1,
                                         (select array_agg(f.vend_id) all_vend_id from seamless f) as f2
                                     where not all_vend_id @> array[t.vend_id];
 
@@ -613,10 +611,9 @@ def scrape_sl_search_results(query_str=''):
                                         t.vend_name,
                                         t.opens_%(day)s::time with time zone,
                                         t.closes_%(day)s::time with time zone,
-                                        now
+                                        'now'::timestamp with time zone
                                     from
-                                        %(tmp)s t,
-                                        (select 'now'::timestamp with time zone) as f1;
+                                        %(tmp)s t
 
                                     drop table if exists %(tmp)s;
                                     """%T)
@@ -628,10 +625,8 @@ def scrape_sl_search_results(query_str=''):
                                         set
                                             opens_%(day)s = t.opens_%(day)s::time with time zone,
                                             closes_%(day)s = t.closes_%(day)s::time with time zone,
-                                            last_updated = now
-                                        from
-                                            %(tmp)s t,
-                                            (select 'now'::timestamp with time zone) as f1
+                                            last_updated = 'now'::timestamp with time zone
+                                        from %(tmp)s t
                                         where s.vend_name = t.vend_name
                                         returning s.vend_name vend_name
                                     )
@@ -644,11 +639,10 @@ def scrape_sl_search_results(query_str=''):
                                         t.vend_name,
                                         t.opens_%(day)s::time with time zone,
                                         t.closes_%(day)s::time with time zone,
-                                        now
+                                        'now'::timestamp with time zone
                                     from
                                         %(tmp)s t,
-                                        (select 'now'::timestamp with time zone) as f1,
-                                        (select array_agg(f.vend_name) all_vend_names from seamless_closed f) as f2
+                                        (select array_agg(f.vend_name) all_vend_names from seamless_closed f) as f1
                                     where not all_vend_names @> array[t.vend_name];
 
                                     drop table if exists %(tmp)s;
