@@ -698,10 +698,14 @@ def scrape_previously_closed_vendors():
         br.open_page(               url)
         z                       =   br.get_url()
         if z.find('google')!=-1:
-            if z.find('/sorry/') != -1:
-                SYS_r._growl(       'Seamless Update L:633')
+            while z.count('/sorry/')!=0:
+                SYS_r._growl(       'SL Update @ "%s" (Prev. Closed Vendors) -- NEED CAPTCHA' % os_environ['USER'],'url to file' )
                 from ipdb import set_trace as i_trace; i_trace()
-                z               =   get_input("Captcha code?")
+                captcha_input   =   get_input("Captcha code?")
+                # input captcha
+                # submit page
+                z               =   br.get_url()
+
 
             else:
                 q               =   codecs.encode(br.source(),'utf8','ignore')
