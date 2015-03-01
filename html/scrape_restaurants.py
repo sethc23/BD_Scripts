@@ -307,7 +307,7 @@ def update_pgsql_with_seamless_page_content(br):
 
             print seamless_link
             from ipdb import set_trace as i_trace; i_trace()
-            
+
     return
 #   seamless: 1 of 3
 def scrape_sl_search_results(query_str=''):
