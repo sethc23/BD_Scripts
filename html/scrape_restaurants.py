@@ -56,8 +56,67 @@ db_eng                          =   None
 # SEAMLESS FUNCTIONS
 #   seamless: [ base f(x) ]
 def update_pgsql_with_seamless_page_content(br):
+
+    def save_comments(br,html,vend_url):
+        review_block            =   getTagsByAttr(html, 'div',
+                                              {'id':'reviews'},contents=True)
+        review_list             =   getTagsByAttr(review_block, 'div',
+                                              {'itemtype':'http://schema.org/Review'},contents=False)
+
+        rev_cols                =   ['vend_url','review_id','review_date','review_rating','review_msg']
+        df                      =   pd.DataFrame(columns=rev_cols)
+        for rev in review_list:
+            review_date         =   getTagsByAttr(str(rev), 'input',
+                                                 {'class':'ratingdate'},
+                                                 contents=False)[0].attrs['value']
+            f_review_date       =   dt.datetime.utcfromtimestamp(int(review_date)).isoformat()
+            review_rating       =   int(getTagsByAttr(str(rev), 'input',
+                                                     {'class':'rating'},
+                                                     contents=False)[0].attrs['value'])
+            review_msg          =   getTagsByAttr(str(rev), 'p',
+                                                 {'itemprop':'reviewBody'},
+                                                 contents=False)[0].contents[0].strip('\n\t ')
+            author_link         =   getTagsByAttr(str(rev), 'a',
+                                                 {'itemprop':'author'},
+                                                 contents=False)[0].attrs['href']
+            review_id           =   '_'.join([review_date,
+                                              author_link[author_link.rfind('/')+1:]])
+
+            df                  =   df.append(dict(zip(rev_cols,
+                                                       [vend_url,review_id,f_review_date,
+                                                        review_rating,review_msg])),ignore_index=True)
+
+        conn.set_isolation_level(   0)
+        cur.execute(                'drop table if exists tmp;')
+        df.to_sql(                  'tmp',routing_eng,index=False)
+        conn.set_isolation_level(   0)
+        cmd                     =   """
+                                    insert into customer_comments
+                                        (vend_url,
+                                        review_id,
+                                        review_date,
+                                        review_rating,
+                                        review_msg)
+                                    select t.vend_url,
+                                        t.review_id,
+                                        t.review_date::timestamp with time zone,
+                                        t.review_rating,
+                                        t.review_msg
+                                    from
+                                        tmp t,
+                                        (  select array_agg(f.review_id) existing_review_ids
+                                           from customer_comments f  ) as f1
+                                    where (not existing_review_ids && array[t.review_id]
+                                            or existing_review_ids is null);
+
+                                    DROP TABLE IF EXISTS tmp;
+                                    """
+        cur.execute(                cmd)
+        return
+
     html                        =   codecs.encode(br.source(),'utf8','ignore')
     seamless_link               =   br.get_url()
+
     if seamless_link.find('http')!=0: seamless_link='http://www.seamless.com/food-delivery/'+seamless_link
     vendor_id                   =   int(seamless_link[seamless_link[:-2].rfind('.')+1:-2])
 
@@ -87,7 +146,7 @@ def update_pgsql_with_seamless_page_content(br):
                                         upd_vend_content = 'now'::timestamp with time zone
                                     where vend_id = %(vendor_id)s
                                     """%T
-        conn.set_isolation_level(0)
+        conn.set_isolation_level(   0)
         cur.execute(                cmd)
         return
     else:
@@ -229,11 +288,23 @@ def update_pgsql_with_seamless_page_content(br):
                                             tmp t,
                                             (select array_agg(f.vend_id) upd_vend_ids from upd f) as f1
                                         where (not upd_vend_ids && array[t.vend_id]
-                                            or upd_vend_ids is null);"""
+                                            or upd_vend_ids is null);
+
+                                        DROP TABLE tmp;
+                                    """
     conn.set_isolation_level(       0)
     cur.execute(                    cmd)
-    conn.set_isolation_level(       0)
-    cur.execute(                    "drop table tmp;")
+
+    try:
+        review_url              =   getTagsByAttr(html, 'a',
+                                                  {'class':'showRatingsTab'},
+                                                  contents=False)[0].attrs['href']
+        br.open_page(               review_url)
+        save_comments(              br,html,seamless_link)
+    except:
+
+        print seamless_link
+        from ipdb import set_trace as i_trace; i_trace()
     return
 #   seamless: 1 of 3
 def scrape_sl_search_results(query_str=''):
@@ -685,7 +756,6 @@ def scrape_previously_closed_vendors():
                                     """%(sl_link,it[:it.find("'")]))
 
     print 'done!'
-    # beep()
     SYS_r._growl(                   'Seamless Update Error: L:699')
     return True
 #   seamless: 3 of 3
@@ -1124,7 +1194,7 @@ def scrape_yelp_vendor_pages(query_str=''):
                 review_msg      =   str(getTagsByAttr(str(rev), 'p',
                                                   {'itemprop':'description'},
                                                   contents=False)[0])
-            df                  =   df.append(dict(zip(rev_cols,
+                df              =   df.append(dict(zip(rev_cols,
                                                        [vend_url,review_id,f_review_date,
                                                         review_rating,review_msg])),ignore_index=True)
             try:
