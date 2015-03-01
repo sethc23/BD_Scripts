@@ -52,6 +52,10 @@ conn                            =   pg_connect("dbname='routing' "+
 cur                             =   conn.cursor()
 
 INSTANCE_GUID                   =   'tmp_'+str(get_guid().hex)[:7]
+TODAY                           =   dt.datetime.now()
+OLDEST_COMMENTS                 =   9*30                                    # in days
+
+# from ipdb import set_trace as i_trace; i_trace()
 
 
 # SEAMLESS FUNCTIONS
@@ -70,20 +74,26 @@ def update_pgsql_with_seamless_page_content(br):
             review_date         =   getTagsByAttr(str(rev), 'input',
                                                  {'class':'ratingdate'},
                                                  contents=False)[0].attrs['value']
-            f_review_date       =   dt.datetime.utcfromtimestamp(int(review_date)).isoformat()
-            review_rating       =   int(getTagsByAttr(str(rev), 'input',
+            dt_review_date      =   dt.datetime.strptime(review_date,'%Y-%m-%d')
+            if (TODAY - dt_review_date).days > OLDEST_COMMENTS:
+                pass
+            else:
+                f_review_date   =   dt_review_date.isoformat()
+
+                f_review_date   =   dt.datetime.utcfromtimestamp(int(review_date)).isoformat()
+                review_rating   =   int(getTagsByAttr(str(rev), 'input',
                                                      {'class':'rating'},
                                                      contents=False)[0].attrs['value'])
-            review_msg          =   getTagsByAttr(str(rev), 'p',
+                review_msg      =   getTagsByAttr(str(rev), 'p',
                                                  {'itemprop':'reviewBody'},
                                                  contents=False)[0].contents[0].strip('\n\t ')
-            author_link         =   getTagsByAttr(str(rev), 'a',
+                author_link     =   getTagsByAttr(str(rev), 'a',
                                                  {'itemprop':'author'},
                                                  contents=False)[0].attrs['href']
-            review_id           =   '_'.join([review_date,
+                review_id       =   '_'.join([review_date,
                                               author_link[author_link.rfind('/')+1:]])
 
-            df                  =   df.append(dict(zip(rev_cols,
+                df              =   df.append(dict(zip(rev_cols,
                                                        [vend_url,review_id,f_review_date,
                                                         review_rating,review_msg])),ignore_index=True)
 
@@ -101,7 +111,7 @@ def update_pgsql_with_seamless_page_content(br):
                                     select t.vend_url,
                                         t.review_id,
                                         t.review_date::timestamp with time zone,
-                                        t.review_rating,
+                                        t.review_rating::double precision,
                                         t.review_msg
                                     from
                                         %s t,
@@ -1186,7 +1196,13 @@ def scrape_yelp_vendor_pages(query_str=''):
                 review_date     =   getTagsByAttr(str(rev), 'meta',
                                                   {'itemprop':'datePublished'},
                                                   contents=False)[0].attrs['content']
-                f_review_date   =   dt.datetime.strptime(review_date,'%Y-%m-%d').isoformat()
+
+                dt_review_date  =   dt.datetime.strptime(review_date,'%Y-%m-%d')
+                if (TODAY - dt_review_date).days > OLDEST_COMMENTS:
+                    stop        =   True
+                    break
+
+                f_review_date   =   dt_review_date.isoformat()
                 review_rating   =   float(getTagsByAttr(str(rev), 'meta',
                                                         {'itemprop':'ratingValue'},
                                                         contents=False)[0].attrs['content'])
@@ -1220,7 +1236,7 @@ def scrape_yelp_vendor_pages(query_str=''):
                                     select t.vend_url,
                                         t.review_id,
                                         t.review_date::timestamp with time zone,
-                                        t.review_rating,
+                                        t.review_rating::double precision,
                                         t.review_msg
                                     from
                                         %(tmp)s t,
@@ -1234,7 +1250,6 @@ def scrape_yelp_vendor_pages(query_str=''):
         cur.execute(                cmd)
         return
 
-
     t                           =   """ select uid,url from yelp
                                         where hours_updated is null
                                         or age(hours_updated,'now'::timestamp with time zone)
@@ -1246,9 +1261,11 @@ def scrape_yelp_vendor_pages(query_str=''):
 
     y_links                     =   d.url.tolist()
     br                          =   scraper('phantom').browser
+    comment_sort_opts           =   '?sort_by=date_desc&start=0'
 
     for it in y_links:
-        br.open_page(               it)
+
+        br.open_page(               it+comment_sort_opts)
         html                    =   codecs.encode(br.source(),'utf8','ignore')
 
         # extract yelp page data
