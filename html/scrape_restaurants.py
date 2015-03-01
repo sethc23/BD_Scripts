@@ -14,6 +14,7 @@ from re                         import sub              as re_sub
 from subprocess                 import Popen            as sub_popen
 from subprocess                 import PIPE             as sub_PIPE
 from os                         import environ          as os_environ
+from uuid                       import uuid4            as get_guid
 from os                         import path             as os_path
 from sys                        import path             as py_path
 py_path.append(                     os_path.join(os_environ['BD'],'html'))
@@ -50,7 +51,7 @@ conn                            =   pg_connect("dbname='routing' "+
                                                      "host='%s' password='' port=8800" % DB_HOST);
 cur                             =   conn.cursor()
 
-db_eng                          =   None
+INSTANCE_GUID                   =   str(get_guid().hex)[:7]
 
 
 # SEAMLESS FUNCTIONS
@@ -87,8 +88,8 @@ def update_pgsql_with_seamless_page_content(br):
                                                         review_rating,review_msg])),ignore_index=True)
 
         conn.set_isolation_level(   0)
-        cur.execute(                'drop table if exists tmp;')
-        df.to_sql(                  'tmp',routing_eng,index=False)
+        cur.execute(                'drop table if exists %s;' % INSTANCE_GUID)
+        df.to_sql(                  INSTANCE_GUID,routing_eng,index=False)
         conn.set_isolation_level(   0)
         cmd                     =   """
                                     insert into customer_comments
@@ -103,14 +104,14 @@ def update_pgsql_with_seamless_page_content(br):
                                         t.review_rating,
                                         t.review_msg
                                     from
-                                        tmp t,
+                                        %s t,
                                         (  select array_agg(f.review_id) existing_review_ids
                                            from customer_comments f  ) as f1
                                     where (not existing_review_ids && array[t.review_id]
                                             or existing_review_ids is null);
 
-                                    DROP TABLE IF EXISTS tmp;
-                                    """
+                                    DROP TABLE IF EXISTS %s;
+                                    """ % (INSTANCE_GUID,INSTANCE_GUID)
         cur.execute(                cmd)
         return
 
@@ -219,8 +220,8 @@ def update_pgsql_with_seamless_page_content(br):
     c                           =   'reviews,deliv_est,deliv_min,pickup_est,cuisine,estimates_blob'.split(',')
     var_names                   =   a + b + c
     conn.set_isolation_level(       0)
-    cur.execute(                    'drop table if exists tmp')
-    pd.DataFrame(                   [page_vars],columns=var_names).to_sql('tmp',routing_eng)
+    cur.execute(                    'drop table if exists %s' % INSTANCE_GUID)
+    pd.DataFrame(                   [page_vars],columns=var_names).to_sql(INSTANCE_GUID,routing_eng)
 
     # upsert to seamless
     cmd                         =   """
@@ -243,7 +244,7 @@ def update_pgsql_with_seamless_page_content(br):
                                                 cuisine = t.cuisine,
                                                 estimates_blob = t.estimates_blob,
                                                 upd_vend_content = 'now'::timestamp with time zone
-                                            from tmp t
+                                            from %(tmp)s t
                                             where s.vend_id = t.vend_id
                                             returning t.vend_id vend_id
                                         )
@@ -285,13 +286,13 @@ def update_pgsql_with_seamless_page_content(br):
                                             t.estimates_blob,
                                             'now'::timestamp with time zone
                                         from
-                                            tmp t,
+                                            %(tmp)s t,
                                             (select array_agg(f.vend_id) upd_vend_ids from upd f) as f1
                                         where (not upd_vend_ids && array[t.vend_id]
                                             or upd_vend_ids is null);
 
-                                        DROP TABLE tmp;
-                                    """
+                                        DROP TABLE %(tmp)s;
+                                    """ % { 'tmp':INSTANCE_GUID }
     conn.set_isolation_level(       0)
     cur.execute(                    cmd)
 
@@ -361,18 +362,18 @@ def scrape_sl_search_results(query_str=''):
             h                   =   h.map(lambda s: base_url + s if s.find('http')==-1 else s)
             t                   =   pd.Series(map(lambda a: a.a.attrs['title'],z))
             conn.set_isolation_level(0)
-            cur.execute(            "drop table if exists tmp;")
+            cur.execute(            "drop table if exists %s;" % INSTANCE_GUID)
             pd.DataFrame(           {'sl_link':h,'search_link_blob':t}).to_sql('tmp',routing_eng)
 
             conn.set_isolation_level(0)
             cur.execute(            """
-                                    alter table tmp add column vend_id bigint;
+                                    alter table %(tmp)s add column vend_id bigint;
 
-                                    update tmp
+                                    update %(tmp)s
                                     set vend_id = substring(sl_link from
                                         '[[:punct:]]([[:digit:]]*)[[:punct:]][r]$')::bigint
                                     where vend_id is null;
-                                    """)
+                                    """ % { 'tmp':INSTANCE_GUID })
             conn.set_isolation_level(0)
             cur.execute(            """
                                     with upd as (
@@ -380,7 +381,7 @@ def scrape_sl_search_results(query_str=''):
                                         set
                                             search_link_blob = t.search_link_blob,
                                             upd_search_links = 'now'::timestamp with time zone
-                                        from tmp t
+                                        from %(tmp)s t
                                         where s.vend_id = t.vend_id
                                         returning s.vend_id vend_id
                                     )
@@ -392,12 +393,12 @@ def scrape_sl_search_results(query_str=''):
                                         )
                                     select t.sl_link,t.vend_id,t.search_link_blob,'now'::timestamp with time zone
                                     from
-                                        tmp t,
+                                        %(tmp)s t,
                                         (select array_agg(f.vend_id) all_vend_id from seamless f) as f2
                                     where not all_vend_id @> array[t.vend_id];
 
-                                    drop table if exists tmp;
-                                    """)
+                                    drop table if exists %(tmp)s;
+                                    """ % { 'tmp':INSTANCE_GUID })
             # --- 3. update pgsql:seamless_closed with seamless address search results
             br.window.find_element_by_id("ShowClosedVendorsLink").click()
             sleep(                  5)
@@ -412,10 +413,11 @@ def scrape_sl_search_results(query_str=''):
             x[cols[1]]          =   x[cols[1]].map(lambda s: dt.datetime.strftime(dt.datetime.strptime(s,'%I:%M %p'),'%H:%M'))
             x[cols[2]]          =   x[cols[2]].map(lambda s: dt.datetime.strftime(dt.datetime.strptime(s,'%I:%M %p'),'%H:%M'))
             conn.set_isolation_level(0)
-            cur.execute(            "drop table if exists tmp;")
-            x.to_sql(               'tmp',routing_eng)
+            cur.execute(            "drop table if exists %s;" % INSTANCE_GUID)
+            x.to_sql(               INSTANCE_GUID,routing_eng)
             # upsert
             check               =   pd.read_sql('select count(*) cnt from seamless_closed',routing_eng).cnt[0]
+            T.update(               { 'tmp':INSTANCE_GUID })
             if check == 0:
                 conn.set_isolation_level(0)
                 cur.execute(        """
@@ -430,10 +432,10 @@ def scrape_sl_search_results(query_str=''):
                                         t.closes_%(day)s::time with time zone,
                                         'now'::timestamp with time zone
                                     from
-                                        tmp t;
+                                        %(tmp)s t;
 
-                                    drop table if exists tmp;
-                                    """%T)
+                                    drop table if exists %(tmp)s;
+                                    """ % T)
             else:
                 conn.set_isolation_level(0)
                 cur.execute(        """
@@ -444,7 +446,7 @@ def scrape_sl_search_results(query_str=''):
                                             closes_%(day)s = t.closes_%(day)s::time with time zone,
                                             last_updated = 'now'::timestamp with time zone
                                         from
-                                            tmp t
+                                            %(tmp)s t
                                         where s.vend_name = t.vend_name
                                         returning s.vend_name vend_name
                                     )
@@ -459,12 +461,12 @@ def scrape_sl_search_results(query_str=''):
                                         t.closes_%(day)s::time with time zone,
                                         'now'::timestamp with time zone
                                     from
-                                        tmp t,
+                                        %(tmp)s t,
                                         (select array_agg(f.vend_name) all_vend_names from seamless_closed f) as f2
                                     where not all_vend_names @> array[t.vend_name];
 
-                                    drop table if exists tmp;
-                                    """%T)
+                                    drop table if exists %(tmp)s;
+                                    """ % T)
             # --- 4. update pgsql:scrape_lattice
             conn.set_isolation_level(0)
             cur.execute(            """  update scrape_lattice
@@ -542,17 +544,17 @@ def scrape_sl_search_results(query_str=''):
             h                   =   h.map(lambda s: base_url + s if s.find('http')==-1 else s)
             t                   =   pd.Series(map(lambda a: a.a.attrs['title'],z))
             conn.set_isolation_level(0)
-            cur.execute(            "drop table if exists tmp;")
-            pd.DataFrame(           {'sl_link':h,'search_link_blob':t}).to_sql('tmp',routing_eng)
+            cur.execute(            "drop table if exists %s;" % INSTANCE_GUID)
+            pd.DataFrame(           {'sl_link':h,'search_link_blob':t}).to_sql(INSTANCE_GUID,routing_eng)
 
             conn.set_isolation_level(0)
             cur.execute(            """
-                                    alter table tmp add column vend_id bigint;
+                                    alter table %(tmp)s add column vend_id bigint;
 
-                                    update tmp
+                                    update %(tmp)s
                                     set vend_id = substring(sl_link from '[[:punct:]]([[:digit:]]*)[[:punct:]][r]$')::bigint
                                     where vend_id is null;
-                                    """)
+                                    """ % { 'tmp':INSTANCE_GUID })
             conn.set_isolation_level(0)
             cur.execute(            """
                                     with upd as (
@@ -560,7 +562,7 @@ def scrape_sl_search_results(query_str=''):
                                         set
                                             search_link_blob = t.search_link_blob,
                                             upd_search_links = now
-                                        from tmp t
+                                        from %(tmp)s t
                                         left join (select 'now'::timestamp with time zone) as f1 on true is true
                                         where s.vend_id = t.vend_id
                                         returning s.vend_id vend_id
@@ -573,13 +575,13 @@ def scrape_sl_search_results(query_str=''):
                                         )
                                     select t.sl_link,t.vend_id,t.search_link_blob,now
                                     from
-                                        tmp t,
+                                        %(tmp)s t,
                                         (select 'now'::timestamp with time zone) as f1,
                                         (select array_agg(f.vend_id) all_vend_id from seamless f) as f2
                                     where not all_vend_id @> array[t.vend_id];
 
-                                    drop table if exists tmp;
-                                    """)
+                                    drop table if exists %(tmp)s;
+                                    """ % { 'tmp':INSTANCE_GUID })
             # --- 3. update pgsql:seamless_closed with seamless address search results
             br.window.find_element_by_id("ShowClosedVendorsLink").click()
             sleep(                  5)
@@ -594,10 +596,11 @@ def scrape_sl_search_results(query_str=''):
             x[cols[1]]          =   x[cols[1]].map(lambda s: dt.datetime.strftime(dt.datetime.strptime(s,'%I:%M %p'),'%H:%M'))
             x[cols[2]]          =   x[cols[2]].map(lambda s: dt.datetime.strftime(dt.datetime.strptime(s,'%I:%M %p'),'%H:%M'))
             conn.set_isolation_level(0)
-            cur.execute(            "drop table if exists tmp;")
-            x.to_sql(               'tmp',routing_eng)
+            cur.execute(            "drop table if exists %s;" % INSTANCE_GUID)
+            x.to_sql(               INSTANCE_GUID,routing_eng)
             # --- upsert
             check               =   pd.read_sql('select count(*) cnt from seamless_closed',routing_eng).cnt[0]
+            T.update(               { 'tmp':INSTANCE_GUID })
             if check == 0:
                 conn.set_isolation_level(0)
                 cur.execute(        """
@@ -612,10 +615,10 @@ def scrape_sl_search_results(query_str=''):
                                         t.closes_%(day)s::time with time zone,
                                         now
                                     from
-                                        tmp t,
+                                        %(tmp)s t,
                                         (select 'now'::timestamp with time zone) as f1;
 
-                                    drop table if exists tmp;
+                                    drop table if exists %(tmp)s;
                                     """%T)
             else:
                 conn.set_isolation_level(0)
@@ -627,7 +630,7 @@ def scrape_sl_search_results(query_str=''):
                                             closes_%(day)s = t.closes_%(day)s::time with time zone,
                                             last_updated = now
                                         from
-                                            tmp t,
+                                            %(tmp)s t,
                                             (select 'now'::timestamp with time zone) as f1
                                         where s.vend_name = t.vend_name
                                         returning s.vend_name vend_name
@@ -643,12 +646,12 @@ def scrape_sl_search_results(query_str=''):
                                         t.closes_%(day)s::time with time zone,
                                         now
                                     from
-                                        tmp t,
+                                        %(tmp)s t,
                                         (select 'now'::timestamp with time zone) as f1,
                                         (select array_agg(f.vend_name) all_vend_names from seamless_closed f) as f2
                                     where not all_vend_names @> array[t.vend_name];
 
-                                    drop table if exists tmp;
+                                    drop table if exists %(tmp)s;
                                     """%T)
             # --- 4. update pgsql:scrape_lattice
             conn.set_isolation_level(0)
@@ -892,10 +895,10 @@ def scrape_yelp_search_results(query_str=''):
 
                 # upsert to yelp
                 conn.set_isolation_level(0)
-                cur.execute(        'drop table if exists tmp')
+                cur.execute(        'drop table if exists %s' % INSTANCE_GUID)
                 d['id']         =   d.url.map(lambda s: s[s.find('/biz/')+5:])
                 d['phone_as_text'] = d.phone.map(str)
-                d.to_sql(           'tmp',routing_eng)
+                d.to_sql(           INSTANCE_GUID,routing_eng)
 
                 cmd             =   """
                                     with upd as (
@@ -906,7 +909,7 @@ def scrape_yelp_search_results(query_str=''):
                                             url = t.url,
                                             phone_as_text = t.phone_as_text,
                                             upd_search_links = 'now'::timestamp with time zone
-                                        from tmp t
+                                        from %(tmp)s t
                                         where y.url = t.url
                                         returning t.url url
                                     )
@@ -922,14 +925,16 @@ def scrape_yelp_search_results(query_str=''):
                                         t.phone_as_text,
                                         'now'::timestamp with time zone
                                     from
-                                        tmp t,
+                                        %(tmp)s t,
                                         (select array_agg(f.url) upd_vend_urls from upd f) as f2
                                     where (not upd_vend_urls && array[t.url]
-                                        or upd_vend_urls is null);"""
+                                        or upd_vend_urls is null);
+
+                                    drop table %(tmp)s;
+
+                                    """ % { 'tmp':INSTANCE_GUID }
                 conn.set_isolation_level(0)
                 cur.execute(        cmd)
-                conn.set_isolation_level(0)
-                cur.execute(        "drop table tmp;")
 
     SYS_r._growl(                   'Yelp Update: Search Results Scraped. (L:886)')
     return True
@@ -1067,18 +1072,15 @@ def scrape_yelp_api(query_str=''):
                                              'geo_accuracy']]
 
             conn.set_isolation_level(0)
-            cur.execute(            "drop table if exists tmp;")
-            df.to_sql(              'tmp',routing_eng)
-
-            conn.set_isolation_level(0)
-            cur.execute(            """
-                                    update tmp set phone = null where phone::text = 'NaN';
-                                    update tmp set postal_code = null where postal_code::text = 'NaN';
-
-                                    """)
+            cur.execute(            "drop table if exists %(tmp)s;" % INSTANCE_GUID)
+            df.to_sql(              INSTANCE_GUID,routing_eng)
 
             # upsert 'tmp' to 'yelp'
             cmd                 =   """
+
+                                    update %(tmp)s set phone = null where phone::text = 'NaN';
+                                    update %(tmp)s set postal_code = null where postal_code::text = 'NaN';
+
                                     with upd as (
                                         update yelp y
                                         set
@@ -1104,7 +1106,7 @@ def scrape_yelp_api(query_str=''):
                                             longitude = t.longitude,
                                             geo_accuracy = t.geo_accuracy,
                                             last_api_update = 'now'::timestamp with time zone
-                                        from tmp t
+                                        from %(tmp)s t
                                         where y.id = t.id
                                         returning t.id id
                                     )
@@ -1155,13 +1157,13 @@ def scrape_yelp_api(query_str=''):
                                         t.geo_accuracy,
                                         'now'::timestamp with time zone
                                     from
-                                        tmp t,
+                                        %(tmp)s t,
                                         (select array_agg(f.id) upd_ids from upd f) as f1
                                     where (not upd_ids && array[t.id]
                                         or upd_ids is null);
 
 
-                                    drop table tmp;
+                                    drop table %(tmp)s;
 
                                     """
             conn.set_isolation_level(0)
@@ -1194,9 +1196,9 @@ def scrape_yelp_vendor_pages(query_str=''):
                 review_rating   =   float(getTagsByAttr(str(rev), 'meta',
                                                         {'itemprop':'ratingValue'},
                                                         contents=False)[0].attrs['content'])
-                review_msg      =   str(getTagsByAttr(str(rev), 'p',
-                                                  {'itemprop':'description'},
-                                                  contents=False)[0])
+                bs_review_msg   =   getTagsByAttr(str(rev), 'p', {'itemprop':'description'},contents=False)[0]
+                review_msg      =   codecs.encode(bs_review_msg.text,'ascii','ignore')
+
                 df              =   df.append(dict(zip(rev_cols,
                                                        [vend_url,review_id,f_review_date,
                                                         review_rating,review_msg])),ignore_index=True)
@@ -1204,15 +1206,15 @@ def scrape_yelp_vendor_pages(query_str=''):
                 next_pg_url     =   getTagsByAttr(html, 'a',
                                                   {'class':'page-option prev-next next'},
                                                   contents=False)[0].attrs['href']
-                br.open_page(               next_pg)
+                br.open_page(       next_pg)
                 html            =   codecs.encode(br.source(),'utf8','ignore')
             except:
                 stop            =   True
                 break
 
         conn.set_isolation_level(   0)
-        cur.execute(                'drop table if exists tmp;')
-        df.to_sql(                  'tmp',routing_eng,index=False)
+        cur.execute(                'drop table if exists %s;' % INSTANCE_GUID)
+        df.to_sql(                  INSTANCE_GUID,routing_eng,index=False)
         conn.set_isolation_level(   0)
         cmd                     =   """
                                     insert into customer_comments
@@ -1227,14 +1229,14 @@ def scrape_yelp_vendor_pages(query_str=''):
                                         t.review_rating,
                                         t.review_msg
                                     from
-                                        tmp t,
+                                        %(tmp)s t,
                                         (  select array_agg(f.review_id) existing_review_ids
                                            from customer_comments f  ) as f1
                                     where (not existing_review_ids && array[t.review_id]
                                             or existing_review_ids is null);
 
-                                    DROP TABLE IF EXISTS tmp;
-                                    """
+                                    DROP TABLE IF EXISTS %(tmp)s;
+                                    """ % { 'tmp':INSTANCE_GUID }
         cur.execute(                cmd)
         return
 
