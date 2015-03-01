@@ -421,7 +421,7 @@ def scrape_sl_search_results(query_str=''):
     src                         =   """ select gid,address,zipcode from scrape_lattice
                                         where address is null
                                         or sl_updated is null
-                                        or age('now'::timestamp with time zone,seamless_updated) > interval '1 day'
+                                        or age('now'::timestamp with time zone,sl_updated) > interval '1 day'
                                     """
     src                         =   src if not query_str else query_str
 
