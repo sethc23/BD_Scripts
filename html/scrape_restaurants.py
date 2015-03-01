@@ -704,6 +704,8 @@ def scrape_previously_closed_vendors():
                 captcha_input   =   get_input("Captcha code?")
                 # input captcha
                 # submit page
+                #br.browser.find_element_by_id("password").send_keys(captcha_input)
+                #br.browser.find_element_by_name("commit").click()
                 z               =   br.get_url()
 
 
