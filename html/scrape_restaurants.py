@@ -292,10 +292,6 @@ def scrape_sl_search_results(query_str=''):
 
             conn.set_isolation_level(0)
             cur.execute(            """
-                                    alter table tmp add column id serial;
-                                    update tmp set id = nextval(pg_get_serial_sequence('tmp','id'));
-                                    alter table tmp add primary key (id);
-
                                     alter table tmp add column vend_id bigint;
 
                                     update tmp
@@ -344,12 +340,6 @@ def scrape_sl_search_results(query_str=''):
             conn.set_isolation_level(0)
             cur.execute(            "drop table if exists tmp;")
             x.to_sql(               'tmp',routing_eng)
-            conn.set_isolation_level(0)
-            cur.execute(            """
-                                    alter table tmp add column id serial;
-                                    update tmp set id = nextval(pg_get_serial_sequence('tmp','id'));
-                                    alter table tmp add primary key (id);
-                                    """)
             # upsert
             check               =   pd.read_sql('select count(*) cnt from seamless_closed',routing_eng).cnt[0]
             if check == 0:
@@ -483,10 +473,6 @@ def scrape_sl_search_results(query_str=''):
 
             conn.set_isolation_level(0)
             cur.execute(            """
-                                    alter table tmp add column id serial;
-                                    update tmp set id = nextval(pg_get_serial_sequence('tmp','id'));
-                                    alter table tmp add primary key (id);
-
                                     alter table tmp add column vend_id bigint;
 
                                     update tmp
@@ -536,12 +522,6 @@ def scrape_sl_search_results(query_str=''):
             conn.set_isolation_level(0)
             cur.execute(            "drop table if exists tmp;")
             x.to_sql(               'tmp',routing_eng)
-            conn.set_isolation_level(0)
-            cur.execute(            """
-                                    alter table tmp add column id serial;
-                                    update tmp set id = nextval(pg_get_serial_sequence('tmp','id'));
-                                    alter table tmp add primary key (id);
-                                    """)
             # --- upsert
             check               =   pd.read_sql('select count(*) cnt from seamless_closed',routing_eng).cnt[0]
             if check == 0:
