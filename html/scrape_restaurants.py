@@ -700,10 +700,9 @@ def scrape_previously_closed_vendors():
         if z.find('google')!=-1:
             if z.find('/sorry/') != -1:
                 SYS_r._growl(       'Seamless Update L:633')
-                end             =   False
-                while end == False:
-                    z           =   get_input("Captcha code?")
-                    end         =   True
+                from ipdb import set_trace as i_trace; i_trace()
+                z               =   get_input("Captcha code?")
+
             else:
                 q               =   codecs.encode(br.source(),'utf8','ignore')
                 a               =   google()
