@@ -487,7 +487,7 @@ def scrape_sl_search_results(query_str=''):
                                             search_link_blob = t.search_link_blob,
                                             upd_search_links = now
                                         from tmp t
-                                        left join (select 'now'::timestamp now) as f1 on true is true
+                                        left join (select 'now'::timestamp with time zone) as f1 on true is true
                                         where s.vend_id = t.vend_id
                                         returning s.vend_id vend_id
                                     )
@@ -500,7 +500,7 @@ def scrape_sl_search_results(query_str=''):
                                     select t.sl_link,t.vend_id,t.search_link_blob,now
                                     from
                                         tmp t,
-                                        (select 'now'::timestamp now) as f1,
+                                        (select 'now'::timestamp with time zone) as f1,
                                         (select array_agg(f.vend_id) all_vend_id from seamless f) as f2
                                     where not all_vend_id @> array[t.vend_id];
 
@@ -554,7 +554,7 @@ def scrape_sl_search_results(query_str=''):
                                             last_updated = now
                                         from
                                             tmp t,
-                                            (select 'now'::timestamp now) as f1
+                                            (select 'now'::timestamp with time zone) as f1
                                         where s.vend_name = t.vend_name
                                         returning s.vend_name vend_name
                                     )
