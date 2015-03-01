@@ -295,16 +295,19 @@ def update_pgsql_with_seamless_page_content(br):
     conn.set_isolation_level(       0)
     cur.execute(                    cmd)
 
-    try:
-        review_url              =   getTagsByAttr(html, 'a',
-                                                  {'class':'showRatingsTab'},
-                                                  contents=False)[0].attrs['href']
-        br.open_page(               review_url)
-        save_comments(              br,html,seamless_link)
-    except:
+    if rating!=-1:
 
-        print seamless_link
-        from ipdb import set_trace as i_trace; i_trace()
+        try:
+            review_url              =   getTagsByAttr(html, 'a',
+                                                      {'class':'showRatingsTab'},
+                                                      contents=False)[0].attrs['href']
+            br.open_page(               review_url)
+            save_comments(              br,html,seamless_link)
+        except:
+
+            print seamless_link
+            from ipdb import set_trace as i_trace; i_trace()
+            
     return
 #   seamless: 1 of 3
 def scrape_sl_search_results(query_str=''):
