@@ -702,8 +702,6 @@ def scrape_previously_closed_vendors():
                 SYS_r._growl(       'SL Update @ "%s" (Prev. Closed Vendors) -- NEED CAPTCHA' % os_environ['USER'],'url to file' )
                 from ipdb import set_trace as i_trace; i_trace()
                 captcha_input   =   get_input("Captcha code?")
-                # input captcha
-                # submit page
                 #br.browser.find_element_by_id("password").send_keys(captcha_input)
                 #br.browser.find_element_by_name("commit").click()
                 z               =   br.get_url()
