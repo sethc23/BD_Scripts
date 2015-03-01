@@ -51,7 +51,7 @@ conn                            =   pg_connect("dbname='routing' "+
                                                      "host='%s' password='' port=8800" % DB_HOST);
 cur                             =   conn.cursor()
 
-INSTANCE_GUID                   =   str(get_guid().hex)[:7]
+INSTANCE_GUID                   =   'tmp_'+str(get_guid().hex)[:7]
 
 
 # SEAMLESS FUNCTIONS
@@ -1344,7 +1344,7 @@ def scrape_yelp_vendor_pages(query_str=''):
 
 
         # Save Comments To Separate Table
-        save_comments(br,html,vend_data['url'])
+        save_comments(              br,html,vend_data['url'])
 
     print 'done!'
     SYS_r._growl(                   'Yelp Update L:1205')
