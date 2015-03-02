@@ -111,12 +111,13 @@ class Webdriver():
 
     def wait_for_page(self,timeout_seconds=45):
         end                     =   TIME() + timeout_seconds
+        delay(                      1)
         while TIME()<end:
             status              =   self.browser.execute_script("return document.readyState")
             if status=='complete':
                 return
             else:
-                delay(2)
+                delay(              2)
 
     def window_count(self):
         return len(self.browser.window_handles)

@@ -459,7 +459,7 @@ def scrape_sl_search_results(query_str=''):
                                     drop table if exists %(tmp)s;
                                     """ % { 'tmp':INSTANCE_GUID })
             # --- 3. update pgsql:seamless_closed with seamless address search results
-            closed_vend_element =   br.window.find_element_by_id("ShowClosedVendorsLink").click()
+            closed_vend_element =   br.window.find_element_by_id("ShowClosedVendorsLink")
             if closed_vend_element.is_displayed():
                 closed_vend_element.click()
             br.wait_for_page(timeout_seconds=120)
