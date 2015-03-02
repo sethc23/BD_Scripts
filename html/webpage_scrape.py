@@ -386,31 +386,31 @@ class scraper():
 #     Safari_API.saveHTML(saveBase + linkID + '_names' + '.html', findStr=['table', 'width', '97%'])
 #     sleep(10)
 
-'''
-f=open('/Users/admin/Desktop/case_check.txt','r')
-x=f.readlines()
-f.close()
 
-a=[]
-for it in x:
-    #print it[7]
-    #break
-    it=it.rstrip('\r')
-    it=it.rstrip('\n')
-    it=it[:-1]
-    if it[7]=='9': b=it[:6]+'-19'+it[7:]
-    else: b=it[:6]+'-20'+it[7:]
-    if a.count(b)==0: a.append(b)
+# f=open('/Users/admin/Desktop/case_check.txt','r')
+# x=f.readlines()
+# f.close()
+#
+# a=[]
+# for it in x:
+#     #print it[7]
+#     #break
+#     it=it.rstrip('\r')
+#     it=it.rstrip('\n')
+#     it=it[:-1]
+#     if it[7]=='9': b=it[:6]+'-19'+it[7:]
+#     else: b=it[:6]+'-20'+it[7:]
+#     if a.count(b)==0: a.append(b)
+#
+#
+#
+# baseUrl='http://iapps.courts.state.ny.us/iscroll/CaseCap.jsp?IndexNo='
+# saveBase='/Users/admin/Desktop/HB/'
+#
+# #runLinks(a)
 
 
 
-baseUrl='http://iapps.courts.state.ny.us/iscroll/CaseCap.jsp?IndexNo='
-saveBase='/Users/admin/Desktop/HB/'
-
-#runLinks(a)
-
-'''
-
-#gotoUrl = SEARCH_URL_0
-#html_hard_coding(gotoUrl)
-scraper(browser='mechanize',cookies='')
+# gotoUrl = SEARCH_URL_0
+# html_hard_coding(gotoUrl)
+# scraper(browser='mechanize',cookies='')
