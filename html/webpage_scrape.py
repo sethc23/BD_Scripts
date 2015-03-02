@@ -118,7 +118,6 @@ class Webdriver():
             else:
                 delay(2)
 
-
     def window_count(self):
         return len(self.browser.window_handles)
     
