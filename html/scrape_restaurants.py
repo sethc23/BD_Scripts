@@ -423,7 +423,7 @@ def scrape_sl_search_results(query_str=''):
             t                   =   pd.Series(map(lambda a: a.a.attrs['title'],z))
             conn.set_isolation_level(0)
             cur.execute(            "drop table if exists %s;" % INSTANCE_GUID)
-            pd.DataFrame(           {'sl_link':h,'search_link_blob':t}).to_sql('tmp',routing_eng)
+            pd.DataFrame(           {'sl_link':h,'search_link_blob':t}).to_sql(INSTANCE_GUID,routing_eng)
 
             conn.set_isolation_level(0)
             cur.execute(            """
@@ -892,7 +892,7 @@ def scrape_yelp_api(query_str=''):
                                         set yelp_cnt=%s,
                                         yelp_updated='now'::timestamp with time zone
                                         where gid=%s
-                                    """%(d['total'],gid))
+                                    """ % (d['total'],gid))
         df                      =   pd.read_json(j_dump(d['businesses']))
 
         if len(df)>0:
