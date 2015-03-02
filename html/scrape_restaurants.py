@@ -413,7 +413,6 @@ def scrape_sl_search_results(query_str=''):
                     br.window.execute_script("window.scrollTo(0, document.body.scrollHeight);")
                     br.wait_for_page(timeout_seconds=120)
                     b           =   br.window.execute_script('return document.body.scrollHeight;')
-                    br.wait_for_page(timeout_seconds=120)
             # --- 2. update pgsql:seamless with address search results
             html                =   codecs.encode(br.source(),'utf8','ignore')
             z                   =   getTagsByAttr(html, 'div', {'class':'restaurant-name'},contents=False)
@@ -460,7 +459,9 @@ def scrape_sl_search_results(query_str=''):
                                     drop table if exists %(tmp)s;
                                     """ % { 'tmp':INSTANCE_GUID })
             # --- 3. update pgsql:seamless_closed with seamless address search results
-            br.window.find_element_by_id("ShowClosedVendorsLink").click()
+            closed_vend_element =   br.window.find_element_by_id("ShowClosedVendorsLink").click()
+            if closed_vend_element.is_displayed():
+                closed_vend_element.click()
             br.wait_for_page(timeout_seconds=120)
             html                =   codecs.encode(br.source(),'utf8','ignore')
             z                   =   getTagsByAttr(html, 'div', {'class':'closed1'},contents=False)
