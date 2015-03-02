@@ -14,6 +14,7 @@ from re                         import sub              as re_sub
 from subprocess                 import Popen            as sub_popen
 from subprocess                 import PIPE             as sub_PIPE
 from traceback                  import format_exc       as tb_format_exc
+from sys                        import exc_info         as sys_exc_info
 from os                         import environ          as os_environ
 from uuid                       import uuid4            as get_guid
 from os                         import path             as os_path
@@ -318,8 +319,9 @@ def update_pgsql_with_seamless_page_content(br):
                                                       contents=False)[0].attrs['href']
             br.open_page(               review_url)
             save_comments(              br,html,seamless_link)
-        except:
-
+        except Exception, err:
+            print tb_format_exc()
+            print sys_exc_info()[0]
             print seamless_link
             from ipdb import set_trace as i_trace; i_trace()
 
@@ -576,6 +578,9 @@ def scrape_previously_closed_vendors(query_str=''):
     d                               =   pd.read_sql(src,routing_eng)
 
     x                               =   d.vend_name.tolist()
+    y                               =   d['id'].tolist()
+    vend_name_id_D                  =   dict(zip(x,y))
+
     base_url                        =   'http://www.seamless.com/food-delivery/'
 
     br                              =   scraper('phantom').browser
@@ -602,6 +607,13 @@ def scrape_previously_closed_vendors(query_str=''):
                 url             =   a.get_results(q)[0].url
                 br.open_page(       url)  # added this last -- does it work correctly?  NEED TO TEST
 
+        url                     =   br.get_url()
+        popup_element           =   br.window.find_element_by_id("fancybox-close")
+        if popup_element.is_displayed():
+            popup_element.click()
+            br.wait_for_page(       timeout_seconds=120)
+            url                 =   br.get_url()
+
         z                       =   url
         if z.find('http')==0: sl_link = z
         else: sl_link           =   base_url + z
@@ -612,50 +624,51 @@ def scrape_previously_closed_vendors(query_str=''):
             vend_name           =   getTagsByAttr(html, 'span', {'id':'VendorName'},contents=False)[0].getText().replace('\n','').strip()
             continue_processing =   True
         except:
+            from ipdb import set_trace as i_trace; i_trace()
             conn.set_isolation_level(0)
             cur.execute(            """
                                     update seamless_closed
                                     set
                                         inactive = true,
                                         inactive_on = 'now'::timestamp with time zone,
-                                        sl_link = '%s'
-                                    where vend_name ilike concat('%%','%s','%%')
-                                    """%(sl_link,it[:it.find("'")]))
+                                        sl_link = '%s',
+                                        last_updated = 'now'::timestamp with time zone
+                                    where id = %s
+                                    """ % (sl_link,vend_name_id_D[it]) )
             continue_processing =   False
 
-        if continue_processing == True:
+        if continue_processing:
 
-            if pd.read_sql(         """
-                                    select count(*) c from seamless
-                                    where vend_id = '%(vend_id)s'
-                                    """%{'vend_id':vendor_id},routing_eng).c[0] > 0:
-                pass
+            # if pd.read_sql(         """select count(*) c from seamless where vend_id = '%(vend_id)s'"""%{'vend_id':vendor_id},routing_eng).c[0] > 0:
+            #     pass
+            # else:
+            #     popup_element           =   br.window.find_element_by_id("fancybox-close")
+            #     if popup_element.is_displayed():
+            #         popup_element.click()
+            #         br.wait_for_page(       timeout_seconds=120)
 
-            else:
-                try:    br.window.find_element_by_id("fancybox-close").click()
-                except: pass
-
-                update_pgsql_with_seamless_page_content(br)
+            update_pgsql_with_seamless_page_content(br)
 
             conn.set_isolation_level(0)
             cur.execute(            """
                                     update seamless_closed sc
                                     set
                                         upd_seamless = true,
-                                        sl_link = '%(sl_link)s'
-                                    from seamless s
-                                    where s.vend_id = '%(v_id)s'
-                                        """%{'v_id':vendor_id,
-                                            'sl_link':sl_link})
+                                        sl_link = '%(sl_link)s',
+                                        last_updated = 'now'::timestamp with time zone
+                                    where id = '%(id)s'
+                                        """ % { 'id'           :   vend_name_id_D[it],
+                                                'sl_link'      :   sl_link} )
 
-        conn.set_isolation_level(   0)
-        cur.execute(                """
-                                    update seamless_closed sc
-                                    set
-                                        last_updated = 'now'::timestamp with time zone,
-                                        sl_link = '%s'
-                                    where vend_name ilike concat('%%','%s','%%')
-                                    """%(sl_link,it[:it.find("'")]))
+        # if not continue_processing:
+        #     conn.set_isolation_level(   0)
+        #     cur.execute(                """
+        #                             update seamless_closed sc
+        #                             set
+        #                                 last_updated = 'now'::timestamp with time zone,
+        #                                 sl_link = '%s'
+        #                             where vend_name ilike concat('%%','%s','%%')
+        #                             """%(sl_link,it[:it.find("'")]))
 
     print 'done!'
     SYS_r._growl(                   'Seamless Update Error: L:699')
@@ -734,6 +747,10 @@ def scrape_yelp_search_results(query_str=''):
 
         url                     =   base_url+'/search?find_desc='+safe_url('restaurant')+'&find_loc='+safe_url(search_addr)
         br.open_page(               url)
+
+
+        from ipdb import set_trace as i_trace; i_trace()
+
 
         if getTagsByAttr(br.source(), 'div', {'class':'no-results'},contents=False): pass
         else:
