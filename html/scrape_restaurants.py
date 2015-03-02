@@ -13,51 +13,52 @@ from re                         import findall          as re_findall
 from re                         import sub              as re_sub
 from subprocess                 import Popen            as sub_popen
 from subprocess                 import PIPE             as sub_PIPE
+from traceback                  import format_exc       as tb_format_exc
 from os                         import environ          as os_environ
 from uuid                       import uuid4            as get_guid
 from os                         import path             as os_path
 from sys                        import path             as py_path
-py_path.append(                     os_path.join(os_environ['BD'],'html'))
+py_path.append(                         os_path.join(os_environ['BD'],'html'))
 from html.HTML_API              import getTagsByAttr,getAllTag,getInnerElement,getTagContents
 from html.HTML_API              import google,safe_url,getInnerHTML,FindAllTags,getSoup
 from html.webpage_scrape        import scraper
 from selenium.webdriver.support.select import Select
-py_path.append(                     os_path.join(os_environ['BD'],'files_folders'))
+py_path.append(                         os_path.join(os_environ['BD'],'files_folders'))
 from files_folders.API_system   import get_input
-import                              pandas              as pd
-pd.set_option(                      'expand_frame_repr', False)
-pd.set_option(                      'display.max_columns', None)
-pd.set_option(                      'display.max_rows', 1000)
-pd.set_option(                      'display.width', 180)
+import                                  pandas              as pd
+pd.set_option(                          'expand_frame_repr', False)
+pd.set_option(                          'display.max_columns', None)
+pd.set_option(                          'display.max_rows', 1000)
+pd.set_option(                          'display.width', 180)
 np = pd.np
-np.set_printoptions(                linewidth=200,threshold=np.nan)
-import                              geopandas           as gd
+np.set_printoptions(                    linewidth=200,threshold=np.nan)
+import                                  geopandas           as gd
 from types                      import NoneType
 from time                       import sleep            as delay
 from sqlalchemy                 import create_engine
 from logging                    import getLogger
 from logging                    import INFO             as logging_info
-py_path.append(                     os_path.join(os_environ['HOME'],'.scripts'))
+py_path.append(                         os_path.join(os_environ['HOME'],'.scripts'))
 from system_settings            import *
 from System_Control             import System_Reporter
-SYS_r                           =   System_Reporter()
-getLogger(                          'sqlalchemy.dialects.postgresql').setLevel(logging_info)
-routing_eng                     =   create_engine(r'postgresql://postgres:postgres@%s:%s/%s'
+SYS_r                               =   System_Reporter()
+getLogger(                              'sqlalchemy.dialects.postgresql').setLevel(logging_info)
+routing_eng                         =   create_engine(r'postgresql://postgres:postgres@%s:%s/%s'
                                                   %(DB_HOST,DB_PORT,'routing'),
                                                   encoding='utf-8',
                                                   echo=False)
 from psycopg2                   import connect          as pg_connect
-conn                            =   pg_connect("dbname='routing' "+
+conn                                =   pg_connect("dbname='routing' "+
                                                      "user='postgres' "+
                                                      "host='%s' password='' port=8800" % DB_HOST);
-cur                             =   conn.cursor()
+cur                                 =   conn.cursor()
 
-INSTANCE_GUID                   =   'tmp_'+str(get_guid().hex)[:7]
-TODAY                           =   dt.datetime.now()
-OLDEST_COMMENTS                 =   9*30                                    # in days
+INSTANCE_GUID                       =   'tmp_'+str(get_guid().hex)[:7]
+TODAY                               =   dt.datetime.now()
+OLDEST_COMMENTS                     =   9*30                                    # in days
 
-GROWL_NOTICE                    =   True
-DEBUG                           =   True
+GROWL_NOTICE                        =   True
+DEBUG                               =   True
 # from ipdb import set_trace as i_trace; i_trace()
 
 
@@ -77,13 +78,13 @@ def update_pgsql_with_seamless_page_content(br):
             review_date         =   getTagsByAttr(str(rev), 'input',
                                                  {'class':'ratingdate'},
                                                  contents=False)[0].attrs['value']
-            dt_review_date      =   dt.datetime.strptime(review_date,'%Y-%m-%d')
+            dt_review_date      =   dt.datetime.utcfromtimestamp(int(review_date))
+
             if (TODAY - dt_review_date).days > OLDEST_COMMENTS:
                 pass
             else:
                 f_review_date   =   dt_review_date.isoformat()
 
-                f_review_date   =   dt.datetime.utcfromtimestamp(int(review_date)).isoformat()
                 review_rating   =   int(getTagsByAttr(str(rev), 'input',
                                                      {'class':'rating'},
                                                      contents=False)[0].attrs['value'])
@@ -93,7 +94,7 @@ def update_pgsql_with_seamless_page_content(br):
                 author_link     =   getTagsByAttr(str(rev), 'a',
                                                  {'itemprop':'author'},
                                                  contents=False)[0].attrs['href']
-                review_id       =   '_'.join([review_date,
+                review_id       =   '_'.join([str(review_date),
                                               author_link[author_link.rfind('/')+1:]])
 
                 df              =   df.append(dict(zip(rev_cols,
@@ -329,22 +330,22 @@ def scrape_sl_search_results(query_str=''):
     get results from seamless address search and update pgsql -- worked 2014.11.16
     """
     def get_sl_addr_search_results(src):
-        br                      =   scraper('phantom').browser
-        only_delivery           =   True
+        br                          =   scraper('phantom').browser
+        only_delivery               =   True
 
         #------------goto main page, identify PDF-page url, goto PDF-page url
-        base_url                =   'http://www.seamless.com/food-delivery/'
-        url                     =   'http://www.seamless.com/'
-        br.open_page(               url)
-        br.window.find_element_by_id("fancybox-close").click()
+        base_url                    =   'http://www.seamless.com/food-delivery/'
+        url                         =   'http://www.seamless.com/'
+        br.open_page(                   url)
+        br.window.find_element_by_id(   "fancybox-close").click()
 
-        d                       =   pd.read_sql(src,routing_eng)
+        d                           =   pd.read_sql(src,routing_eng)
 
         for i in range(len(d)):
-            street,zipcode,gid  =   d.ix[i,['address','zipcode','gid']].astype(str)
-            address             =   street.title() + ', New York, NY, ' + zipcode
+            street,zipcode,gid      =   d.ix[i,['address','zipcode','gid']].astype(str)
+            address                 =   street.title() + ', New York, NY, ' + zipcode
 
-            new_addr_element    =   br.window.find_element_by_name("singleAddressEntry")
+            new_addr_element        =   br.window.find_element_by_name("singleAddressEntry")
             if new_addr_element.is_displayed():
                 new_addr_element.send_keys(address)
                 new_addr_element.send_keys(u'\ue007')
@@ -357,7 +358,7 @@ def scrape_sl_search_results(query_str=''):
                     new_addr_element.send_keys(address)
                     new_addr_element.send_keys(u'\ue007')
 
-            br.wait_for_page(timeout_seconds=120)
+            br.wait_for_page(           timeout_seconds=120)
 
             #------------SET ORDER TYPE
 
@@ -416,172 +417,175 @@ def scrape_sl_search_results(query_str=''):
                     br.window.execute_script("window.scrollTo(%s, document.body.scrollHeight);" % str(b))
                     br.wait_for_page(   timeout_seconds=120)
             # --- 2. update pgsql:seamless with address search results
-            html                =   codecs.encode(br.source(),'utf8','ignore')
-            z                   =   getTagsByAttr(html, 'div', {'class':'restaurant-name'},contents=False)
-            open_res_total      =   len(z)
-            h                   =   pd.Series(map(lambda a: a.a.attrs['href'],z))
-            h                   =   h.map(lambda s: base_url + s if s.find('http')==-1 else s)
-            t                   =   pd.Series(map(lambda a: a.a.attrs['title'],z))
-            conn.set_isolation_level(0)
-            cur.execute(            "drop table if exists %s;" % INSTANCE_GUID)
-            pd.DataFrame(           {'sl_link':h,'search_link_blob':t}).to_sql(INSTANCE_GUID,routing_eng)
+            html                    =   codecs.encode(br.source(),'utf8','ignore')
+            z                       =   getTagsByAttr(html, 'div', {'class':'restaurant-name'},contents=False)
+            open_res_total          =   len(z)
+            h                       =   pd.Series(map(lambda a: a.a.attrs['href'],z))
+            h                       =   h.map(lambda s: base_url + s if s.find('http')==-1 else s)
+            t                       =   pd.Series(map(lambda a: a.a.attrs['title'],z))
+            conn.set_isolation_level(   0)
+            cur.execute(                "drop table if exists %s;" % INSTANCE_GUID)
+            pd.DataFrame(               {'sl_link':h,'search_link_blob':t}).to_sql(INSTANCE_GUID,routing_eng)
 
             conn.set_isolation_level(0)
-            cur.execute(            """
-                                    alter table %(tmp)s add column vend_id bigint;
+            cur.execute(                """
+                                        alter table %(tmp)s add column vend_id bigint;
 
-                                    update %(tmp)s
-                                    set vend_id = substring(sl_link from
-                                        '[[:punct:]]([[:digit:]]*)[[:punct:]][r]$')::bigint
-                                    where vend_id is null;
-                                    """ % { 'tmp':INSTANCE_GUID })
-            conn.set_isolation_level(0)
-            cur.execute(            """
-                                    with upd as (
-                                        update seamless s
-                                        set
-                                            search_link_blob = t.search_link_blob,
-                                            upd_search_links = 'now'::timestamp with time zone
-                                        from %(tmp)s t
-                                        where s.vend_id = t.vend_id
-                                        returning s.vend_id vend_id
-                                    )
-                                    insert into seamless (
-                                        sl_link,
-                                        vend_id,
-                                        search_link_blob,
-                                        upd_search_links
+                                        update %(tmp)s
+                                        set vend_id = substring(sl_link from
+                                            '[[:punct:]]([[:digit:]]*)[[:punct:]][r]$')::bigint
+                                        where vend_id is null;
+                                        """ % { 'tmp':INSTANCE_GUID })
+            conn.set_isolation_level(   0)
+            cur.execute(                """
+                                        with upd as (
+                                            update seamless s
+                                            set
+                                                search_link_blob = t.search_link_blob,
+                                                upd_search_links = 'now'::timestamp with time zone
+                                            from %(tmp)s t
+                                            where s.vend_id = t.vend_id
+                                            returning s.vend_id vend_id
                                         )
-                                    select t.sl_link,t.vend_id,t.search_link_blob,'now'::timestamp with time zone
-                                    from
-                                        %(tmp)s t,
-                                        (select array_agg(f.vend_id) all_vend_id from seamless f) as f2
-                                    where not all_vend_id @> array[t.vend_id];
+                                        insert into seamless (
+                                            sl_link,
+                                            vend_id,
+                                            search_link_blob,
+                                            upd_search_links
+                                            )
+                                        select t.sl_link,t.vend_id,t.search_link_blob,'now'::timestamp with time zone
+                                        from
+                                            %(tmp)s t,
+                                            (select array_agg(f.vend_id) all_vend_id from seamless f) as f2
+                                        where not all_vend_id @> array[t.vend_id];
 
-                                    drop table if exists %(tmp)s;
-                                    """ % { 'tmp':INSTANCE_GUID })
+                                        drop table if exists %(tmp)s;
+                                        """ % { 'tmp':INSTANCE_GUID })
             # --- 3. update pgsql:seamless_closed with seamless address search results
-            closed_vend_element =   br.window.find_element_by_id("ShowClosedVendorsLink")
+            closed_vend_element     =   br.window.find_element_by_id("ShowClosedVendorsLink")
             if closed_vend_element.is_displayed():
                 closed_vend_element.click()
-            br.wait_for_page(timeout_seconds=120)
-            html                =   codecs.encode(br.source(),'utf8','ignore')
-            z                   =   getTagsByAttr(html, 'div', {'class':'closed1'},contents=False)
-            closed_res_total    =   len(z)
-            tmp                 =   map(lambda a: [a.contents[2].replace('\n','').replace('\t','').strip()]+
+            br.wait_for_page(           timeout_seconds=120)
+            html                    =   codecs.encode(br.source(),'utf8','ignore')
+            z                       =   getTagsByAttr(html, 'div', {'class':'closed1'},contents=False)
+            closed_res_total        =   len(z)
+            tmp                     =   map(lambda a: [a.contents[2].replace('\n','').replace('\t','').strip()]+
                                  a.span.contents[0].lower().replace('\n','').replace('\t','').replace('open','').strip().split('-'),z)
-            T                   =   {'day':dt.datetime.strftime(dt.datetime.now(),'%a').lower()}
-            cols                =   str('vend_name,opens_%(day)s,closes_%(day)s'%T).split(',')
-            x                   =   pd.DataFrame(tmp,columns=cols)
-            x[cols[1]]          =   x[cols[1]].map(lambda s: dt.datetime.strftime(dt.datetime.strptime(s,'%I:%M %p'),'%H:%M'))
-            x[cols[2]]          =   x[cols[2]].map(lambda s: dt.datetime.strftime(dt.datetime.strptime(s,'%I:%M %p'),'%H:%M'))
-            conn.set_isolation_level(0)
-            cur.execute(            "drop table if exists %s;" % INSTANCE_GUID)
-            x.to_sql(               INSTANCE_GUID,routing_eng)
+            T                       =   {'day':dt.datetime.strftime(dt.datetime.now(),'%a').lower()}
+            cols                    =   str('vend_name,opens_%(day)s,closes_%(day)s'%T).split(',')
+            x                       =   pd.DataFrame(tmp,columns=cols)
+            x[cols[1]]              =   x[cols[1]].map(lambda s: dt.datetime.strftime(dt.datetime.strptime(s,'%I:%M %p'),'%H:%M'))
+            x[cols[2]]              =   x[cols[2]].map(lambda s: dt.datetime.strftime(dt.datetime.strptime(s,'%I:%M %p'),'%H:%M'))
+            conn.set_isolation_level(   0)
+            cur.execute(                "drop table if exists %s;" % INSTANCE_GUID)
+            x.to_sql(                   INSTANCE_GUID,routing_eng)
             # upsert
-            check               =   pd.read_sql('select count(*) cnt from seamless_closed',routing_eng).cnt[0]
-            T.update(               { 'tmp':INSTANCE_GUID })
+            check                   =   pd.read_sql('select count(*) cnt from seamless_closed',routing_eng).cnt[0]
+            T.update(                   { 'tmp':INSTANCE_GUID })
             if check == 0:
                 conn.set_isolation_level(0)
-                cur.execute(        """
-                                    insert into seamless_closed (
-                                        vend_name,
-                                        opens_%(day)s,
-                                        closes_%(day)s,
-                                        last_updated )
-                                    select
-                                        t.vend_name,
-                                        t.opens_%(day)s::time with time zone,
-                                        t.closes_%(day)s::time with time zone,
-                                        'now'::timestamp with time zone
-                                    from
-                                        %(tmp)s t;
+                cur.execute(            """
+                                        insert into seamless_closed (
+                                            vend_name,
+                                            opens_%(day)s,
+                                            closes_%(day)s,
+                                            last_updated )
+                                        select
+                                            t.vend_name,
+                                            t.opens_%(day)s::time with time zone,
+                                            t.closes_%(day)s::time with time zone,
+                                            'now'::timestamp with time zone
+                                        from
+                                            %(tmp)s t;
 
-                                    drop table if exists %(tmp)s;
-                                    """ % T)
+                                        drop table if exists %(tmp)s;
+                                        """ % T)
             else:
                 conn.set_isolation_level(0)
-                cur.execute(        """
-                                    with upd as (
-                                        update seamless_closed s
-                                        set
-                                            opens_%(day)s = t.opens_%(day)s::time with time zone,
-                                            closes_%(day)s = t.closes_%(day)s::time with time zone,
-                                            last_updated = 'now'::timestamp with time zone
+                cur.execute(            """
+                                        with upd as (
+                                            update seamless_closed s
+                                            set
+                                                opens_%(day)s = t.opens_%(day)s::time with time zone,
+                                                closes_%(day)s = t.closes_%(day)s::time with time zone,
+                                                last_updated = 'now'::timestamp with time zone
+                                            from
+                                                %(tmp)s t
+                                            where s.vend_name = t.vend_name
+                                            returning s.vend_name vend_name
+                                        )
+                                        insert into seamless_closed (
+                                                                    vend_name,
+                                                                    opens_%(day)s,
+                                                                    closes_%(day)s,
+                                                                    last_updated )
+                                        select
+                                            t.vend_name,
+                                            t.opens_%(day)s::time with time zone,
+                                            t.closes_%(day)s::time with time zone,
+                                            'now'::timestamp with time zone
                                         from
-                                            %(tmp)s t
-                                        where s.vend_name = t.vend_name
-                                        returning s.vend_name vend_name
-                                    )
-                                    insert into seamless_closed (
-                                                                vend_name,
-                                                                opens_%(day)s,
-                                                                closes_%(day)s,
-                                                                last_updated )
-                                    select
-                                        t.vend_name,
-                                        t.opens_%(day)s::time with time zone,
-                                        t.closes_%(day)s::time with time zone,
-                                        'now'::timestamp with time zone
-                                    from
-                                        %(tmp)s t,
-                                        (select array_agg(f.vend_name) all_vend_names from seamless_closed f) as f2
-                                    where not all_vend_names @> array[t.vend_name];
+                                            %(tmp)s t,
+                                            (select array_agg(f.vend_name) all_vend_names from seamless_closed f) as f2
+                                        where not all_vend_names @> array[t.vend_name];
 
-                                    drop table if exists %(tmp)s;
-                                    """ % T)
+                                        drop table if exists %(tmp)s;
+                                        """ % T)
             # --- 4. update pgsql:scrape_lattice
-            conn.set_isolation_level(0)
-            cur.execute(            """  update scrape_lattice
-                                        set
-                                            sl_open_cnt=%s,
-                                            sl_closed_cnt=%s,
-                                            sl_updated='now'::timestamp with time zone
-                                        where gid=%s"""%(open_res_total,
-                                                         closed_res_total,
-                                                         gid))
+            conn.set_isolation_level(   0)
+            cur.execute(                """ update scrape_lattice
+                                            set
+                                                sl_open_cnt=%s,
+                                                sl_closed_cnt=%s,
+                                                sl_updated='now'::timestamp with time zone
+                                            where gid=%s"""%(open_res_total,
+                                                             closed_res_total,
+                                                             gid))
             # --- 5. put in new address -- repeat
-            addresses           =   br.window.find_element_by_xpath("//select[@id='Address']")
-            last_option         =   len(addresses.find_elements_by_tag_name('option'))-1
+            addresses               =   br.window.find_element_by_xpath("//select[@id='Address']")
+            last_option             =   len(addresses.find_elements_by_tag_name('option'))-1
             addresses.find_elements_by_tag_name('option')[last_option].click()
-            br.wait_for_page(timeout_seconds=120)
+            br.wait_for_page(           timeout_seconds=120)
         br.quit()
 
-    src                         =   """ select gid,address,zipcode from scrape_lattice
-                                        where address is null
-                                        or sl_updated is null
-                                        or age('now'::timestamp with time zone,sl_updated) > interval '1 day'
-                                    """
-    src                         =   src if not query_str else query_str
-    get_sl_addr_search_results(     src )
-    msg                         =   'Seamless@%s: SL Address Search Scrape Complete (L:429)' % os_environ['USER']
-    SYS_r._growl(                   msg )
+    src                             =   """ select gid,address,zipcode from scrape_lattice
+                                            where address is null
+                                            or sl_updated is null
+                                            or age('now'::timestamp with time zone,sl_updated) > interval '1 day'
+                                        """
+    src                             =   src if not query_str else query_str
+    get_sl_addr_search_results(         src )
+    msg                             =   'Seamless@%s: SL Address Search Scrape Complete (L:429)' % os_environ['USER']
+    SYS_r._growl(                       msg )
     print msg
     return True
 #   seamless: 2 of 3
-def scrape_previously_closed_vendors():
+def scrape_previously_closed_vendors(query_str=''):
     """
     get url and html for closed vendors -- worked 2014.11.18
     """
 
     # new SL vendors not yet added to seamless DB
-    cmd                         =   """
-                                    select vend_name from seamless_closed sc
-                                    where upd_seamless is false
-                                    """
-    d                           =   pd.read_sql(cmd,routing_eng)
+    src                             =   """
+                                        select vend_name from seamless_closed sc
+                                        where upd_seamless is false
+                                        """
 
-    x                           =   d.vend_name.tolist()
-    base_url                    =   'http://www.seamless.com/food-delivery/'
+    src                             =   src if not query_str else query_str
 
-    br                          =   scraper('phantom').browser
+    d                               =   pd.read_sql(src,routing_eng)
 
-    stop                        =   False
+    x                               =   d.vend_name.tolist()
+    base_url                        =   'http://www.seamless.com/food-delivery/'
+
+    br                              =   scraper('phantom').browser
+
+    stop                            =   False
     for it in x:
-        url                     =   ''.join(['http://www.google.com/search?as_q=%s' % quote_plus(it),
+        url                         =   ''.join(['http://www.google.com/search?as_q=%s' % quote_plus(it),
                                              '&as_sitesearch=www.seamless.com&as_occt=any&btnI=1'])
-        br.open_page(               url)
-        z                       =   br.get_url()
+        br.open_page(                   url)
+        z                           =   br.get_url()
         if z.find('google')!=-1:
             while z.count('/sorry/')!=0:
                 SYS_r._growl(       'SL Update @ "%s" (Prev. Closed Vendors) -- NEED CAPTCHA' % os_environ['USER'],'url to file' )
@@ -687,10 +691,10 @@ def scrape_known_sl_vendors(query_str=''):
         try:
             update_pgsql_with_seamless_page_content(br)
         except:
-            SYS_r._growl(           'Seamless@%s: Issue with Known Vendors' % os_environ['USER'] )
+            SYS_r._growl(           'Seamless@%s: Issue with Known Vendors @ %s' % (os_environ['USER'],it),url=it )
             current_url         =   "'"+br.get_url()+"'"
             conn.set_isolation_level(0)
-            cur.execute(            "update seamless set inactive=true where sl_link = %s"%current_url)
+            cur.execute(            "update seamless set skipped=true where sl_link = %s"%current_url)
             skipped            +=   1
 
     SYS_r._growl(                   'Seamless@%s: Known Vendors Updated' % os_environ['USER'] )
