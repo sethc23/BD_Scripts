@@ -362,17 +362,18 @@ def scrape_sl_search_results(query_str=''):
 
             #------------SET ORDER TYPE
 
-            order_type_D            =   {'delivery'             :   0,
-                                        'pickup_20_blocks'     :   20,
-                                        'pickup_10_blocks'     :   10,
-                                        'pickup_5_blocks'      :   5,
-                                        'pickup_3_blocks'      :   3,
-                                        'pickup_1_blocks'      :   1,}
+            order_type_D            =   {'delivery'            :   '0',
+                                        'pickup_20_blocks'     :   '20',
+                                        'pickup_10_blocks'     :   '10',
+                                        'pickup_5_blocks'      :   '5',
+                                        'pickup_3_blocks'      :   '3',
+                                        'pickup_1_blocks'      :   '1',}
             order_type_str          =   'delivery'
             order_element           =   br.browser.find_element_by_id('pickupDistance')
-            _select                 =   Select(order_element)
-            _select.select_by_value(    order_type_D[ order_type_str ] )
-            assert order_element.get_attribute("value")==order_type_D[ order_type_str ]
+            if order_element.get_attribute("value")!=order_type_D[ order_type_str ]:
+                _select             =   Select(order_element)
+                _select.select_by_value(order_type_D[ order_type_str ] )
+                assert order_element.get_attribute("value")==order_type_D[ order_type_str ]
 
             #------------SET DELIVERY DATE
             # go to tomorrow if tmw==weekday else use today
