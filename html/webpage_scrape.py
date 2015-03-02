@@ -87,7 +87,7 @@ class Webdriver():
         driver.desired_capabilities['acceptSslCerts'] = True
         driver.desired_capabilities['browserConnectionEnabled'] = True
         driver.desired_capabilities['rotatable'] = True
-
+        driver.implicitly_wait(120)
         self.browser = driver
 
     def open_page(self, gotoUrl):
@@ -172,6 +172,12 @@ class EXTRAS():
         _select                 =   Select(time_element)
         _select.select_by_value(    time_str)
         assert time_element.get_attribute("value")==time_str
+
+        ALSO:
+
+        addresses               =   br.window.find_element_by_xpath("//select[@id='Address']")
+        last_option             =   len(addresses.find_elements_by_tag_name('option'))-1
+        addresses.find_elements_by_tag_name('option')[last_option].click()
 
         """
         from selenium.webdriver.support.select import Select

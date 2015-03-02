@@ -344,21 +344,20 @@ def scrape_sl_search_results(query_str=''):
             street,zipcode,gid  =   d.ix[i,['address','zipcode','gid']].astype(str)
             address             =   street.title() + ', New York, NY, ' + zipcode
 
-            pop_up_element      =   br.window.find_element_by_id("fancybox-close")
-            if pop_up_element.is_displayed():
-                pop_up_element.click()
-            sleep(                  10)
+            new_addr_element    =   br.window.find_element_by_name("singleAddressEntry")
+            if new_addr_element.is_displayed():
+                new_addr_element.send_keys(address)
+                new_addr_element.send_keys(u'\ue007')
+            else:
+                pop_up_element      =   br.window.find_element_by_id("fancybox-close")
+                if pop_up_element.is_displayed():
+                    pop_up_element.click()
+                new_addr_element    =   br.window.find_element_by_name("singleAddressEntry")
+                if new_addr_element.is_displayed():
+                    new_addr_element.send_keys(address)
+                    new_addr_element.send_keys(u'\ue007')
 
-            #------------SELECT 'Enter a New Address'
-            try:
-                addr_element        =   br.window.find_element_by_id('Address')
-                _select             =   Select(addr_element)
-                _select.select_by_value("0")
-            except:                 pass
-
-            br.window.find_element_by_name("singleAddressEntry").send_keys(address)
-            br.window.find_element_by_name("singleAddressEntry").send_keys(u'\ue007')
-            sleep(20)
+            # sleep(                  10)
 
             #------------SET ORDER TYPE
 
@@ -405,14 +404,14 @@ def scrape_sl_search_results(query_str=''):
             else:
                 a               =   br.window.execute_script('return document.body.scrollHeight;')
                 br.window.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                sleep(              5)
+                # sleep(              5)
                 b               =   br.window.execute_script('return document.body.scrollHeight;')
                 br.window.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                sleep(              5)
+                # sleep(              5)
                 while a != b:
                     a           =   br.window.execute_script('return document.body.scrollHeight;')
                     br.window.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                    sleep(          5)
+                    # sleep(          5)
                     b           =   br.window.execute_script('return document.body.scrollHeight;')
             # --- 2. update pgsql:seamless with address search results
             html                =   codecs.encode(br.source(),'utf8','ignore')
@@ -461,7 +460,7 @@ def scrape_sl_search_results(query_str=''):
                                     """ % { 'tmp':INSTANCE_GUID })
             # --- 3. update pgsql:seamless_closed with seamless address search results
             br.window.find_element_by_id("ShowClosedVendorsLink").click()
-            sleep(                  5)
+            # sleep(                  5)
             html                =   codecs.encode(br.source(),'utf8','ignore')
             z                   =   getTagsByAttr(html, 'div', {'class':'closed1'},contents=False)
             closed_res_total    =   len(z)
