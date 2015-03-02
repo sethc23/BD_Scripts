@@ -1,11 +1,14 @@
 
-from time import sleep
-from sys import argv, path
-path.append('../appscript')
-path.append('..')
-# import Safari_API
-from handle_cookies import getFirefoxCookie,set_cookies_from_text
+from time                       import sleep
+from sys                        import argv, path
+path.append(                    '../appscript')
+path.append(                    '..')
+# import                             Safari_API
+from handle_cookies             import getFirefoxCookie,set_cookies_from_text
 import mechanize
+from time                       import time             as TIME
+from time                       import sleep            as delay
+
 
 class Mechanize():
     
@@ -105,6 +108,16 @@ class Webdriver():
 
     def execute(self,script,*args):
         return self.browser.execute(script,*args)
+
+    def wait_for_page(self,timeout_seconds=45):
+        end                     =   TIME() + timeout_seconds
+        while TIME()<end:
+            status              =   self.browser.execute_script("return document.readyState")
+            if status=='complete':
+                return
+            else:
+                delay(2)
+
 
     def window_count(self):
         return len(self.browser.window_handles)

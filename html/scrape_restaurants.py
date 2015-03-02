@@ -357,7 +357,7 @@ def scrape_sl_search_results(query_str=''):
                     new_addr_element.send_keys(address)
                     new_addr_element.send_keys(u'\ue007')
 
-            # sleep(                  10)
+            br.wait_for_page(timeout_seconds=120)
 
             #------------SET ORDER TYPE
 
@@ -404,14 +404,14 @@ def scrape_sl_search_results(query_str=''):
             else:
                 a               =   br.window.execute_script('return document.body.scrollHeight;')
                 br.window.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                # sleep(              5)
+                br.wait_for_page(timeout_seconds=120)
                 b               =   br.window.execute_script('return document.body.scrollHeight;')
                 br.window.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                # sleep(              5)
+                br.wait_for_page(timeout_seconds=120)
                 while a != b:
                     a           =   br.window.execute_script('return document.body.scrollHeight;')
                     br.window.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                    # sleep(          5)
+                    br.wait_for_page(timeout_seconds=120)
                     b           =   br.window.execute_script('return document.body.scrollHeight;')
             # --- 2. update pgsql:seamless with address search results
             html                =   codecs.encode(br.source(),'utf8','ignore')
@@ -460,7 +460,7 @@ def scrape_sl_search_results(query_str=''):
                                     """ % { 'tmp':INSTANCE_GUID })
             # --- 3. update pgsql:seamless_closed with seamless address search results
             br.window.find_element_by_id("ShowClosedVendorsLink").click()
-            # sleep(                  5)
+            br.wait_for_page(timeout_seconds=120)
             html                =   codecs.encode(br.source(),'utf8','ignore')
             z                   =   getTagsByAttr(html, 'div', {'class':'closed1'},contents=False)
             closed_res_total    =   len(z)
@@ -540,7 +540,7 @@ def scrape_sl_search_results(query_str=''):
             addresses           =   br.window.find_element_by_xpath("//select[@id='Address']")
             last_option         =   len(addresses.find_elements_by_tag_name('option'))-1
             addresses.find_elements_by_tag_name('option')[last_option].click()
-            sleep(                  8)
+            br.wait_for_page(timeout_seconds=120)
         br.quit()
 
     src                         =   """ select gid,address,zipcode from scrape_lattice
