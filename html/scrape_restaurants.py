@@ -351,7 +351,6 @@ def scrape_sl_search_results(query_str=''):
 
             #------------SELECT 'Enter a New Address'
             try:
-                from ipdb import set_trace as i_trace; i_trace()
                 addr_element        =   br.window.find_element_by_id('Address')
                 _select             =   Select(addr_element)
                 _select.select_by_value("0")
