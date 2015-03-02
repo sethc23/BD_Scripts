@@ -148,11 +148,35 @@ class Urllib2():
     def get_page(self, gotoUrl):
         return self.browser.urlopen(gotoUrl, data=None,timeout=3600)
 
-class Alerts():
+class EXTRAS():
+    """
+    Usage:
+        from html.webpage_scrape import EXTRAS
+        Select                  =   EXTRAS()._select
+
+    """
 
     def __init__(self):
+        pass
+
+    def _alert(self):
         from selenium.webdriver.common.alert import Alert
-        self = Alert
+        self._alert             =   Alert
+
+    def _select(self,element):
+        """
+        Example:
+
+        time_element            =   br.browser.find_element_by_id('deliveryTime')
+        time_str                =   "1:00 PM"
+        _select                 =   Select(time_element)
+        _select.select_by_value(    time_str)
+        assert time_element.get_attribute("value")==time_str
+
+        """
+        from selenium.webdriver.support.select import Select
+        self._select            =   Select(element)
+
 
 class scraper():
 

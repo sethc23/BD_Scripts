@@ -21,6 +21,7 @@ py_path.append(                     os_path.join(os_environ['BD'],'html'))
 from html.HTML_API              import getTagsByAttr,getAllTag,getInnerElement,getTagContents
 from html.HTML_API              import google,safe_url,getInnerHTML,FindAllTags,getSoup
 from html.webpage_scrape        import scraper
+from selenium.webdriver.support.select import Select
 py_path.append(                     os_path.join(os_environ['BD'],'files_folders'))
 from files_folders.API_system   import get_input
 import                              pandas              as pd
@@ -55,6 +56,8 @@ INSTANCE_GUID                   =   'tmp_'+str(get_guid().hex)[:7]
 TODAY                           =   dt.datetime.now()
 OLDEST_COMMENTS                 =   9*30                                    # in days
 
+GROWL_NOTICE                    =   True
+DEBUG                           =   True
 # from ipdb import set_trace as i_trace; i_trace()
 
 
@@ -340,11 +343,32 @@ def scrape_sl_search_results(query_str=''):
         for i in range(len(d)):
             street,zipcode,gid  =   d.ix[i,['address','zipcode','gid']].astype(str)
             address             =   street.title() + ', New York, NY, ' + zipcode
-            if only_delivery == True: br.window.find_element_by_id("DeliveryOptionSelection").click()
+            if only_delivery:       br.window.find_element_by_id("DeliveryOptionSelection").click()
             sleep(                  10)
             br.window.find_element_by_name("singleAddressEntry").send_keys(address)
             br.window.find_element_by_name("singleAddressEntry").send_keys(u'\ue007')
             sleep(20)
+
+            #------------SET DELIVERY DATE
+            # go to tomorrow if tmw==weekday else use today
+            today_wk_day            =   int(TODAY.strftime('%w'))
+            # want weekday (1-5), so change to tmw if 0-4
+            if today_wk_day<=4:
+                tmw                 =   (TODAY + dt.timedelta(days=+1)).strftime('%m/%d/%Y')
+                tmw_str             =   '/'.join([ it.lstrip('0') for it in tmw.split('/') ])
+                date_element        =   br.browser.find_element_by_id('deliveryDate')
+                _select             =   Select(date_element)
+                _select.select_by_value(tmw_str)
+                assert date_element.get_attribute("value")==tmw_str
+
+            #------------SET DELIVERY TIME
+            time_element            =   br.browser.find_element_by_id('deliveryTime')
+            time_str                =   "1:00 PM"
+            _select                 =   Select(time_element)
+            _select.select_by_value(    time_str)
+            assert time_element.get_attribute("value")==time_str
+
+
             if br.window.find_element_by_id("MessageArea").text.find('Your exact address could not be located by our system.') != -1:
                 br.window.find_element_by_name("singleAddressEntry").clear()
             elif br.window.find_element_by_class_name("error-header").text.find('Your exact address could not be located by our system.') != -1:
@@ -502,7 +526,7 @@ def scrape_sl_search_results(query_str=''):
     src                         =   src if not query_str else query_str
 
     try:
-        get_sl_addr_search_results(src)
+        get_sl_addr_search_results( src)
         SYS_r._growl(               'Seamless@%s: SL Address Search Scrape Complete (L:429)' % os_environ['USER'] )
         print 'done!'
     except:
