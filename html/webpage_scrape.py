@@ -110,6 +110,9 @@ class Webdriver():
         return self.browser.execute(script,*args)
 
     def wait_for_page(self,timeout_seconds=45):
+        """
+        Include start page to confirm change started ??
+        """
         end                     =   TIME() + timeout_seconds
         delay(                      1)
         while TIME()<end:
