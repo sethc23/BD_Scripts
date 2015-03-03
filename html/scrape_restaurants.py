@@ -1,7 +1,5 @@
 # add encoding?
-# import sys
-# reload(sys)
-# sys.setdefaultencoding('UTF8')
+#   see SL_previously_closed_vendors
 
 
 # import HTML and codecs
@@ -141,7 +139,7 @@ def update_pgsql_with_seamless_page_content(br):
         try:
             a                   =   getTagsByAttr(html, 'div', {'id':'Bummer'},contents=False)
             b                   =   a[0].text.replace('\n','').replace('Bummer!','').strip()
-            vend_name           =   b[:b.find('(')].strip()
+            vend_name           =   b[:b.find('(')].strip().replace("'","''")
             addr                =   re_findall(r'[(](.*)[)]',b)[0]
             T                   =   {'vendor_id':vendor_id,'vend_name':vend_name,'addr':addr}
             cmd                 =   """
@@ -258,7 +256,8 @@ def update_pgsql_with_seamless_page_content(br):
                                                 pickup_est = t.pickup_est,
                                                 cuisine = t.cuisine,
                                                 estimates_blob = t.estimates_blob,
-                                                upd_vend_content = 'now'::timestamp with time zone
+                                                upd_vend_content = 'now'::timestamp with time zone,
+                                                skipped = false
                                             from %(tmp)s t
                                             where s.vend_id = t.vend_id
                                             returning t.vend_id vend_id
@@ -280,7 +279,8 @@ def update_pgsql_with_seamless_page_content(br):
                                                                pickup_est,
                                                                cuisine,
                                                                estimates_blob,
-                                                               upd_vend_content)
+                                                               upd_vend_content,
+                                                               skipped)
                                         select
                                             t.sl_link,
                                             t.vend_id,
@@ -299,7 +299,8 @@ def update_pgsql_with_seamless_page_content(br):
                                             t.pickup_est,
                                             t.cuisine,
                                             t.estimates_blob,
-                                            'now'::timestamp with time zone
+                                            'now'::timestamp with time zone,
+                                            false
                                         from
                                             %(tmp)s t,
                                             (select array_agg(f.vend_id) upd_vend_ids from upd f) as f1
@@ -339,7 +340,11 @@ def scrape_sl_search_results(query_str=''):
         base_url                    =   'http://www.seamless.com/food-delivery/'
         url                         =   'http://www.seamless.com/'
         br.open_page(                   url)
-        br.window.find_element_by_id(   "fancybox-close").click()
+        if br.source().count('fancybox-close')>0:
+            pop_up_element      =   br.window.find_element_by_id("fancybox-close")
+            if pop_up_element.is_displayed():
+                pop_up_element.click()
+                br.wait_for_page(       timeout_seconds=120)
 
         d                           =   pd.read_sql(src,routing_eng)
 
@@ -352,9 +357,11 @@ def scrape_sl_search_results(query_str=''):
                 new_addr_element.send_keys(address)
                 new_addr_element.send_keys(u'\ue007')
             else:
-                pop_up_element      =   br.window.find_element_by_id("fancybox-close")
-                if pop_up_element.is_displayed():
-                    pop_up_element.click()
+                if br.source().count('fancybox-close')>0:
+                    pop_up_element      =   br.window.find_element_by_id("fancybox-close")
+                    if pop_up_element.is_displayed():
+                        pop_up_element.click()
+                        br.wait_for_page(       timeout_seconds=120)
                 new_addr_element    =   br.window.find_element_by_name("singleAddressEntry")
                 if new_addr_element.is_displayed():
                     new_addr_element.send_keys(address)
@@ -567,6 +574,11 @@ def scrape_previously_closed_vendors(query_str=''):
     get url and html for closed vendors -- worked 2014.11.18
     """
 
+    import sys
+    reload(                             sys)
+    sys.setdefaultencoding(             'UTF8')
+
+
     # new SL vendors not yet added to seamless DB
     src                             =   """
                                         select vend_name from seamless_closed sc
@@ -581,61 +593,69 @@ def scrape_previously_closed_vendors(query_str=''):
     y                               =   d['id'].tolist()
     vend_name_id_D                  =   dict(zip(x,y))
 
+
+
     base_url                        =   'http://www.seamless.com/food-delivery/'
 
     br                              =   scraper('phantom').browser
 
     stop                            =   False
     for it in x:
-        url                         =   ''.join(['http://www.google.com/search?as_q=%s' % quote_plus(it),
+        url                         =   ''.join(['http://www.google.com/search?as_q=%s' % quote_plus(it.encode('utf-8')),
                                              '&as_sitesearch=www.seamless.com&as_occt=any&btnI=1'])
         br.open_page(                   url)
         z                           =   br.get_url()
-        if z.find('google')!=-1:
+        if z.count('google')>0:
             while z.count('/sorry/')!=0:
-                SYS_r._growl(       'SL Update @ "%s" (Prev. Closed Vendors) -- NEED CAPTCHA' % os_environ['USER'],'url to file' )
-                from ipdb import set_trace as i_trace; i_trace()
-                captcha_input   =   get_input("Captcha code?")
-                #br.browser.find_element_by_id("password").send_keys(captcha_input)
-                #br.browser.find_element_by_name("commit").click()
-                z               =   br.get_url()
 
+                K                   =   br.browser.find_elements_by_tag_name('img')[0]
 
-            else:
-                q               =   codecs.encode(br.source(),'utf8','ignore')
-                a               =   google()
-                url             =   a.get_results(q)[0].url
-                br.open_page(       url)  # added this last -- does it work correctly?  NEED TO TEST
+                br.browser.set_window_position=K.location
+                br.browser.set_window_size=K.size
+                br.screenshot(          os_environ['SERV_HOME']+'/aprinto/static/phantom_shot')
+                SYS_r._growl(           'SL Update @ "%s" (Prev. Closed Vendors) -- NEED CAPTCHA' % os_environ['USER'],
+                                        'http://demo.aporodelivery.com/phantomjs.html' )
+                captcha_input       =   get_input("Captcha code?\n")
+                br.browser.find_element_by_id("captcha").send_keys(captcha_input)
+                br.browser.find_element_by_name("submit").click()
+                z                   =   br.get_url()
 
-        url                     =   br.get_url()
-        popup_element           =   br.window.find_element_by_id("fancybox-close")
-        if popup_element.is_displayed():
-            popup_element.click()
-            br.wait_for_page(       timeout_seconds=120)
-            url                 =   br.get_url()
+        if z.count('google.com/search?')>0:
+            q                       =   codecs.encode(br.source(),'utf8','ignore')
+            a                       =   google()
+            url                     =   a.get_results(q)[0].url
+            br.open_page(               url)
+            z                       =   br.get_url()
 
-        z                       =   url
+        if br.source().count('fancybox-close')>0:
+            popup_element           =   br.window.find_element_by_id("fancybox-close")
+            if popup_element.is_displayed():
+                popup_element.click(    )
+                br.wait_for_page(       timeout_seconds=120)
+                z                   =   br.get_url()
+
         if z.find('http')==0: sl_link = z
-        else: sl_link           =   base_url + z
+        else: sl_link               =   base_url + z
 
-        vendor_id               =   int(z[z[:-2].rfind('.')+1:-2])
-        html                    =   codecs.encode(br.source(),'utf8','ignore')
+        vendor_id                   =   int(z[z[:-2].rfind('.')+1:-2])
+        html                        =   codecs.encode(br.source(),'utf8','ignore')
         try:
-            vend_name           =   getTagsByAttr(html, 'span', {'id':'VendorName'},contents=False)[0].getText().replace('\n','').strip()
-            continue_processing =   True
+            vend_name               =   getTagsByAttr(html, 'span', {'id':'VendorName'},
+                                                      contents=False)[0].getText().replace('\n','').strip()
+            continue_processing     =   True
         except:
-            from ipdb import set_trace as i_trace; i_trace()
+
             conn.set_isolation_level(0)
-            cur.execute(            """
-                                    update seamless_closed
-                                    set
-                                        inactive = true,
-                                        inactive_on = 'now'::timestamp with time zone,
-                                        sl_link = '%s',
-                                        last_updated = 'now'::timestamp with time zone
-                                    where id = %s
-                                    """ % (sl_link,vend_name_id_D[it]) )
-            continue_processing =   False
+            cur.execute(                """
+                                        update seamless_closed
+                                        set
+                                            inactive = true,
+                                            inactive_on = 'now'::timestamp with time zone,
+                                            sl_link = '%s',
+                                            last_updated = 'now'::timestamp with time zone
+                                        where id = %s
+                                        """ % (sl_link,vend_name_id_D[it]) )
+            continue_processing     =   False
 
         if continue_processing:
 
@@ -649,16 +669,16 @@ def scrape_previously_closed_vendors(query_str=''):
 
             update_pgsql_with_seamless_page_content(br)
 
-            conn.set_isolation_level(0)
-            cur.execute(            """
-                                    update seamless_closed sc
-                                    set
-                                        upd_seamless = true,
-                                        sl_link = '%(sl_link)s',
-                                        last_updated = 'now'::timestamp with time zone
-                                    where id = '%(id)s'
-                                        """ % { 'id'           :   vend_name_id_D[it],
-                                                'sl_link'      :   sl_link} )
+            conn.set_isolation_level(   0)
+            cur.execute(                """
+                                        update seamless_closed sc
+                                        set
+                                            upd_seamless = true,
+                                            sl_link = '%(sl_link)s',
+                                            last_updated = 'now'::timestamp with time zone
+                                        where id = '%(id)s'
+                                            """ % { 'id'           :   vend_name_id_D[it],
+                                                    'sl_link'      :   sl_link} )
 
         # if not continue_processing:
         #     conn.set_isolation_level(   0)
@@ -671,7 +691,7 @@ def scrape_previously_closed_vendors(query_str=''):
         #                             """%(sl_link,it[:it.find("'")]))
 
     print 'done!'
-    SYS_r._growl(                   'Seamless Update Error: L:699')
+    SYS_r._growl(                       'Seamless Update Error: L:699')
     return True
 #   seamless: 3 of 3
 def scrape_known_sl_vendors(query_str=''):
@@ -691,10 +711,14 @@ def scrape_known_sl_vendors(query_str=''):
     first_link                  =   sl_links[0]
     url                         =   base_url+first_link.replace(base_url,'')
     br.open_page(                   url)
-    try:
-        br.window.find_element_by_id("fancybox-close").click()
-    except:
-        pass
+
+    if br.source().count('fancybox-close')>0:
+        popup_element           =   br.window.find_element_by_id("fancybox-close")
+        if popup_element.is_displayed():
+            popup_element.click()
+            br.wait_for_page(       timeout_seconds=120)
+            z                   =   br.get_url()
+
     update_pgsql_with_seamless_page_content(br)
     sleep(                          5)
     skipped                     =   0
@@ -910,6 +934,7 @@ def scrape_yelp_api(query_str=''):
         gid                     =   s.ix[i,'gid']
         search_addr             =   p[i]
         d                       =   yelp_search_api(search_addr,radius_in_meters)
+
         # try:
         conn.set_isolation_level(   0)
         cur.execute(                """ update scrape_lattice
@@ -1162,7 +1187,7 @@ def scrape_yelp_vendor_pages(query_str=''):
     t                           =   """ select uid,url from yelp
                                         where hours_updated is null
                                         or age(hours_updated,'now'::timestamp with time zone)
-                                        > interval '1 day'
+                                        > interval '1 week'
                                     """
 
     query_str                   =   t if not query_str else query_str
