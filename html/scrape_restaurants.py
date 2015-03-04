@@ -140,7 +140,7 @@ def update_pgsql_with_seamless_page_content(br):
             a                   =   getTagsByAttr(html, 'div', {'id':'Bummer'},contents=False)
             b                   =   a[0].text.replace('\n','').replace('Bummer!','').strip()
             vend_name           =   b[:b.find('(')].strip().replace("'","''")
-            addr                =   re_findall(r'[(](.*)[)]',b)[0]
+            addr                =   re_findall(r'[(](.*)[)]',b)[0].strip(',')
             T                   =   {'vendor_id':vendor_id,'vend_name':vend_name,'addr':addr}
             cmd                 =   """
                                     update seamless
@@ -612,9 +612,22 @@ def scrape_previously_closed_vendors(query_str=''):
 
                 br.browser.set_window_position=K.location
                 br.browser.set_window_size=K.size
-                br.screenshot(          os_environ['SERV_HOME']+'/aprinto/static/phantom_shot')
+                fpath               =   '/home/ub2/SERVER2/aprinto/static/phantom_shot'
+                if THIS_PC=='ub2':
+                    br.screenshot(      fpath )
+                else:
+                    br.screenshot(      '/tmp/phantom_shot' )
+                    cmds            =   ['scp /tmp/phantom_shot %(host)s@%(serv)s:%(fpath)s;'
+                                         % ({ 'host'                :   'ub2',
+                                              'serv'                :   'ub2',
+                                              'fpath'               :   fpath }),
+                                         'rm -f /tmp/phantom_shot;']
+                    p               =   (cmds,stdout=sub_PIPE,shell=True)
+                    (_out,_err)     =   p.communicate()
+
                 SYS_r._growl(           'SL Update @ "%s" (Prev. Closed Vendors) -- NEED CAPTCHA' % os_environ['USER'],
                                         'http://demo.aporodelivery.com/phantomjs.html' )
+                from ipdb import set_trace as i_trace; i_trace()
                 captcha_input       =   get_input("Captcha code?\n")
                 br.browser.find_element_by_id("captcha").send_keys(captcha_input)
                 br.browser.find_element_by_name("submit").click()
