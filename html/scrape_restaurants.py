@@ -622,7 +622,7 @@ def scrape_previously_closed_vendors(query_str=''):
                                               'serv'                :   'ub2',
                                               'fpath'               :   fpath }),
                                          'rm -f /tmp/phantom_shot;']
-                    p               =   (cmds,stdout=sub_PIPE,shell=True)
+                    p               =   sub_popen(cmds,stdout=sub_PIPE,shell=True)
                     (_out,_err)     =   p.communicate()
 
                 SYS_r._growl(           'SL Update @ "%s" (Prev. Closed Vendors) -- NEED CAPTCHA' % os_environ['USER'],
