@@ -60,6 +60,24 @@ GROWL_NOTICE                        =   True
 DEBUG                               =   True
 # from ipdb import set_trace as i_trace; i_trace()
 
+def post_screenshot(br):
+    fpath               =   '/home/ub2/SERVER2/aprinto/static/phantom_shot'
+    if THIS_PC=='ub2':
+        br.screenshot(      fpath )
+    else:
+        br.screenshot(      '/tmp/phantom_shot' )
+        cmds            =   ['scp /tmp/phantom_shot %(host)s@%(serv)s:%(fpath)s;'
+                             % ({ 'host'                :   'ub2',
+                                  'serv'                :   'ub2',
+                                  'fpath'               :   fpath }),
+                             'rm -f /tmp/phantom_shot;']
+        p               =   sub_popen(cmds,stdout=sub_PIPE,shell=True)
+        (_out,_err)     =   p.communicate()
+        assert _out==''
+        assert _err==None
+    from ipdb import set_trace as i_trace; i_trace()
+    return
+
 
 # SEAMLESS FUNCTIONS
 #   seamless: [ base f(x) ]
@@ -612,22 +630,9 @@ def scrape_previously_closed_vendors(query_str=''):
 
                 br.browser.set_window_position=K.location
                 br.browser.set_window_size=K.size
-                fpath               =   '/home/ub2/SERVER2/aprinto/static/phantom_shot'
-                if THIS_PC=='ub2':
-                    br.screenshot(      fpath )
-                else:
-                    br.screenshot(      '/tmp/phantom_shot' )
-                    cmds            =   ['scp /tmp/phantom_shot %(host)s@%(serv)s:%(fpath)s;'
-                                         % ({ 'host'                :   'ub2',
-                                              'serv'                :   'ub2',
-                                              'fpath'               :   fpath }),
-                                         'rm -f /tmp/phantom_shot;']
-                    p               =   sub_popen(cmds,stdout=sub_PIPE,shell=True)
-                    (_out,_err)     =   p.communicate()
-
+                post_screenshot(br)
                 SYS_r._growl(           'SL Update @ "%s" (Prev. Closed Vendors) -- NEED CAPTCHA' % os_environ['USER'],
                                         'http://demo.aporodelivery.com/phantomjs.html' )
-                from ipdb import set_trace as i_trace; i_trace()
                 captcha_input       =   get_input("Captcha code?\n")
                 br.browser.find_element_by_id("captcha").send_keys(captcha_input)
                 br.browser.find_element_by_name("submit").click()
