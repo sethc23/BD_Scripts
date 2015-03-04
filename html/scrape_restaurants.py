@@ -75,13 +75,12 @@ def post_screenshot(br):
         (_out,_err)     =   p.communicate()
         assert _out==''
         assert _err==None
-    from ipdb import set_trace as i_trace; i_trace()
     return
 
 
 # SEAMLESS FUNCTIONS
 #   seamless: [ base f(x) ]
-def update_pgsql_with_seamless_page_content(br):
+def update_pgsql_with_sl_page_content(br):
 
     def save_comments(br,html,vend_url):
         review_block            =   getTagsByAttr(html, 'div',
@@ -587,7 +586,7 @@ def scrape_sl_search_results(query_str=''):
     print msg
     return True
 #   seamless: 2 of 3
-def scrape_previously_closed_vendors(query_str=''):
+def scrape_sl_previously_closed_vendors(query_str=''):
     """
     get url and html for closed vendors -- worked 2014.11.18
     """
@@ -685,7 +684,7 @@ def scrape_previously_closed_vendors(query_str=''):
             #         popup_element.click()
             #         br.wait_for_page(       timeout_seconds=120)
 
-            update_pgsql_with_seamless_page_content(br)
+            update_pgsql_with_sl_page_content(br)
 
             conn.set_isolation_level(   0)
             cur.execute(                """
@@ -712,7 +711,7 @@ def scrape_previously_closed_vendors(query_str=''):
     SYS_r._growl(                       'Seamless Update Error: L:699')
     return True
 #   seamless: 3 of 3
-def scrape_known_sl_vendors(query_str=''):
+def scrape_sl_known_vendor_pages(query_str=''):
 
     t                           =   """ select id,sl_link from seamless
                                         where upd_vend_content is null
@@ -737,14 +736,14 @@ def scrape_known_sl_vendors(query_str=''):
             br.wait_for_page(       timeout_seconds=120)
             z                   =   br.get_url()
 
-    update_pgsql_with_seamless_page_content(br)
+    update_pgsql_with_sl_page_content(br)
     sleep(                          5)
     skipped                     =   0
     for it in sl_links[1:]:
         url                     =   base_url+it.replace(base_url,'')
         br.open_page(               url)
         try:
-            update_pgsql_with_seamless_page_content(br)
+            update_pgsql_with_sl_page_content(br)
         except:
             SYS_r._growl(           'Seamless@%s: Issue with Known Vendors @ %s' % (os_environ['USER'],it),url=it )
             current_url         =   "'"+br.get_url()+"'"
@@ -755,6 +754,42 @@ def scrape_known_sl_vendors(query_str=''):
     SYS_r._growl(                   'Seamless@%s: Known Vendors Updated' % os_environ['USER'] )
     print skipped,'skipped'
     print 'done!'
+
+
+class Yelp_API:
+
+    def __init__(self):
+        from rauth                  import OAuth1Session
+        from json                   import dumps            as j_dump
+
+        self.consumer_key           =   'QzH1O3EktEQt89kegeaUxQ'
+        self.consumer_secret        =   'Q_GtZiKGtRvqQSTjGOSgsuogkTE'
+        self.token                  =   '6T7dDEQhf41FA2DIajIDZxsm4RwvBdM9'
+        self.token_secret           =   'YNaWq3LCjlQu9ir4Ibo-Zp6ELKI'
+
+    def yelp_business_api(self,biz_id):
+        params                  =   {}
+        api_url                 =   'http://api.yelp.com/v2/business/' + biz_id
+        return self.get_results(params,api_url)
+
+    def yelp_search_api(self,location,radius_in_meters):
+        params                  =   {}
+        params["term"]          =   "restaurant"
+        params['location']      =   location
+        params["radius_filter"] =   str(radius_in_meters)
+        api_url                 =   'http://api.yelp.com/v2/search'
+        return self.get_results(params,api_url)
+
+    def get_results(self,params,url):
+        session                 =   OAuth1Session(
+                                        consumer_key            = self.consumer_key,
+                                        consumer_secret         = self.consumer_secret,
+                                        access_token            = self.token,
+                                        access_token_secret     = self.token_secret)
+        request                 =   session.get(url,params=params)
+        data                    =   request.json()
+        session.close()
+        return data
 
 
 # YELP FUNCTIONS
@@ -899,35 +934,7 @@ def scrape_yelp_api(query_str=''):
     get results from yelp Search API with scape lattice addresses and update pgsql -- worked 2014.11.17
     """
 
-    from rauth                  import OAuth1Session
-    from json                   import dumps            as j_dump
-
-    CONSUMER_KEY                =   'QzH1O3EktEQt89kegeaUxQ'
-    CONSUMER_SECRET             =   'Q_GtZiKGtRvqQSTjGOSgsuogkTE'
-    TOKEN                       =   '6T7dDEQhf41FA2DIajIDZxsm4RwvBdM9'
-    TOKEN_SECRET                =   'YNaWq3LCjlQu9ir4Ibo-Zp6ELKI'
-
-    def yelp_business_api(biz_id):
-        params                  =   {}
-        api_url                 =   'http://api.yelp.com/v2/business/' + biz_id
-        return get_results(params,api_url)
-    def yelp_search_api(location,radius_in_meters):
-        params                  =   {}
-        params["term"]          =   "restaurant"
-        params['location']      =   location
-        params["radius_filter"] =   str(radius_in_meters)
-        api_url                 =   'http://api.yelp.com/v2/search'
-        return get_results(params,api_url)
-    def get_results(params,url):
-        session                 =   OAuth1Session(
-                                        consumer_key            = CONSUMER_KEY,
-                                        consumer_secret         = CONSUMER_SECRET,
-                                        access_token            = TOKEN,
-                                        access_token_secret     = TOKEN_SECRET)
-        request                 =   session.get(url,params=params)
-        data                    =   request.json()
-        session.close()
-        return data
+    Yelp_API                    =   Yelp_API()
 
     t                           =   """ select gid,address,zipcode from scrape_lattice
                                         where yelp_updated is null
@@ -951,7 +958,7 @@ def scrape_yelp_api(query_str=''):
     for i in range(len(p)):
         gid                     =   s.ix[i,'gid']
         search_addr             =   p[i]
-        d                       =   yelp_search_api(search_addr,radius_in_meters)
+        d                       =   Yelp_API.yelp_search_api(search_addr,radius_in_meters)
 
         # try:
         conn.set_isolation_level(   0)
