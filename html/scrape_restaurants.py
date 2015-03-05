@@ -48,10 +48,10 @@ routing_eng                         =   create_engine(r'postgresql://postgres:po
                                                   encoding='utf-8',
                                                   echo=False)
 from psycopg2                   import connect          as pg_connect
-conn                                =   pg_connect("dbname='routing' "+
-                                                     "user='postgres' "+
+conn                                    =   pg_connect("dbname='routing' "+
+                                                           "user='postgres' "+
                                                      "host='%s' password='' port=8800" % DB_HOST);
-cur                                 =   conn.cursor()
+cur                                     =   conn.cursor()
 
 
 # from ipdb import set_trace as i_trace; i_trace()
@@ -68,9 +68,10 @@ class Scrape_Vendors:
                                              'debug'                :   True}
         T.update(                       {'tmp_tbl'              :   'tmp_' + T['guid']})
         self.T                      =   T
-        self.SL                     =   Seamless()
-        self.Yelp                   =   Yelp()
+        self.SL                     =   Seamless(self)
+        self.Yelp                   =   Yelp(self)
         self.Yelp_API               =   Yelp_API()
+        self.SV                     =   self
 
     def post_screenshot(self,br):
         fpath                           =   '/home/ub2/SERVER2/aprinto/static/phantom_shot'
@@ -91,72 +92,79 @@ class Scrape_Vendors:
 
 
 class Seamless:
+
+    def __init__(self,_parent):
+        self.SV                     =   _parent
+        self.T                      =   _parent.T
+        self.SL                     =   self
+
     # SEAMLESS FUNCTIONS
     #   seamless: [ base f(x) ]
+    def save_comments(self,br,html,vend_url):
+        review_block                =   getTagsByAttr(html, 'div',
+                                              {'id':'reviews'},contents=True)
+        review_list                 =   getTagsByAttr(review_block, 'div',
+                                              {'itemtype':'http://schema.org/Review'},contents=False)
+
+        rev_cols                    =   ['vend_url','review_id','review_date','review_rating','review_msg']
+        df                          =   pd.DataFrame(columns=rev_cols)
+        for rev in review_list:
+            review_date             =   getTagsByAttr(str(rev), 'input',
+                                                 {'class':'ratingdate'},
+                                                 contents=False)[0].attrs['value']
+            dt_review_date          =   dt.datetime.utcfromtimestamp(int(review_date))
+
+            if (self.T['today'] - dt_review_date).days > int(self.T['oldest_comments']):
+                pass
+            else:
+                f_review_date   =   dt_review_date.isoformat()
+
+                review_rating   =   int(getTagsByAttr(str(rev), 'input',
+                                                     {'class':'rating'},
+                                                     contents=False)[0].attrs['value'])
+                review_msg      =   getTagsByAttr(str(rev), 'p',
+                                                 {'itemprop':'reviewBody'},
+                                                 contents=False)[0].contents[0].strip('\n\t ')
+                author_link     =   getTagsByAttr(str(rev), 'a',
+                                                 {'itemprop':'author'},
+                                                 contents=False)[0].attrs['href']
+                review_id       =   '_'.join([str(review_date),
+                                              author_link[author_link.rfind('/')+1:]])
+
+                df              =   df.append(dict(zip(rev_cols,
+                                                       [vend_url,review_id,f_review_date,
+                                                        review_rating,review_msg])),ignore_index=True)
+
+        conn.set_isolation_level(   0)
+        cur.execute(                'drop table if exists %(tmp_tbl)s;' % self.T)
+        df.to_sql(                  self.T['tmp_tbl'],routing_eng,index=False)
+        conn.set_isolation_level(   0)
+        cmd                     =   """
+                                    insert into customer_comments
+                                        (vend_url,
+                                        review_id,
+                                        review_date,
+                                        review_rating,
+                                        review_msg)
+                                    select t.vend_url,
+                                        t.review_id,
+                                        t.review_date::timestamp with time zone,
+                                        t.review_rating::double precision,
+                                        t.review_msg
+                                    from
+                                        %(tmp_tbl)s t,
+                                        (  select array_agg(f.review_id) existing_review_ids
+                                            from customer_comments f  ) as f1
+                                    where (not existing_review_ids && array[t.review_id]
+                                            or existing_review_ids is null);
+
+                                    DROP TABLE IF EXISTS %(tmp_tbl)s;
+                                    """ % self.T
+        cur.execute(                cmd)
+        return
     def update_pgsql_with_sl_page_content(self,br):
 
-        def save_comments(br,html,vend_url):
-            review_block                =   getTagsByAttr(html, 'div',
-                                                  {'id':'reviews'},contents=True)
-            review_list                 =   getTagsByAttr(review_block, 'div',
-                                                  {'itemtype':'http://schema.org/Review'},contents=False)
 
-            rev_cols                    =   ['vend_url','review_id','review_date','review_rating','review_msg']
-            df                          =   pd.DataFrame(columns=rev_cols)
-            for rev in review_list:
-                review_date             =   getTagsByAttr(str(rev), 'input',
-                                                     {'class':'ratingdate'},
-                                                     contents=False)[0].attrs['value']
-                dt_review_date          =   dt.datetime.utcfromtimestamp(int(review_date))
-
-                if (self.T['today'] - dt_review_date).days > self.T['oldest_comments']:
-                    pass
-                else:
-                    f_review_date   =   dt_review_date.isoformat()
-
-                    review_rating   =   int(getTagsByAttr(str(rev), 'input',
-                                                         {'class':'rating'},
-                                                         contents=False)[0].attrs['value'])
-                    review_msg      =   getTagsByAttr(str(rev), 'p',
-                                                     {'itemprop':'reviewBody'},
-                                                     contents=False)[0].contents[0].strip('\n\t ')
-                    author_link     =   getTagsByAttr(str(rev), 'a',
-                                                     {'itemprop':'author'},
-                                                     contents=False)[0].attrs['href']
-                    review_id       =   '_'.join([str(review_date),
-                                                  author_link[author_link.rfind('/')+1:]])
-
-                    df              =   df.append(dict(zip(rev_cols,
-                                                           [vend_url,review_id,f_review_date,
-                                                            review_rating,review_msg])),ignore_index=True)
-
-            conn.set_isolation_level(   0)
-            cur.execute(                'drop table if exists %(tmp_tbl)s;' % self.T)
-            df.to_sql(                  self.T['tmp_tbl'],routing_eng,index=False)
-            conn.set_isolation_level(   0)
-            cmd                     =   """
-                                        insert into customer_comments
-                                            (vend_url,
-                                            review_id,
-                                            review_date,
-                                            review_rating,
-                                            review_msg)
-                                        select t.vend_url,
-                                            t.review_id,
-                                            t.review_date::timestamp with time zone,
-                                            t.review_rating::double precision,
-                                            t.review_msg
-                                        from
-                                            %s t,
-                                            (  select array_agg(f.review_id) existing_review_ids
-                                               from customer_comments f  ) as f1
-                                        where (not existing_review_ids && array[t.review_id]
-                                                or existing_review_ids is null);
-
-                                        DROP TABLE IF EXISTS %(tmp_tbl)s;
-                                        """ % self.T
-            cur.execute(                cmd)
-            return
 
         html                            =   codecs.encode(br.source(),'utf8','ignore')
         seamless_link                   =   br.get_url()
@@ -171,7 +179,7 @@ class Seamless:
                 b                       =   a[0].text.replace('\n','').replace('Bummer!','').strip()
                 vend_name               =   b[:b.find('(')].strip().replace("'","''")
                 addr                    =   re_findall(r'[(](.*)[)]',b)[0].strip(',')
-                T                       =   {'vendor_id':vendor_id,'vend_name':vend_name,'addr':addr}
+                self.T.update(              {'vendor_id':vendor_id,'vend_name':vend_name,'addr':addr} )
                 cmd                     =   """
                                             update seamless
                                             set
@@ -183,7 +191,7 @@ class Seamless:
                                             where vend_id               =   %(vendor_id)s
                                             """%T
             except:
-                T                       =   {'vendor_id':vendor_id}
+                self.T.update(              {'vendor_id':vendor_id})
                 cmd                     =   """
                                             update seamless
                                             set
@@ -355,7 +363,7 @@ class Seamless:
                                                           {'class':'showRatingsTab'},
                                                           contents=False)[0].attrs['href']
                 br.open_page(               review_url)
-                save_comments(              br,html,seamless_link)
+                self.SL.save_comments(      br,html,seamless_link)
             except Exception, err:
                 print tb_format_exc()
                 print sys_exc_info()[0]
@@ -516,7 +524,7 @@ class Seamless:
                 closed_res_total        =   len(z)
                 tmp                     =   map(lambda a: [a.contents[2].replace('\n','').replace('\t','').strip()]+
                                      a.span.contents[0].lower().replace('\n','').replace('\t','').replace('open','').strip().split('-'),z)
-                global T
+
                 self.T.update(              {'day':dt.datetime.strftime(dt.datetime.now(),'%a').lower()})
                 cols                    =   str('vend_name,opens_%(day)s,closes_%(day)s' % self.T).split(',')
                 x                       =   pd.DataFrame(tmp,columns=cols)
@@ -623,7 +631,7 @@ class Seamless:
         sys.setdefaultencoding(             'UTF8')
 
         global T
-        self.self.T.update(                  {'tbl_name'         :   'seamless_closed',
+        self.T.update(                      {'tbl_name'         :   'seamless_closed',
                                              'tbl_uid'          :   'id',
                                              'upd_var'          :   'upd_seamless',
                                              'select_vars'      :   'vend_name,id'})
@@ -681,7 +689,7 @@ class Seamless:
                     start_size          =   br.browser.set_window_size
                     br.browser.set_window_position=K.location
                     br.browser.set_window_size=K.size
-                    self.post_screenshot(br)
+                    self.SV.post_screenshot(br)
                     br.browser.set_window_position=start_location
                     br.browser.set_window_size=start_size
 
@@ -751,15 +759,14 @@ class Seamless:
         br.quit()
 
 
-        T.update(                           {'line_no'                  :   I.currentframe().f_back.f_lineno})
-        msg                             =   '%(line_no)s SL@%(user)s<%(guid)s>: Update Error.' % self.T
+        self.T.update(                      {'line_no'                  :   I.currentframe().f_back.f_lineno})
+        msg                             =   '%(line_no)s SL@%(user)s<%(guid)s>: Prev. Closed Updated.' % self.T
         print msg
         SYS_r._growl(                       msg)
         return True
     #   seamless: 3 of 3
     def scrape_sl_known_vendor_pages(self,query_str=''):
         print self.T['guid']
-        global T
         self.T.update(                      {'tbl_name'                     :   'seamless',
                                              'tbl_uid'                      :   'id',
                                              'upd_var'                      :   'upd_vend_content',
@@ -909,6 +916,12 @@ class Yelp_API:
 
 
 class Yelp:
+
+    def __init__(self,_parent):
+        self.SV                     =   _parent
+        self.T                      =   _parent.T
+        self.Yelp                   =   self
+
     # YELP FUNCTIONS
     #   yelp:     0 of 2
     def scrape_yelp_search_results(self,query_str=''):
@@ -1481,7 +1494,7 @@ class Yelp:
 
 
             # Save Comments To Separate Table
-            save_comments(                  br,html,vend_data['url'])
+            self.save_comments(                  br,html,vend_data['url'])
 
         br.quit()
         msg                             =   '%(line_no)s Yelp@%(user)s<%(guid)s>: Known Vendors Updated.' % self.T
