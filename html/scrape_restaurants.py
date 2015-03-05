@@ -581,6 +581,8 @@ def scrape_sl_search_results(query_str=''):
             br.wait_for_page(           timeout_seconds=120)
         br.quit()
 
+    print INSTANCE_GUID
+
     T                               =   {'res_limit'        :   str(CHECKOUT_SIZE)}
 
     src                             =   """ select gid,address,zipcode from scrape_lattice
@@ -600,6 +602,7 @@ def scrape_sl_previously_closed_vendors(query_str=''):
     """
     get url and html for closed vendors -- worked 2014.11.18
     """
+    print INSTANCE_GUID
 
     import sys
     reload(                             sys)
@@ -639,8 +642,6 @@ def scrape_sl_previously_closed_vendors(query_str=''):
     src                             =   t if not query_str else query_str
 
     d                               =   pd.read_sql(src,routing_eng)
-
-    from ipdb import set_trace as i_trace; i_trace()
 
     x                               =   d.vend_name.tolist()
     y                               =   d['id'].tolist()
@@ -732,12 +733,13 @@ def scrape_sl_previously_closed_vendors(query_str=''):
                                                     'sl_link'      :   sl_link} )
 
 
+    br.quit()
     print 'done!'
     SYS_r._growl(                       'Seamless Update Error: L:699')
     return True
 #   seamless: 3 of 3
 def scrape_sl_known_vendor_pages(query_str=''):
-
+    print INSTANCE_GUID
     T                               =   {'res_limit'                    :   str(CHECKOUT_SIZE),
                                          'tbl_name'                     :   'seamless',
                                          'tbl_uid'                      :   'id',
@@ -804,6 +806,7 @@ def scrape_sl_known_vendor_pages(query_str=''):
             cur.execute(                "update seamless set skipped=true,checked_out=null where sl_link = %s"%current_url)
             skipped                +=   1
 
+    br.quit()
     SYS_r._growl(                       'Seamless@%s: Known Vendors Updated' % os_environ['USER'] )
     print skipped,'skipped'
     print 'done!'
@@ -884,7 +887,7 @@ def scrape_yelp_search_results(query_str=''):
     """
     get results from yelp address search and update pgsql
     """
-
+    print INSTANCE_GUID
     import sys
     reload(sys)
     sys.setdefaultencoding(         'UTF8')
@@ -1014,6 +1017,7 @@ def scrape_yelp_search_results(query_str=''):
                 conn.set_isolation_level(0)
                 cur.execute(        cmd)
 
+    br.quit()
     SYS_r._growl(                   'Yelp Update: Search Results Scraped. (L:886)')
     return True
 #   yelp:     1 of 2
@@ -1021,7 +1025,7 @@ def scrape_yelp_api(query_str='',scrape_lattice='scrape_lattice'):
     """
     get results from yelp Search API with scape lattice addresses and update pgsql -- worked 2014.11.17
     """
-
+    print INSTANCE_GUID
     YELP                            =   Yelp_API()
 
     T                               =  { 'latt_tbl'         :   scrape_lattice,
@@ -1237,6 +1241,7 @@ def scrape_yelp_api(query_str='',scrape_lattice='scrape_lattice'):
         if last_run:
             break
 
+    br.quit()
     print msg
     SYS_r._growl(                       msg)
     return
@@ -1245,7 +1250,7 @@ def scrape_yelp_vendor_pages(query_str=''):
     """
     use yelp.url to get hours from each page and update pgsql
     """
-
+    print INSTANCE_GUID
     def save_comments(br,html,vend_url):
         stop                        =   False
         while stop!=True:
@@ -1449,6 +1454,7 @@ def scrape_yelp_vendor_pages(query_str=''):
         # Save Comments To Separate Table
         save_comments(                  br,html,vend_data['url'])
 
+    br.quit()
     print 'done!'
     SYS_r._growl(                       'Yelp Update L:1205')
     return True
