@@ -56,25 +56,27 @@ INSTANCE_GUID                       =   'tmp_'+str(get_guid().hex)[:7]
 TODAY                               =   dt.datetime.now()
 OLDEST_COMMENTS                     =   9*30                                    # in days
 
+CHECKOUT_SIZE                       =   100
+
 GROWL_NOTICE                        =   True
 DEBUG                               =   True
 # from ipdb import set_trace as i_trace; i_trace()
 
 def post_screenshot(br):
-    fpath               =   '/home/ub2/SERVER2/aprinto/static/phantom_shot'
+    fpath                           =   '/home/ub2/SERVER2/aprinto/static/phantom_shot'
     if THIS_PC=='ub2':
-        br.screenshot(      fpath )
+        br.screenshot(                  fpath )
     else:
-        br.screenshot(      '/tmp/phantom_shot' )
-        cmds            =   ['scp /tmp/phantom_shot %(host)s@%(serv)s:%(fpath)s;'
-                             % ({ 'host'                :   'ub2',
-                                  'serv'                :   'ub2',
-                                  'fpath'               :   fpath }),
-                             'rm -f /tmp/phantom_shot;']
-        p               =   sub_popen(cmds,stdout=sub_PIPE,shell=True)
-        (_out,_err)     =   p.communicate()
-        assert _out==''
-        assert _err==None
+        br.screenshot(                  '/tmp/phantom_shot' )
+        cmds                        =   ['scp /tmp/phantom_shot %(host)s@%(serv)s:%(fpath)s;'
+                                         % ({ 'host'                :   'ub2',
+                                              'serv'                :   'ub2',
+                                              'fpath'               :   fpath }),
+                                         'rm -f /tmp/phantom_shot;']
+        p                           =   sub_popen(cmds,stdout=sub_PIPE,shell=True)
+        (_out,_err)                 =   p.communicate()
+        assert _out                ==   ''
+        assert _err                ==   None
     return
 
 
@@ -83,18 +85,18 @@ def post_screenshot(br):
 def update_pgsql_with_sl_page_content(br):
 
     def save_comments(br,html,vend_url):
-        review_block            =   getTagsByAttr(html, 'div',
+        review_block                =   getTagsByAttr(html, 'div',
                                               {'id':'reviews'},contents=True)
-        review_list             =   getTagsByAttr(review_block, 'div',
+        review_list                 =   getTagsByAttr(review_block, 'div',
                                               {'itemtype':'http://schema.org/Review'},contents=False)
 
-        rev_cols                =   ['vend_url','review_id','review_date','review_rating','review_msg']
-        df                      =   pd.DataFrame(columns=rev_cols)
+        rev_cols                    =   ['vend_url','review_id','review_date','review_rating','review_msg']
+        df                          =   pd.DataFrame(columns=rev_cols)
         for rev in review_list:
-            review_date         =   getTagsByAttr(str(rev), 'input',
+            review_date             =   getTagsByAttr(str(rev), 'input',
                                                  {'class':'ratingdate'},
                                                  contents=False)[0].attrs['value']
-            dt_review_date      =   dt.datetime.utcfromtimestamp(int(review_date))
+            dt_review_date          =   dt.datetime.utcfromtimestamp(int(review_date))
 
             if (TODAY - dt_review_date).days > OLDEST_COMMENTS:
                 pass
@@ -145,189 +147,194 @@ def update_pgsql_with_sl_page_content(br):
         cur.execute(                cmd)
         return
 
-    html                        =   codecs.encode(br.source(),'utf8','ignore')
-    seamless_link               =   br.get_url()
+    html                            =   codecs.encode(br.source(),'utf8','ignore')
+    seamless_link                   =   br.get_url()
 
     if seamless_link.find('http')!=0: seamless_link='http://www.seamless.com/food-delivery/'+seamless_link
-    vendor_id                   =   int(seamless_link[seamless_link[:-2].rfind('.')+1:-2])
+    vendor_id                       =   int(seamless_link[seamless_link[:-2].rfind('.')+1:-2])
 
-    t                           =   getTagsByAttr(html, 'span', {'id':'VendorName'},contents=False)
+    t                               =   getTagsByAttr(html, 'span', {'id':'VendorName'},contents=False)
     if len(t)==0:
         try:
-            a                   =   getTagsByAttr(html, 'div', {'id':'Bummer'},contents=False)
-            b                   =   a[0].text.replace('\n','').replace('Bummer!','').strip()
-            vend_name           =   b[:b.find('(')].strip().replace("'","''")
-            addr                =   re_findall(r'[(](.*)[)]',b)[0].strip(',')
-            T                   =   {'vendor_id':vendor_id,'vend_name':vend_name,'addr':addr}
-            cmd                 =   """
-                                    update seamless
-                                    set
-                                        inactive = true,
-                                        vend_name = '%(vend_name)s',
-                                        address = '%(addr)s',
-                                        upd_vend_content = 'now'::timestamp with time zone
-                                    where vend_id = %(vendor_id)s
-                                    """%T
+            a                       =   getTagsByAttr(html, 'div', {'id':'Bummer'},contents=False)
+            b                       =   a[0].text.replace('\n','').replace('Bummer!','').strip()
+            vend_name               =   b[:b.find('(')].strip().replace("'","''")
+            addr                    =   re_findall(r'[(](.*)[)]',b)[0].strip(',')
+            T                       =   {'vendor_id':vendor_id,'vend_name':vend_name,'addr':addr}
+            cmd                     =   """
+                                        update seamless
+                                        set
+                                            inactive                =   true,
+                                            vend_name               =   '%(vend_name)s',
+                                            address                 =   '%(addr)s',
+                                            upd_vend_content        =   'now'::timestamp with time zone,
+                                            checked_out             =   null
+                                        where vend_id               =   %(vendor_id)s
+                                        """%T
         except:
-            T                   =   {'vendor_id':vendor_id}
-            cmd                 =   """
-                                    update seamless
-                                    set
-                                        inactive = true,
-                                        upd_vend_content = 'now'::timestamp with time zone
-                                    where vend_id = %(vendor_id)s
-                                    """%T
-        conn.set_isolation_level(   0)
-        cur.execute(                cmd)
+            T                       =   {'vendor_id':vendor_id}
+            cmd                     =   """
+                                        update seamless
+                                        set
+                                            inactive                =   true,
+                                            upd_vend_content        =   'now'::timestamp with time zone,
+                                            checked_out             =   null
+                                        where vend_id               =   %(vendor_id)s
+                                        """%T
+        conn.set_isolation_level(       0)
+        cur.execute(                    cmd)
         return
     else:
-        vend_name               =   t[0].getText().replace('\n','').strip()
+        vend_name                   =   t[0].getText().replace('\n','').strip()
 
-    addr                        =   getTagsByAttr(html, 'span',
+    addr                            =   getTagsByAttr(html, 'span',
                                                   {'itemprop':'streetAddress'},
                                                   contents=False)[0].contents[0]
-    addr                        =   addr[:addr.find('(')].strip()
-    z                           =   getTagsByAttr(html, 'span',
+    addr                            =   addr[:addr.find('(')].strip()
+    z                               =   getTagsByAttr(html, 'span',
                                                   {'itemprop':'postalCode'},
                                                   contents=False)[0].contents[0]
 
     if z.find('-')!=-1:
-        zipcode                 =   int(z[:z.find('-')])
+        zipcode                     =   int(z[:z.find('-')])
     else:
-        zipcode                 =   int(z)
-    p                           =   getTagsByAttr(html, 'span', {'itemprop':'telephone'},contents=False)[0].contents[0]
-    excl_chars                  =   ['(',')','-','x','/',',',' ']
-    for it in excl_chars: p = p.replace(it,'')
-    phone                       =   int(p.strip()[:10])
+        zipcode                     =   int(z)
+    p                               =   getTagsByAttr(html, 'span', {'itemprop':'telephone'},contents=False)[0].contents[0]
+    excl_chars                      =   ['(',')','-','x','/',',',' ']
+    for it in excl_chars:      p    =   p.replace(it,'')
+    phone                           =   int(p.strip()[:10])
     if len(str(phone))!=10:
-        SYS_r._growl(               'Seamless Update Error: Phone Length Not 10')
+        SYS_r._growl(                   'Seamless Update Error: Phone Length Not 10')
         raise SystemError()
     try:
-        price                   =   int(getTagsByAttr(html, 'span', {'class':'price-text'},contents=False)[0].getText().count('$'))
+        price                       =   int(getTagsByAttr(html, 'span', {'class':'price-text'},contents=False)[0].getText().count('$'))
     except:
-        price                   =   -1
+        price                       =   -1
     try:
-        rating                  =   int(getTagsByAttr(html, 'a',
+        rating                      =   int(getTagsByAttr(html, 'a',
                                                     {'class':'user-rating'},
                                                     contents=False)[0].img.attrs['alt'].split(' ')[0])
-        rating_total            =   int(getTagsByAttr(html, 'span',
+        rating_total                =   int(getTagsByAttr(html, 'span',
                                                     { 'itemprop':'ratingCount',
                                                       'id':'TotalRatings'},
                                                     contents=False)[0].getText().replace('ratings','').strip())
-        rating_perc             =   rating_total/rating
-        reviews                 =   int(getTagsByAttr(html, 'span',
+        rating_perc                 =   rating_total/rating
+        reviews                     =   int(getTagsByAttr(html, 'span',
                                                     {'itemprop':'reviewCount',
                                                      'id':'TotalReviews'},
                                                     contents=False)[0].getText())
     except:
-        rating                  =   rating_total = rating_perc = -1
-        reviews                 =   0
-    v                           =   html.find('Delivery Estimate:')
-    deliv_est                   =   '-'.join(re_findall(r'\d+', html[v:v+len('Delivery Estimate:')+100] ))
-    v                           =   html.find('Delivery Minimum:')
-    deliv_min                   =   float('.'.join(re_findall(r'\d+', html[v:v+len('Delivery Minimum:')+100] )[:2]))
-    pickup_est                  =   '-'.join(re_findall(r'\d+', getTagsByAttr(html, 'span', {'class':'ready-time'},contents=False)[0].getText()))
-    v                           =   getTagsByAttr(html, 'div',
+        rating                      =   rating_total = rating_perc = -1
+        reviews                     =   0
+    v                               =   html.find('Delivery Estimate:')
+    deliv_est                       =   '-'.join(re_findall(r'\d+', html[v:v+len('Delivery Estimate:')+100] ))
+    v                               =   html.find('Delivery Minimum:')
+    deliv_min                       =   float('.'.join(re_findall(r'\d+', html[v:v+len('Delivery Minimum:')+100] )[:2]))
+    pickup_est                      =   '-'.join(re_findall(r'\d+', getTagsByAttr(html, 'span', {'class':'ready-time'},contents=False)[0].getText()))
+    v                               =   getTagsByAttr(html, 'div',
                                                   {'class':'estimates',
                                                    'id':'RestaurantDetails'},
                                                   contents=False)[0]
-    estimates_blob              =   re_sub(r'\s+', ' ', v.findAll('span')[3].getText().replace('\n',''))
-    description                 =   getTagsByAttr(html, 'meta',
+    estimates_blob                  =   re_sub(r'\s+', ' ', v.findAll('span')[3].getText().replace('\n',''))
+    description                     =   getTagsByAttr(html, 'meta',
                                                   {'property':'og:description'},
                                                   contents=False)[0].attrs['content']
     try:
-        cuisine                 =   getTagsByAttr(html, 'li',
+        cuisine                     =   getTagsByAttr(html, 'li',
                                                   {'itemprop':'servesCuisine'},
                                                   contents=False)[0].contents[0]
     except:
-        cuisine                 =   None
+        cuisine                     =   None
 
-    page_vars                   =   [seamless_link,vendor_id,vend_name,addr,zipcode,phone,price,
-                                     rating,rating_total,rating_perc,description,reviews,
-                                     deliv_est,deliv_min,pickup_est,cuisine,estimates_blob]
-    a                           =   'sl_link,vend_id,vend_name,address,zipcode,phone,price'.split(',')
-    b                           =   'rating,rating_total,rating_perc,description'.split(',')
-    c                           =   'reviews,deliv_est,deliv_min,pickup_est,cuisine,estimates_blob'.split(',')
-    var_names                   =   a + b + c
-    conn.set_isolation_level(       0)
-    cur.execute(                    'drop table if exists %s' % INSTANCE_GUID)
-    pd.DataFrame(                   [page_vars],columns=var_names).to_sql(INSTANCE_GUID,routing_eng)
+    page_vars                       =   [seamless_link,vendor_id,vend_name,addr,zipcode,phone,price,
+                                         rating,rating_total,rating_perc,description,reviews,
+                                         deliv_est,deliv_min,pickup_est,cuisine,estimates_blob]
+    a                               =   'sl_link,vend_id,vend_name,address,zipcode,phone,price'.split(',')
+    b                               =   'rating,rating_total,rating_perc,description'.split(',')
+    c                               =   'reviews,deliv_est,deliv_min,pickup_est,cuisine,estimates_blob'.split(',')
+    var_names                       =   a + b + c
+    conn.set_isolation_level(           0)
+    cur.execute(                        'drop table if exists %s' % INSTANCE_GUID)
+    pd.DataFrame(                       [page_vars],columns=var_names).to_sql(INSTANCE_GUID,routing_eng)
 
     # upsert to seamless
-    cmd                         =   """
-                                        with upd as (
-                                            update seamless s
-                                            set
-                                                vend_name = t.vend_name,
-                                                address = t.address,
-                                                zipcode = t.zipcode,
-                                                phone = t.phone,
-                                                price = t.price,
-                                                rating = t.rating,
-                                                rating_total = t.rating_total,
-                                                rating_perc = t.rating_perc,
-                                                description = t.description,
-                                                reviews = t.reviews,
-                                                deliv_est = t.deliv_est,
-                                                deliv_min = t.deliv_min,
-                                                pickup_est = t.pickup_est,
-                                                cuisine = t.cuisine,
-                                                estimates_blob = t.estimates_blob,
-                                                upd_vend_content = 'now'::timestamp with time zone,
-                                                skipped = false
-                                            from %(tmp)s t
-                                            where s.vend_id = t.vend_id
-                                            returning t.vend_id vend_id
-                                        )
-                                        insert into seamless ( sl_link,
-                                                               vend_id,
-                                                               vend_name,
-                                                               address,
-                                                               zipcode,
-                                                               phone,
-                                                               price,
-                                                               rating,
-                                                               rating_total,
-                                                               rating_perc,
-                                                               description,
-                                                               reviews,
-                                                               deliv_est,
-                                                               deliv_min,
-                                                               pickup_est,
-                                                               cuisine,
-                                                               estimates_blob,
-                                                               upd_vend_content,
-                                                               skipped)
-                                        select
-                                            t.sl_link,
-                                            t.vend_id,
-                                            t.vend_name,
-                                            t.address,
-                                            t.zipcode,
-                                            t.phone,
-                                            t.price,
-                                            t.rating,
-                                            t.rating_total,
-                                            t.rating_perc,
-                                            t.description,
-                                            t.reviews,
-                                            t.deliv_est,
-                                            t.deliv_min,
-                                            t.pickup_est,
-                                            t.cuisine,
-                                            t.estimates_blob,
-                                            'now'::timestamp with time zone,
-                                            false
-                                        from
-                                            %(tmp)s t,
-                                            (select array_agg(f.vend_id) upd_vend_ids from upd f) as f1
-                                        where (not upd_vend_ids && array[t.vend_id]
-                                            or upd_vend_ids is null);
+    cmd                             =   """
+                                            with upd as (
+                                                update seamless s
+                                                set
+                                                    vend_name       =   t.vend_name,
+                                                    address         =   t.address,
+                                                    zipcode         =   t.zipcode,
+                                                    phone           =   t.phone,
+                                                    price           =   t.price,
+                                                    rating          =   t.rating,
+                                                    rating_total    =   t.rating_total,
+                                                    rating_perc     =   t.rating_perc,
+                                                    description     =   t.description,
+                                                    reviews         =   t.reviews,
+                                                    deliv_est       =   t.deliv_est,
+                                                    deliv_min       =   t.deliv_min,
+                                                    pickup_est      =   t.pickup_est,
+                                                    cuisine         =   t.cuisine,
+                                                    estimates_blob  =   t.estimates_blob,
+                                                    upd_vend_content=   'now'::timestamp with time zone,
+                                                    skipped         =   false,
+                                                    checked_out     =   null
+                                                from %(tmp)s t
+                                                where s.vend_id     =   t.vend_id
+                                                returning t.vend_id vend_id
+                                            )
+                                            insert into seamless ( sl_link,
+                                                                   vend_id,
+                                                                   vend_name,
+                                                                   address,
+                                                                   zipcode,
+                                                                   phone,
+                                                                   price,
+                                                                   rating,
+                                                                   rating_total,
+                                                                   rating_perc,
+                                                                   description,
+                                                                   reviews,
+                                                                   deliv_est,
+                                                                   deliv_min,
+                                                                   pickup_est,
+                                                                   cuisine,
+                                                                   estimates_blob,
+                                                                   upd_vend_content,
+                                                                   skipped,
+                                                                   checked_out)
+                                            select
+                                                t.sl_link,
+                                                t.vend_id,
+                                                t.vend_name,
+                                                t.address,
+                                                t.zipcode,
+                                                t.phone,
+                                                t.price,
+                                                t.rating,
+                                                t.rating_total,
+                                                t.rating_perc,
+                                                t.description,
+                                                t.reviews,
+                                                t.deliv_est,
+                                                t.deliv_min,
+                                                t.pickup_est,
+                                                t.cuisine,
+                                                t.estimates_blob,
+                                                'now'::timestamp with time zone,
+                                                false,
+                                                null
+                                            from
+                                                %(tmp)s t,
+                                                (select array_agg(f.vend_id) upd_vend_ids from upd f) as f1
+                                            where (not upd_vend_ids && array[t.vend_id]
+                                                or upd_vend_ids is null);
 
-                                        DROP TABLE %(tmp)s;
-                                    """ % { 'tmp':INSTANCE_GUID }
-    conn.set_isolation_level(       0)
-    cur.execute(                    cmd)
+                                            DROP TABLE %(tmp)s;
+                                        """ % { 'tmp':INSTANCE_GUID }
+    conn.set_isolation_level(           0)
+    cur.execute(                        cmd)
 
     if rating!=-1:
 
@@ -574,11 +581,14 @@ def scrape_sl_search_results(query_str=''):
             br.wait_for_page(           timeout_seconds=120)
         br.quit()
 
+    T                               =   {'res_limit'        :   str(CHECKOUT_SIZE)}
+
     src                             =   """ select gid,address,zipcode from scrape_lattice
                                             where address is null
                                             or sl_updated is null
                                             or age('now'::timestamp with time zone,sl_updated) > interval '1 day'
-                                        """
+                                            limit %(res_limit)s
+                                        """ % T
     src                             =   src if not query_str else query_str
     get_sl_addr_search_results(         src )
     msg                             =   'Seamless@%s: SL Address Search Scrape Complete (L:429)' % os_environ['USER']
@@ -595,16 +605,42 @@ def scrape_sl_previously_closed_vendors(query_str=''):
     reload(                             sys)
     sys.setdefaultencoding(             'UTF8')
 
+    T                               =   {'res_limit'        :   str(CHECKOUT_SIZE),
+                                         'tbl_name'         :   'seamless_closed',
+                                         'tbl_uid'          :   'id',
+                                         'upd_var'          :   'upd_seamless',
+                                         'select_vars'      :   'vend_name,id',
+                                         'guid'             :   INSTANCE_GUID}
 
     # new SL vendors not yet added to seamless DB
-    src                             =   """
-                                        select vend_name from seamless_closed sc
-                                        where upd_seamless is false
-                                        """
+    t                               =   """ UPDATE %(tbl_name)s t
+                                                SET checked_out         = null
+                                                WHERE checked_out       = '%(guid)s';
 
-    src                             =   src if not query_str else query_str
+                                            UPDATE %(tbl_name)s t
+                                            SET checked_out         =   '%(guid)s'
+                                            FROM (
+                                                SELECT array_agg(%(tbl_uid)s) all_ids from %(tbl_name)s t2
+                                                WHERE ( t2.checked_out is null )
+                                                AND (
+                                                    t2.%(upd_var)s  is   false
+                                                )
+                                                AND t2.inactive     is   false
+                                                GROUP BY t2.%(upd_var)s,t2.%(tbl_uid)s
+                                                ORDER BY t2.%(upd_var)s ASC,t2.%(tbl_uid)s ASC
+                                                LIMIT %(res_limit)s
+                                                ) as f1
+                                            WHERE all_ids && array[t.%(tbl_uid)s];
+
+                                            SELECT %(select_vars)s from %(tbl_name)s
+                                            WHERE checked_out       =   '%(guid)s';
+                                        """ % T
+
+    src                             =   t if not query_str else query_str
 
     d                               =   pd.read_sql(src,routing_eng)
+
+    from ipdb import set_trace as i_trace; i_trace()
 
     x                               =   d.vend_name.tolist()
     y                               =   d['id'].tolist()
@@ -673,20 +709,13 @@ def scrape_sl_previously_closed_vendors(query_str=''):
                                             inactive = true,
                                             inactive_on = 'now'::timestamp with time zone,
                                             sl_link = '%s',
-                                            last_updated = 'now'::timestamp with time zone
+                                            last_updated = 'now'::timestamp with time zone,
+                                            checked_out = null
                                         where id = %s
                                         """ % (sl_link,vend_name_id_D[it]) )
             continue_processing     =   False
 
         if continue_processing:
-
-            # if pd.read_sql(         """select count(*) c from seamless where vend_id = '%(vend_id)s'"""%{'vend_id':vendor_id},routing_eng).c[0] > 0:
-            #     pass
-            # else:
-            #     popup_element           =   br.window.find_element_by_id("fancybox-close")
-            #     if popup_element.is_displayed():
-            #         popup_element.click()
-            #         br.wait_for_page(       timeout_seconds=120)
 
             update_pgsql_with_sl_page_content(br)
 
@@ -696,20 +725,12 @@ def scrape_sl_previously_closed_vendors(query_str=''):
                                         set
                                             upd_seamless = true,
                                             sl_link = '%(sl_link)s',
-                                            last_updated = 'now'::timestamp with time zone
+                                            last_updated = 'now'::timestamp with time zone,
+                                            checked_out = null
                                         where id = '%(id)s'
                                             """ % { 'id'           :   vend_name_id_D[it],
                                                     'sl_link'      :   sl_link} )
 
-        # if not continue_processing:
-        #     conn.set_isolation_level(   0)
-        #     cur.execute(                """
-        #                             update seamless_closed sc
-        #                             set
-        #                                 last_updated = 'now'::timestamp with time zone,
-        #                                 sl_link = '%s'
-        #                             where vend_name ilike concat('%%','%s','%%')
-        #                             """%(sl_link,it[:it.find("'")]))
 
     print 'done!'
     SYS_r._growl(                       'Seamless Update Error: L:699')
@@ -717,45 +738,73 @@ def scrape_sl_previously_closed_vendors(query_str=''):
 #   seamless: 3 of 3
 def scrape_sl_known_vendor_pages(query_str=''):
 
-    t                           =   """ select id,sl_link from seamless
-                                        where upd_vend_content is null
-                                        or address is null
-                                        or age('now'::timestamp with time zone,upd_vend_content) > interval '1 day'
-                                    """
+    T                               =   {'res_limit'                    :   str(CHECKOUT_SIZE),
+                                         'tbl_name'                     :   'seamless',
+                                         'tbl_uid'                      :   'id',
+                                         'upd_var'                      :   'upd_vend_content',
+                                         'upd_interval'                 :   '3 days',
+                                         'select_vars'                  :   'id,sl_link',
+                                         'guid'                         :   INSTANCE_GUID}
 
-    query_str                   =   t if not query_str else query_str
-    d                           =   pd.read_sql(query_str,routing_eng)
-    sl_links                    =   d.sl_link.tolist()
-    br                          =   scraper('phantom').browser
+    t                               =   """ UPDATE %(tbl_name)s t
+                                                SET checked_out         = null
+                                                WHERE checked_out       = '%(guid)s';
 
-    base_url                    =   'http://www.seamless.com/food-delivery/'
-    first_link                  =   sl_links[0]
-    url                         =   base_url+first_link.replace(base_url,'')
-    br.open_page(                   url)
+                                            UPDATE %(tbl_name)s t
+                                            SET checked_out             =   '%(guid)s'
+                                            FROM (
+                                                SELECT array_agg(%(tbl_uid)s) all_ids from %(tbl_name)s t2
+                                                WHERE ( t2.checked_out is null )
+                                                AND (
+                                                    t2.%(upd_var)s      is   null
+                                                    OR age('now'::timestamp with time zone,
+                                                           t2.%(upd_var)s) > interval '%(upd_interval)s'
+                                                )
+                                                AND t2.inactive         is   false
+                                                AND t2.skipped          is   false
+                                                GROUP BY t2.%(upd_var)s,t2.%(tbl_uid)s
+                                                ORDER BY t2.%(upd_var)s ASC,t2.%(tbl_uid)s ASC
+                                                LIMIT %(res_limit)s
+                                                ) as f1
+                                            WHERE all_ids && array[t.%(tbl_uid)s];
+
+                                            SELECT %(select_vars)s from %(tbl_name)s
+                                            WHERE checked_out       =   '%(guid)s';
+                                        """ % T
+
+    query_str                       =   t if not query_str else query_str
+    d                               =   pd.read_sql(query_str,routing_eng)
+    sl_links                        =   d.sl_link.tolist()
+    br                              =   scraper('phantom').browser
+
+    base_url                        =   'http://www.seamless.com/food-delivery/'
+    first_link                      =   sl_links[0]
+    url                             =   base_url+first_link.replace(base_url,'')
+    br.open_page(                       url)
 
     if br.source().count('fancybox-close')>0:
-        popup_element           =   br.window.find_element_by_id("fancybox-close")
+        popup_element               =   br.window.find_element_by_id("fancybox-close")
         if popup_element.is_displayed():
-            popup_element.click()
-            br.wait_for_page(       timeout_seconds=120)
-            z                   =   br.get_url()
+            popup_element.click(        )
+            br.wait_for_page(           timeout_seconds=120)
+            z                       =   br.get_url()
 
-    update_pgsql_with_sl_page_content(br)
-    sleep(                          5)
-    skipped                     =   0
+    update_pgsql_with_sl_page_content(  br)
+    sleep(                              5)
+    skipped                         =   0
     for it in sl_links[1:]:
-        url                     =   base_url+it.replace(base_url,'')
-        br.open_page(               url)
+        url                         =   base_url+it.replace(base_url,'')
+        br.open_page(                   url)
         try:
             update_pgsql_with_sl_page_content(br)
         except:
-            SYS_r._growl(           'Seamless@%s: Issue with Known Vendors @ %s' % (os_environ['USER'],it),url=it )
-            current_url         =   "'"+br.get_url()+"'"
-            conn.set_isolation_level(0)
-            cur.execute(            "update seamless set skipped=true where sl_link = %s"%current_url)
-            skipped            +=   1
+            SYS_r._growl(               'Seamless@%s: Issue with Known Vendors @ %s' % (os_environ['USER'],it),url=it )
+            current_url             =   "'"+br.get_url()+"'"
+            conn.set_isolation_level(   0)
+            cur.execute(                "update seamless set skipped=true,checked_out=null where sl_link = %s"%current_url)
+            skipped                +=   1
 
-    SYS_r._growl(                   'Seamless@%s: Known Vendors Updated' % os_environ['USER'] )
+    SYS_r._growl(                       'Seamless@%s: Known Vendors Updated' % os_environ['USER'] )
     print skipped,'skipped'
     print 'done!'
 
@@ -840,27 +889,29 @@ def scrape_yelp_search_results(query_str=''):
     reload(sys)
     sys.setdefaultencoding(         'UTF8')
 
-    t                           =   """ select gid,address,zipcode
-                                        from scrape_lattice
-                                        where yelp_updated > '2014-11-24 18:22:59.045361-05'::timestamp with time zone;
-                                    """
+    T                               =   {'res_limit'        :   str(CHECKOUT_SIZE),}
+    t                               =   """ select gid,address,zipcode
+                                            from scrape_lattice
+                                            where yelp_updated > '2014-11-24 18:22:59.045361-05'::timestamp with time zone;
+                                            limit %(res_limit)s
+                                        """ % T
 
-    query_str                   =   t if not query_str else query_str
-    s                           =   pd.read_sql( query_str,routing_eng )
+    query_str                       =   t if not query_str else query_str
+    s                               =   pd.read_sql( query_str,routing_eng )
 
-    p                           =   map(lambda s: str(s[0].title()+', New York, NY '+str(s[1])),
-                                        zip(s.address,s.zipcode))
+    p                               =   map(lambda s: str(s[0].title()+', New York, NY '+str(s[1])),
+                                            zip(s.address,s.zipcode))
 
-    br                          =   scraper('phantom').browser
+    br                              =   scraper('phantom').browser
 
-    d_cols                      =   ['vend_name','url','phone']
-    base_url                    =   'http://www.yelp.com'
+    d_cols                          =   ['vend_name','url','phone']
+    base_url                        =   'http://www.yelp.com'
     for i in range(len(p)):
-        gid                     =   s.ix[i,'gid']
-        search_addr             =   p[i]
+        gid                         =   s.ix[i,'gid']
+        search_addr                 =   p[i]
 
-        url                     =   base_url+'/search?find_desc='+safe_url('restaurant')+'&find_loc='+safe_url(search_addr)
-        br.open_page(               url)
+        url                         =   base_url+'/search?find_desc='+safe_url('restaurant')+'&find_loc='+safe_url(search_addr)
+        br.open_page(                   url)
 
 
         from ipdb import set_trace as i_trace; i_trace()
@@ -971,89 +1022,91 @@ def scrape_yelp_api(query_str='',scrape_lattice='scrape_lattice'):
     get results from yelp Search API with scape lattice addresses and update pgsql -- worked 2014.11.17
     """
 
-    YELP                        =   Yelp_API()
+    YELP                            =   Yelp_API()
 
-    T                           =  { 'latt_tbl':scrape_lattice}
+    T                               =  { 'latt_tbl'         :   scrape_lattice,
+                                         'res_limit'        :   str(CHECKOUT_SIZE),}
 
-    t                           =   """ select gid,address,zipcode from %(latt_tbl)s
-                                        where yelp_updated is null
-                                        or age('now'::timestamp with time zone,yelp_updated)
-                                        > interval '1 day'
-                                    """ % T
+    t                               =   """ select gid,address,zipcode from %(latt_tbl)s
+                                            where yelp_updated is null
+                                            or age('now'::timestamp with time zone,yelp_updated)
+                                            > interval '1 day'
+                                            limit %(res_limit)s
+                                        """ % T
 
-    query_str                   =   t if not query_str else query_str
+    query_str                       =   t if not query_str else query_str
 
-    s                           =   pd.read_sql( query_str,routing_eng )
+    s                               =   pd.read_sql( query_str,routing_eng )
 
-    p                           =   map(lambda s: str(s[0].title()+', New York, NY '+str(s[1])),
-                                        zip(s.address,s.zipcode))
+    p                               =   map(lambda s: str(s[0].title()+', New York, NY '+str(s[1])),
+                                            zip(s.address,s.zipcode))
 
     # (from scrape_lattice creation function) [ADD TO SETTINGS DB]
-    buffer_in_miles             =   0.2
-    meters_in_one_mile          =   1609.34
-    radius_in_meters            =   buffer_in_miles * meters_in_one_mile
-    last_run                    =   False
-    msg                         =   'Yelp@%s: API Scrape Complete' % os_environ['USER']
+    buffer_in_miles                 =   0.2
+    meters_in_one_mile              =   1609.34
+    radius_in_meters                =   buffer_in_miles * meters_in_one_mile
+    last_run                        =   False
+    msg                             =   'Yelp@%s: API Scrape Complete' % os_environ['USER']
     for i in range(len(p)):
-        search_addr             =   p[i]
-        df,status               =   YELP.yelp_search_api(search_addr,radius_in_meters)
+        search_addr                 =   p[i]
+        df,status                   =   YELP.yelp_search_api(search_addr,radius_in_meters)
 
         if type(df)==NoneType:
-            msg                 =   'Yelp@%s: API Scrape -- ABORTED b/c %s' % (os_environ['USER'],status)
+            msg                     =   'Yelp@%s: API Scrape -- ABORTED b/c %s' % (os_environ['USER'],status)
             print msg
-            SYS_r._growl(           msg)
+            SYS_r._growl(               msg)
             return
 
         if not status=='OK':
-            last_run            =   True
-            msg                 =   'Yelp@%s: API Scrape -- ABORTED EARLY b/c %s' % (os_environ['USER'],status)
+            last_run                =   True
+            msg                     =   'Yelp@%s: API Scrape -- ABORTED EARLY b/c %s' % (os_environ['USER'],status)
         else:
-            T.update(               {'gid'                  :   s.ix[i,'gid'],
-                                     'api_res_cnt'          :   len(df)})
+            T.update(                   {'gid'                  :   s.ix[i,'gid'],
+                                         'api_res_cnt'          :   len(df)})
 
-            conn.set_isolation_level(0)
-            cur.execute(            """ update %(latt_tbl)s
-                                        set yelp_cnt        =   %(api_res_cnt)s,
-                                        yelp_updated        =   'now'::timestamp with time zone
-                                        where gid           =   %(gid)s;
-                                    """ % T )
+            conn.set_isolation_level(   0)
+            cur.execute(                """ update %(latt_tbl)s
+                                            set yelp_cnt        =   %(api_res_cnt)s,
+                                            yelp_updated        =   'now'::timestamp with time zone
+                                            where gid           =   %(gid)s;
+                                        """ % T )
 
         if len(df)>0:
-            all_res_cols        =   df.columns.tolist()
-            df['vend_name']     =   df.name
+            all_res_cols            =   df.columns.tolist()
+            df['vend_name']         =   df.name
             if all_res_cols.count('phone')>0:
-                df['phone']     =   df.phone.map(lambda s: int(s) if str(s)[0].isdigit() else None)
+                df['phone']         =   df.phone.map(lambda s: int(s) if str(s)[0].isdigit() else None)
             else:
-                df['phone']     =   None
-            df['address']       =   df.location.map(lambda s:
-                                            None if len(s['address'])==0
-                                            else s['address'][0])
-            df['display_address']=  df.location.map(lambda s:
-                                            None if s.keys().count('display_address')==0
-                                            else ','.join(s['display_address']))
-            df['neighborhoods'] =   df.location.map(lambda s:
-                                            None if s.keys().count('neighborhoods')==0
-                                            else s['neighborhoods'][0])
-            df['city']          =   df.location.map(lambda s:
-                                         None if s.keys().count('city')==0
-                                         else s['city'])
-            df['state_code']    =   df.location.map(lambda s:
-                                               None if s.keys().count('state_code')==0
-                                               else s['state_code'])
-            df['postal_code']   =   df.location.map(lambda s:
+                df['phone']         =   None
+            df['address']           =   df.location.map(lambda s:
+                                                None if len(s['address'])==0
+                                                else s['address'][0])
+            df['display_address']   =   df.location.map(lambda s:
+                                                None if s.keys().count('display_address')==0
+                                                else ','.join(s['display_address']))
+            df['neighborhoods']     =   df.location.map(lambda s:
+                                                None if s.keys().count('neighborhoods')==0
+                                                else s['neighborhoods'][0])
+            df['city']              =   df.location.map(lambda s:
+                                                None if s.keys().count('city')==0
+                                                else s['city'])
+            df['state_code']        =   df.location.map(lambda s:
+                                                None if s.keys().count('state_code')==0
+                                                else s['state_code'])
+            df['postal_code']       =   df.location.map(lambda s:
                                                 None if s.keys().count('postal_code')==0
                                                 else int(s['postal_code']))
-            df['latitude']      =   df.location.map(lambda s:
-                                               None if (s.keys().count('coordinate')==0 or
+            df['latitude']          =   df.location.map(lambda s:
+                                                None if (s.keys().count('coordinate')==0 or
                                                         s['coordinate'].keys().count('latitude')==0)
-                                               else s['coordinate']['latitude'])
-            df['longitude']     =   df.location.map(lambda s:
-                                               None if (s.keys().count('coordinate')==0 or
+                                                else s['coordinate']['latitude'])
+            df['longitude']         =   df.location.map(lambda s:
+                                                None if (s.keys().count('coordinate')==0 or
                                                         s['coordinate'].keys().count('longitude')==0)
-                                               else s['coordinate']['longitude'])
-            df['geo_accuracy']  =   df.location.map(lambda s:
-                                                 None if s.keys().count('geo_accuracy')==0
-                                                 else int(s['geo_accuracy']))
+                                                else s['coordinate']['longitude'])
+            df['geo_accuracy']      =   df.location.map(lambda s:
+                                                None if s.keys().count('geo_accuracy')==0
+                                                else int(s['geo_accuracy']))
             if df.columns.tolist().count('menu_date_updated')==0:
                 df['menu_date_updated'] = None
             else:
@@ -1061,131 +1114,131 @@ def scrape_yelp_api(query_str='',scrape_lattice='scrape_lattice'):
                     None if str(x)[0].isdigit()==False
                     else dt.datetime.fromtimestamp(  int(x)  ).strftime('%Y-%m-%d %H:%M:%S')
                                                                     )
-            df                  =   df.ix[:,['id',
-                                             'vend_name',
-                                             'phone',
-                                             'address',
-                                             'display_address',
-                                             'neighborhoods',
-                                             'city',
-                                             'state_code',
-                                             'postal_code',
-                                             'display_phone',
-                                             'is_claimed',
-                                             'is_closed',
-                                             'menu_date_updated',
-                                             'menu_provider',
-                                             'rating',
-                                             'review_count',
-                                             'categories',
-                                             'url',
-                                             'latitude',
-                                             'longitude',
-                                             'geo_accuracy']]
+            df                      =   df.ix[:,['id',
+                                                 'vend_name',
+                                                 'phone',
+                                                 'address',
+                                                 'display_address',
+                                                 'neighborhoods',
+                                                 'city',
+                                                 'state_code',
+                                                 'postal_code',
+                                                 'display_phone',
+                                                 'is_claimed',
+                                                 'is_closed',
+                                                 'menu_date_updated',
+                                                 'menu_provider',
+                                                 'rating',
+                                                 'review_count',
+                                                 'categories',
+                                                 'url',
+                                                 'latitude',
+                                                 'longitude',
+                                                 'geo_accuracy']]
 
-            conn.set_isolation_level(0)
-            cur.execute(            "drop table if exists %(tmp)s;" % { 'tmp' : INSTANCE_GUID } )
-            df.to_sql(              INSTANCE_GUID,routing_eng)
+            conn.set_isolation_level(   0)
+            cur.execute(                "drop table if exists %(tmp)s;" % { 'tmp' : INSTANCE_GUID } )
+            df.to_sql(                  INSTANCE_GUID,routing_eng)
 
             # upsert 'tmp' to 'yelp'
-            cmd                 =   """
+            cmd                     =   """
 
-                                    update %(tmp)s set phone = null where phone::text = 'NaN';
-                                    update %(tmp)s set postal_code = null where postal_code::text = 'NaN';
+                                        update %(tmp)s set phone = null where phone::text = 'NaN';
+                                        update %(tmp)s set postal_code = null where postal_code::text = 'NaN';
 
-                                    with upd as (
-                                        update yelp y
-                                        set
-                                            id = t.id,
-                                            vend_name = t.vend_name,
-                                            phone = t.phone::bigint,
-                                            address = t.address,
-                                            display_address = t.display_address,
-                                            neighborhoods = t.neighborhoods,
-                                            city = t.city,
-                                            state_code = t.state_code,
-                                            postal_code = t.postal_code::bigint,
-                                            display_phone = t.display_phone,
-                                            is_claimed = t.is_claimed,
-                                            is_closed = t.is_closed,
-                                            menu_date_updated = t.menu_date_updated,
-                                            menu_provider = t.menu_provider,
-                                            rating = t.rating,
-                                            review_count = t.review_count,
-                                            categories = t.categories,
-                                            url = t.url,
-                                            latitude = t.latitude,
-                                            longitude = t.longitude,
-                                            geo_accuracy = t.geo_accuracy,
-                                            last_api_update = 'now'::timestamp with time zone
-                                        from %(tmp)s t
-                                        where y.id = t.id
-                                        returning t.id id
-                                    )
-                                    insert into yelp (  id,
-                                                        vend_name,
-                                                        phone,
-                                                        address,
-                                                        display_address,
-                                                        neighborhoods,
-                                                        city,
-                                                        state_code,
-                                                        postal_code,
-                                                        display_phone,
-                                                        is_claimed,
-                                                        is_closed,
-                                                        menu_date_updated,
-                                                        menu_provider,
-                                                        rating,
-                                                        review_count,
-                                                        categories,
-                                                        url,
-                                                        latitude,
-                                                        longitude,
-                                                        geo_accuracy,
-                                                        last_api_update
-                                                    )
-                                    select
-                                        t.id,
-                                        t.vend_name,
-                                        t.phone::bigint,
-                                        t.address,
-                                        t.display_address,
-                                        t.neighborhoods,
-                                        t.city,
-                                        t.state_code,
-                                        t.postal_code::bigint,
-                                        t.display_phone,
-                                        t.is_claimed,
-                                        t.is_closed,
-                                        t.menu_date_updated,
-                                        t.menu_provider,
-                                        t.rating,
-                                        t.review_count,
-                                        t.categories,
-                                        t.url,
-                                        t.latitude,
-                                        t.longitude,
-                                        t.geo_accuracy,
-                                        'now'::timestamp with time zone
-                                    from
-                                        %(tmp)s t,
-                                        (select array_agg(f.id) upd_ids from upd f) as f1
-                                    where (not upd_ids && array[t.id]
-                                        or upd_ids is null);
+                                        with upd as (
+                                            update yelp y
+                                            set
+                                                id = t.id,
+                                                vend_name = t.vend_name,
+                                                phone = t.phone::bigint,
+                                                address = t.address,
+                                                display_address = t.display_address,
+                                                neighborhoods = t.neighborhoods,
+                                                city = t.city,
+                                                state_code = t.state_code,
+                                                postal_code = t.postal_code::bigint,
+                                                display_phone = t.display_phone,
+                                                is_claimed = t.is_claimed,
+                                                is_closed = t.is_closed,
+                                                menu_date_updated = t.menu_date_updated,
+                                                menu_provider = t.menu_provider,
+                                                rating = t.rating,
+                                                review_count = t.review_count,
+                                                categories = t.categories,
+                                                url = t.url,
+                                                latitude = t.latitude,
+                                                longitude = t.longitude,
+                                                geo_accuracy = t.geo_accuracy,
+                                                last_api_update = 'now'::timestamp with time zone
+                                            from %(tmp)s t
+                                            where y.id = t.id
+                                            returning t.id id
+                                        )
+                                        insert into yelp (  id,
+                                                            vend_name,
+                                                            phone,
+                                                            address,
+                                                            display_address,
+                                                            neighborhoods,
+                                                            city,
+                                                            state_code,
+                                                            postal_code,
+                                                            display_phone,
+                                                            is_claimed,
+                                                            is_closed,
+                                                            menu_date_updated,
+                                                            menu_provider,
+                                                            rating,
+                                                            review_count,
+                                                            categories,
+                                                            url,
+                                                            latitude,
+                                                            longitude,
+                                                            geo_accuracy,
+                                                            last_api_update
+                                                        )
+                                        select
+                                            t.id,
+                                            t.vend_name,
+                                            t.phone::bigint,
+                                            t.address,
+                                            t.display_address,
+                                            t.neighborhoods,
+                                            t.city,
+                                            t.state_code,
+                                            t.postal_code::bigint,
+                                            t.display_phone,
+                                            t.is_claimed,
+                                            t.is_closed,
+                                            t.menu_date_updated,
+                                            t.menu_provider,
+                                            t.rating,
+                                            t.review_count,
+                                            t.categories,
+                                            t.url,
+                                            t.latitude,
+                                            t.longitude,
+                                            t.geo_accuracy,
+                                            'now'::timestamp with time zone
+                                        from
+                                            %(tmp)s t,
+                                            (select array_agg(f.id) upd_ids from upd f) as f1
+                                        where (not upd_ids && array[t.id]
+                                            or upd_ids is null);
 
 
-                                    drop table %(tmp)s;
+                                        drop table %(tmp)s;
 
-                                    """ % { 'tmp' : INSTANCE_GUID }
-            conn.set_isolation_level(0)
-            cur.execute(            cmd)
+                                        """ % { 'tmp' : INSTANCE_GUID }
+            conn.set_isolation_level(   0)
+            cur.execute(                cmd)
 
         if last_run:
             break
 
     print msg
-    SYS_r._growl(                    msg)
+    SYS_r._growl(                       msg)
     return
 #   yelp:     2 of 2
 def scrape_yelp_vendor_pages(query_str=''):
@@ -1194,185 +1247,214 @@ def scrape_yelp_vendor_pages(query_str=''):
     """
 
     def save_comments(br,html,vend_url):
-        stop                    =   False
+        stop                        =   False
         while stop!=True:
-            review_list         =   getTagsByAttr(html, 'div',
+            review_list             =   getTagsByAttr(html, 'div',
                                                   {'class':'review review--with-sidebar'},
                                                   contents=False)
-            rev_cols            =   ['vend_url','review_id','review_date','review_rating','review_msg']
-            df                  =   pd.DataFrame(columns=rev_cols)
+            rev_cols                =   ['vend_url','review_id','review_date','review_rating','review_msg']
+            df                      =   pd.DataFrame(columns=rev_cols)
             for rev in review_list:
-                review_id       =   getTagsByAttr(str(rev), 'div',
+                review_id           =   getTagsByAttr(str(rev), 'div',
                                                   {'class':'review review--with-sidebar'},
                                                   contents=False)[0].attrs['data-review-id']
-                review_date     =   getTagsByAttr(str(rev), 'meta',
+                review_date         =   getTagsByAttr(str(rev), 'meta',
                                                   {'itemprop':'datePublished'},
                                                   contents=False)[0].attrs['content']
 
-                dt_review_date  =   dt.datetime.strptime(review_date,'%Y-%m-%d')
+                dt_review_date      =   dt.datetime.strptime(review_date,'%Y-%m-%d')
                 if (TODAY - dt_review_date).days > OLDEST_COMMENTS:
-                    stop        =   True
+                    stop            =   True
                     break
 
-                f_review_date   =   dt_review_date.isoformat()
-                review_rating   =   float(getTagsByAttr(str(rev), 'meta',
+                f_review_date       =   dt_review_date.isoformat()
+                review_rating       =   float(getTagsByAttr(str(rev), 'meta',
                                                         {'itemprop':'ratingValue'},
                                                         contents=False)[0].attrs['content'])
-                bs_review_msg   =   getTagsByAttr(str(rev), 'p', {'itemprop':'description'},contents=False)[0]
-                review_msg      =   codecs.encode(bs_review_msg.text,'ascii','ignore')
+                bs_review_msg       =   getTagsByAttr(str(rev), 'p', {'itemprop':'description'},contents=False)[0]
+                review_msg          =   codecs.encode(bs_review_msg.text,'ascii','ignore')
 
-                df              =   df.append(dict(zip(rev_cols,
+                df                  =   df.append(dict(zip(rev_cols,
                                                        [vend_url,review_id,f_review_date,
                                                         review_rating,review_msg])),ignore_index=True)
             try:
-                next_pg_url     =   getTagsByAttr(html, 'a',
+                next_pg_url         =   getTagsByAttr(html, 'a',
                                                   {'class':'page-option prev-next next'},
                                                   contents=False)[0].attrs['href']
-                br.open_page(       next_pg)
-                html            =   codecs.encode(br.source(),'utf8','ignore')
+                br.open_page(           next_pg)
+                html                =   codecs.encode(br.source(),'utf8','ignore')
             except:
-                stop            =   True
+                stop                =   True
                 break
 
-        conn.set_isolation_level(   0)
-        cur.execute(                'drop table if exists %s;' % INSTANCE_GUID)
-        df.to_sql(                  INSTANCE_GUID,routing_eng,index=False)
-        conn.set_isolation_level(   0)
-        cmd                     =   """
-                                    insert into customer_comments
-                                        (vend_url,
-                                        review_id,
-                                        review_date,
-                                        review_rating,
-                                        review_msg)
-                                    select t.vend_url,
-                                        t.review_id,
-                                        t.review_date::timestamp with time zone,
-                                        t.review_rating::double precision,
-                                        t.review_msg
-                                    from
-                                        %(tmp)s t,
-                                        (  select array_agg(f.review_id) existing_review_ids
-                                           from customer_comments f  ) as f1
-                                    where (not existing_review_ids && array[t.review_id]
-                                            or existing_review_ids is null);
+        conn.set_isolation_level(       0)
+        cur.execute(                    'drop table if exists %s;' % INSTANCE_GUID)
+        df.to_sql(                      INSTANCE_GUID,routing_eng,index=False)
+        conn.set_isolation_level(       0)
+        cmd                         =   """
+                                        insert into customer_comments
+                                            (vend_url,
+                                            review_id,
+                                            review_date,
+                                            review_rating,
+                                            review_msg)
+                                        select t.vend_url,
+                                            t.review_id,
+                                            t.review_date::timestamp with time zone,
+                                            t.review_rating::double precision,
+                                            t.review_msg
+                                        from
+                                            %(tmp)s t,
+                                            (  select array_agg(f.review_id) existing_review_ids
+                                               from customer_comments f  ) as f1
+                                        where (not existing_review_ids && array[t.review_id]
+                                                or existing_review_ids is null);
 
-                                    DROP TABLE IF EXISTS %(tmp)s;
-                                    """ % { 'tmp':INSTANCE_GUID }
-        cur.execute(                cmd)
+                                        DROP TABLE IF EXISTS %(tmp)s;
+                                        """ % { 'tmp':INSTANCE_GUID }
+        cur.execute(                    cmd)
         return
 
-    t                           =   """ select uid,url from yelp
-                                        where hours_updated is null
-                                        or age(hours_updated,'now'::timestamp with time zone)
-                                        > interval '1 week'
-                                    """
+    T                               =   {'res_limit'        :   str(CHECKOUT_SIZE),
+                                         'tbl_name'         :   'yelp',
+                                         'tbl_uid'          :   'uid',
+                                         'upd_var'          :   'hours_updated',
+                                         'upd_interval'     :   '1 week',
+                                         'select_vars'      :   'uid,url',
+                                         'guid'             :   INSTANCE_GUID}
 
-    query_str                   =   t if not query_str else query_str
-    d                           =   pd.read_sql( query_str,routing_eng )
+    t                               =   """ UPDATE %(tbl_name)s t
+                                                SET checked_out         = null
+                                                WHERE checked_out       = '%(guid)s';
 
-    y_links                     =   d.url.tolist()
-    br                          =   scraper('phantom').browser
-    comment_sort_opts           =   '?sort_by=date_desc&start=0'
+                                            UPDATE %(tbl_name)s t
+                                            SET checked_out             =   '%(guid)s'
+                                            FROM (
+                                                SELECT array_agg(%(tbl_uid)s) all_ids from %(tbl_name)s t2
+                                                WHERE ( t2.checked_out is null )
+                                                AND (
+                                                    t2.%(upd_var)s      is   null
+                                                    OR age('now'::timestamp with time zone,
+                                                           t2.%(upd_var)s) > interval '%(upd_interval)s'
+                                                )
+                                                GROUP BY t2.%(upd_var)s,t2.%(tbl_uid)s
+                                                ORDER BY t2.%(upd_var)s ASC,t2.%(tbl_uid)s ASC
+                                                LIMIT %(res_limit)s
+                                                ) as f1
+                                            WHERE all_ids && array[t.%(tbl_uid)s];
+
+                                            SELECT %(select_vars)s from %(tbl_name)s
+                                            WHERE checked_out           =   '%(guid)s';
+                                        """ % T
+
+    query_str                       =   t if not query_str else query_str
+    d                               =   pd.read_sql( query_str,routing_eng )
+
+    from ipdb import set_trace as i_trace; i_trace()
+
+    y_links                         =   d.url.tolist()
+    br                              =   scraper('phantom').browser
+    comment_sort_opts               =   '?sort_by=date_desc&start=0'
 
     for it in y_links:
 
-        br.open_page(               it+comment_sort_opts)
-        html                    =   codecs.encode(br.source(),'utf8','ignore')
+        br.open_page(                   it+comment_sort_opts)
+        html                        =   codecs.encode(br.source(),'utf8','ignore')
 
         # extract yelp page data
-        vend_data               =   {'url':it}
+        vend_data                   =   {'url':it}
 
         # biz info
         try:
-            s                   =   getSoup(html).find('h3',text='More business info').find_parent()
-            t                   =   s.find('div', {'class':'short-def-list'},contents=False)
-            d_keys              =   map(lambda x: str(x.get_text().strip('\n ')),t.findAll('dt'))
-            d_vals              =   map(lambda x: str(x.get_text().strip('\n ')),t.findAll('dd'))
-            d                   =   dict(zip(d_keys,d_vals))
-            vend_data.update(       {'extra_info':str(d).replace("'",'"')})
+            s                       =   getSoup(html).find('h3',text='More business info').find_parent()
+            t                       =   s.find('div', {'class':'short-def-list'},contents=False)
+            d_keys                  =   map(lambda x: str(x.get_text().strip('\n ')),t.findAll('dt'))
+            d_vals                  =   map(lambda x: str(x.get_text().strip('\n ')),t.findAll('dd'))
+            d                       =   dict(zip(d_keys,d_vals))
+            vend_data.update(           {'extra_info':str(d).replace("'",'"')})
         except:
-            vend_data.update(       {'extra_info':None})
+            vend_data.update(           {'extra_info':None})
 
         # hours info
-        t                       =   getTagsByAttr(html, 'table',
+        t                           =   getTagsByAttr(html, 'table',
                                                   {'class':'table table-simple hours-table'},
                                                   contents=False)
         if len(t)!=0:
-            t                   =   t[0]
-            days                =   map(lambda s: str(s.get_text()),t.findAll('th',attrs={'scope':'row'}))
-            hours               =   map(lambda s: str(s.get_text().strip('\n ')),t.findAll('td',attrs={'class':''}))
-            h                   =   str(zip(days,hours)).replace("'",'"')
-            vend_data.update(       {'hours':h})
+            t                       =   t[0]
+            days                    =   map(lambda s: str(s.get_text()),t.findAll('th',attrs={'scope':'row'}))
+            hours                   =   map(lambda s: str(s.get_text().strip('\n ')),t.findAll('td',attrs={'class':''}))
+            h                       =   str(zip(days,hours)).replace("'",'"')
+            vend_data.update(           {'hours':h})
         else:
-            vend_data.update(       {'hours':None})
+            vend_data.update(           {'hours':None})
 
         # biz website
-        t                       =   getTagsByAttr(html, 'div',
+        t                           =   getTagsByAttr(html, 'div',
                                                   {'class':'biz-website'},
                                                   contents=False)
         if len(t)!=0:
-            t                   =   t[0].a.attrs['href']
-            s                   =   t.find('url=')+4
-            e                   =   t.find('&',s)
-            biz_website         =   str(unquote(t[s:e]))
-            vend_data.update(       {'website':biz_website})
+            t                       =   t[0].a.attrs['href']
+            s                       =   t.find('url=')+4
+            e                       =   t.find('&',s)
+            biz_website             =   str(unquote(t[s:e]))
+            vend_data.update(           {'website':biz_website})
         else:
-            vend_data.update(       {'website':None})
+            vend_data.update(           {'website':None})
 
         # non-yelp menu link
-        t                       =   getTagsByAttr(html, 'a',
+        t                           =   getTagsByAttr(html, 'a',
                                                   {'class':'i-wrap ig-wrap-common i-external-link-common-wrap ig-wrap-common-r external-menu'},
                                                   contents=False)
         if len(t)!=0:
-            t                   =   t[0].attrs['href']
-            s                   =   t.find('url=')+4
-            biz_menu_page       =   str(unquote(t[s:]))
-            vend_data.update(       {'menu_page':biz_menu_page.replace("'","''")})
+            t                       =   t[0].attrs['href']
+            s                       =   t.find('url=')+4
+            biz_menu_page           =   str(unquote(t[s:]))
+            vend_data.update(           {'menu_page':biz_menu_page.replace("'","''")})
         else:
-            vend_data.update(       {'menu_page':None})
+            vend_data.update(           {'menu_page':None})
 
         # price range
         try:
-            price_range         =   str(getTagsByAttr(html, 'dd',
+            price_range             =   str(getTagsByAttr(html, 'dd',
                                                       {'class':'nowrap price-description'},
                                                       contents=False)[0].get_text().strip('\n $'))
-            vend_data.update(       {'price_range':price_range})
+            vend_data.update(           {'price_range':price_range})
         except:
-            vend_data.update(       {'price_range':None})
+            vend_data.update(           {'price_range':None})
 
         # online ordering?
-        t                       =   getTagsByAttr(html, 'div',
+        t                           =   getTagsByAttr(html, 'div',
                                                   {'data-ro-mode-action':'place an order'},
                                                   contents=False) # null return
-        online_ordering         =   len(t)!=0
+        online_ordering             =   len(t)!=0
         #t=getTagsByAttr(html, 'div', {'class':'island platform yform js-platform no-js-hidden'},contents=False)
-        vend_data.update(           {'online_ordering':online_ordering})
+        vend_data.update(               {'online_ordering':online_ordering})
 
         # push to pgsql
-        cmd                     =   """
-                                    update yelp set
-                                        extra_info = '%(extra_info)s',
-                                        hours = '%(hours)s',
-                                        hours_updated = 'now'::timestamp with time zone,
-                                        menu_page = '%(menu_page)s',
-                                        online_ordering=%(online_ordering)s,
-                                        price_range='%(price_range)s',
-                                        website = '%(website)s'
-                                    where url = '%(url)s'
+        cmd                         =   """
+                                        update yelp set
+                                            extra_info                  =   '%(extra_info)s',
+                                            hours                       =   '%(hours)s',
+                                            hours_updated               =   'now'::timestamp with time zone,
+                                            menu_page                   =   '%(menu_page)s',
+                                            online_ordering             =   %(online_ordering)s,
+                                            price_range                 =   '%(price_range)s',
+                                            website                     =   '%(website)s',
+                                            checked_out                 =   null
+                                        where url                       =   '%(url)s'
 
-                                    """%(vend_data)
-        conn.set_isolation_level(   0)
-        cur.execute(                cmd)
+                                        """%(vend_data)
+        conn.set_isolation_level(       0)
+        cur.execute(                    cmd)
 
 
         # Save Comments To Separate Table
-        save_comments(              br,html,vend_data['url'])
+        save_comments(                  br,html,vend_data['url'])
 
     print 'done!'
-    SYS_r._growl(                   'Yelp Update L:1205')
+    SYS_r._growl(                       'Yelp Update L:1205')
     return True
 
 from sys import argv
 if __name__ == '__main__':
-    if   argv[1]=='yelp':           scrape_yelp_search_results()
+    if   argv[1]=='yelp':               scrape_yelp_search_results()

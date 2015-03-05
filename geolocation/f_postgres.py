@@ -1678,10 +1678,8 @@ class Tables:
 
                                             """ % T )
 
-        # PROVE NO POINTS IN SCRAPE LATTICE AREA PLACED ON FDR DRIVE
-        T.update(                           { 'latt_tbl'            :   lattice_table_name,
-                                              'search_term'         :   '%%fdr drive%%'})
-        assert 0                       ==   pd.read_sql(""" select count(*) cnt from %(latt_tbl)s where address ilike '%(search_term)s'""" % T,routing_eng).cnt[0]
+
+        T.update(                           { 'latt_tbl'            :   lattice_table_name,})
 
         # PROVE THAT ALL ADDRESSES ARE UNIQUE ( assuming no two addresses have the same BBL )
         assert True                    ==   pd.read_sql(""" select all_bbl=uniq_bbl _bool
