@@ -33,10 +33,10 @@ np = pd.np
 np.set_printoptions(                    linewidth=200,threshold=np.nan)
 import                                  geopandas           as gd
 from types                      import NoneType
-from time                       import sleep            as delay
+from time                       import sleep                as delay
 from sqlalchemy                 import create_engine
 from logging                    import getLogger
-from logging                    import INFO             as logging_info
+from logging                    import INFO                 as logging_info
 py_path.append(                         os_path.join(os_environ['HOME'],'.scripts'))
 from system_settings            import *
 from System_Control             import System_Reporter
@@ -759,38 +759,71 @@ def scrape_sl_known_vendor_pages(query_str=''):
 class Yelp_API:
 
     def __init__(self):
+        global OAuth1Session,j_dump
         from rauth                  import OAuth1Session
         from json                   import dumps            as j_dump
-
         self.consumer_key           =   'QzH1O3EktEQt89kegeaUxQ'
         self.consumer_secret        =   'Q_GtZiKGtRvqQSTjGOSgsuogkTE'
         self.token                  =   '6T7dDEQhf41FA2DIajIDZxsm4RwvBdM9'
         self.token_secret           =   'YNaWq3LCjlQu9ir4Ibo-Zp6ELKI'
 
     def yelp_business_api(self,biz_id):
-        params                  =   {}
-        api_url                 =   'http://api.yelp.com/v2/business/' + biz_id
-        return self.get_results(params,api_url)
+        params                      =   {}
+        api_url                     =   'http://api.yelp.com/v2/business/' + biz_id
+        return self.get_results(        params,api_url,api_branch='business')
 
     def yelp_search_api(self,location,radius_in_meters):
-        params                  =   {}
-        params["term"]          =   "restaurant"
-        params['location']      =   location
-        params["radius_filter"] =   str(radius_in_meters)
-        api_url                 =   'http://api.yelp.com/v2/search'
-        return self.get_results(params,api_url)
+        params                      =   {}
+        #params["term"]              =   "restaurant" # optional, all returned if not included
+        params["limit"]             =   '20'
+        params["offset"]            =   '0'
+        params["sort"]              =   1                                   # 0=Best Match, 1=Distance, 2=Highest Rated
+        params['location']          =   location
+        params["category_filter"]   =   'restaurants'
+        params["radius_filter"]     =   str(radius_in_meters)
+        api_url                     =   'http://api.yelp.com/v2/search'
+        return self.get_results(        params,api_url,api_branch='search')
 
-    def get_results(self,params,url):
-        session                 =   OAuth1Session(
-                                        consumer_key            = self.consumer_key,
-                                        consumer_secret         = self.consumer_secret,
-                                        access_token            = self.token,
-                                        access_token_secret     = self.token_secret)
-        request                 =   session.get(url,params=params)
-        data                    =   request.json()
-        session.close()
-        return data
+    def get_results(self,params,url,api_branch):
+        T                           =   {'search'                   :   'businesses',
+                                         'business'                 :   ''}
+        session                     =   OAuth1Session(
+                                            consumer_key            = self.consumer_key,
+                                            consumer_secret         = self.consumer_secret,
+                                            access_token            = self.token,
+                                            access_token_secret     = self.token_secret)
+        request                     =   session.get(url,params=params)
+        d                           =   request.json()
 
+        if d.has_key('error'):
+            return self.error_handling( returned_msg=d,previous_results=None)
+
+        df                          =   pd.read_json(j_dump(d[ T[api_branch] ]))
+        while d['total']!=len(df):
+            params["offset"]        =   int(params["offset"]) + int(params["limit"])
+            request                 =   session.get(url,params=params)
+            d                       =   request.json()
+
+            if d.has_key('error'):
+                return self.error_handling(returned_msg=d,previous_results=df)
+
+            t                       =   pd.read_json(  j_dump(  d[  T[api_branch]  ]  )  )
+            df                      =   df.append(t,ignore_index=True)
+
+            if d['total']==len(df):
+                break
+
+        assert d['total']==len(df)
+        status                      =   'OK'
+        session.close(                  )
+        return df,status
+
+    def error_handling(self,returned_msg,previous_results=None):
+        if returned_msg['error']['description']=='The maximum number of accessible results is 1000':
+            status                  =   'max results reached'
+        else:
+            status                  =   returned_msg['error']['description']
+        return previous_results,status
 
 # YELP FUNCTIONS
 #   yelp:     0 of 2
@@ -929,18 +962,20 @@ def scrape_yelp_search_results(query_str=''):
     SYS_r._growl(                   'Yelp Update: Search Results Scraped. (L:886)')
     return True
 #   yelp:     1 of 2
-def scrape_yelp_api(query_str=''):
+def scrape_yelp_api(query_str='',scrape_lattice='scrape_lattice'):
     """
     get results from yelp Search API with scape lattice addresses and update pgsql -- worked 2014.11.17
     """
 
-    Yelp_API                    =   Yelp_API()
+    YELP                        =   Yelp_API()
 
-    t                           =   """ select gid,address,zipcode from scrape_lattice
+    T                           =  { 'latt_tbl':scrape_lattice}
+
+    t                           =   """ select gid,address,zipcode from %(latt_tbl)s
                                         where yelp_updated is null
                                         or age('now'::timestamp with time zone,yelp_updated)
                                         > interval '1 day'
-                                    """
+                                    """ % T
 
     query_str                   =   t if not query_str else query_str
 
@@ -950,24 +985,34 @@ def scrape_yelp_api(query_str=''):
                                         zip(s.address,s.zipcode))
 
     # (from scrape_lattice creation function) [ADD TO SETTINGS DB]
-    pt_buff_in_miles            =   0.2
-    lattice_table_name          =   'scrape_lattice'
-    # 1 miles = 1609.34 meters
-    radius_in_meters            =   1600 * pt_buff_in_miles
-
+    buffer_in_miles             =   0.2
+    meters_in_one_mile          =   1609.34
+    radius_in_meters            =   buffer_in_miles * meters_in_one_mile
+    last_run                    =   False
+    msg                         =   'Yelp@%s: API Scrape Complete' % os_environ['USER']
     for i in range(len(p)):
-        gid                     =   s.ix[i,'gid']
         search_addr             =   p[i]
-        d                       =   Yelp_API.yelp_search_api(search_addr,radius_in_meters)
+        df,status               =   YELP.yelp_search_api(search_addr,radius_in_meters)
 
-        # try:
-        conn.set_isolation_level(   0)
-        cur.execute(                """ update scrape_lattice
-                                        set yelp_cnt=%s,
-                                        yelp_updated='now'::timestamp with time zone
-                                        where gid=%s
-                                    """ % (d['total'],gid))
-        df                      =   pd.read_json(j_dump(d['businesses']))
+        if type(df)==NoneType:
+            msg                 =   'Yelp@%s: API Scrape -- ABORTED b/c %s' % (os_environ['USER'],status)
+            print msg
+            SYS_r._growl(           msg)
+            return
+
+        if not status=='OK':
+            last_run            =   True
+            msg                 =   'Yelp@%s: API Scrape -- ABORTED EARLY b/c %s' % (os_environ['USER'],status)
+        else:
+            T.update(               {'gid'                  :   s.ix[i,'gid'],
+                                     'api_res_cnt'          :   len(df)})
+
+            conn.set_isolation_level(0)
+            cur.execute(            """ update %(latt_tbl)s
+                                        set yelp_cnt        =   %(api_res_cnt)s,
+                                        yelp_updated        =   'now'::timestamp with time zone
+                                        where gid           =   %(gid)s;
+                                    """ % T )
 
         if len(df)>0:
             all_res_cols        =   df.columns.tolist()
@@ -1132,8 +1177,12 @@ def scrape_yelp_api(query_str=''):
             conn.set_isolation_level(0)
             cur.execute(            cmd)
 
-    print 'done!'
-    SYS_r._growl(                   'Yelp@%s: API Scraped (L:1122)' % os_environ['USER'] )
+        if last_run:
+            break
+
+    print msg
+    SYS_r._growl(                    msg)
+    return
 #   yelp:     2 of 2
 def scrape_yelp_vendor_pages(query_str=''):
     """
