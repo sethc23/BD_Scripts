@@ -10,7 +10,7 @@ from urllib import quote_plus#,unquote
 #print path
 #from IPython import embed_kernel as embed
 #embed()
-from html.xgoogle.search import GoogleSearch
+from xgoogle.search import GoogleSearch
 
 def getSoup(x):
     if type(x) == str: return BeautifulSoup(x)

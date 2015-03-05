@@ -19,8 +19,8 @@ path.append(os_path.join(os_environ['BD'],'appscript'))
 # from Adobe_API import getPageCount, zipSinglePDF, extract_delete
 # from Adobe_API import reversePDF, getPageCount, runPageOCR
 path.append(os_path.join(os_environ['BD'],'html'))
-from html.HTML_API import html_space, addTag, horizontalRule
-from html.HTML_API import makeTableRowsFromFilePaths, makeTableFromRows, getAllTag
+from HTML_API import html_space, addTag, horizontalRule
+from HTML_API import makeTableRowsFromFilePaths, makeTableFromRows, getAllTag
 import os
 
 
