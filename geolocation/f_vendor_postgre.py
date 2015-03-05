@@ -7,8 +7,8 @@ from sys import path as sys_path
 from f_postgres import clean_street_names,ST_PREFIX_DICT,ST_SUFFIX_DICT
 #from f_postgres import update_address_idx_matches
 
-engine = create_engine(r'postgresql://postgres:postgres@192.168.3.52:8800/routing')
-BASE_SAVE_PATH = '/Users/admin/Projects/GIS/table_data/'
+# engine = create_engine(r'postgresql://postgres:postgres@192.168.3.52:8800/routing')
+# BASE_SAVE_PATH = '/Users/admin/Projects/GIS/table_data/'
 
 def find_address_idx_matches(addr_list):
     cmd = ('select * from address_idx '+

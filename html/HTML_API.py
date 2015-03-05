@@ -1,16 +1,17 @@
-import os
+from os import getcwd as os_getcwd
 #import subprocess
 from sys import argv, path
-# path.append('/Users/admin/SERVER2/BD_Scripts/utility')
 from bs4 import BeautifulSoup
 from urllib import quote_plus#,unquote
 # from re import match
 # from htmlentitydefs import name2codepoint
-#path.append('../xgoogle')
-#print path
+from os import environ as os_environ
+from os import path as os_path
+from sys import path as py_path
+py_path.append(os_path.join(os_environ['BD'],'html/xgoogle'))
 #from IPython import embed_kernel as embed
 #embed()
-from xgoogle.search import GoogleSearch
+from search import GoogleSearch
 
 def getSoup(x):
     if type(x) == str: return BeautifulSoup(x)
@@ -397,7 +398,7 @@ for i in range(0,len(b)):
 if __name__ == '__main__':
     try:
         cmd = []
-        cmd.append(os.getcwd() + '/')  
+        cmd.append(os_getcwd() + '/')
         for i in range(1, len(argv)): cmd.append(argv[i])
             # cmd[0] == current working directory
             # cmd[1] == function to apply

@@ -3,28 +3,37 @@
 
 
 # import HTML and codecs
-import                              datetime            as dt
-import                              codecs
-from time                       import sleep
-from urllib                     import quote_plus,unquote
-from re                         import findall          as re_findall
-from re                         import sub              as re_sub
-from subprocess                 import Popen            as sub_popen
-from subprocess                 import PIPE             as sub_PIPE
-from traceback                  import format_exc       as tb_format_exc
-from sys                        import exc_info         as sys_exc_info
-import                                  inspect         as I
-from os                         import environ          as os_environ
-from uuid                       import uuid4            as get_guid
-from os                         import path             as os_path
-from sys                        import path             as py_path
+import                                      datetime        as dt
+import                                      codecs
+from time                           import sleep
+from urllib                         import quote_plus,unquote
+from re                             import findall          as re_findall       # re_findall('patt','str','flag')
+from re                             import sub              as re_sub           # re_sub('patt','repl','str','cnt')
+from re                             import search           as re_search        # re_search('patt','str')
+from subprocess                     import Popen            as sub_popen
+from subprocess                     import PIPE             as sub_PIPE
+from traceback                      import format_exc       as tb_format_exc
+from sys                            import exc_info         as sys_exc_info
+import                                      inspect         as I
+from os                             import environ          as os_environ
+from uuid                           import uuid4            as get_guid
+from os                             import path             as os_path
+from sys                            import path             as py_path
 py_path.append(                             os_path.join(os_environ['BD'],'html'))
-from HTML_API                   import getTagsByAttr,getAllTag,getInnerElement,getTagContents
-from HTML_API                   import google,safe_url,getInnerHTML,FindAllTags,getSoup
-from webpage_scrape             import scraper
+from HTML_API                       import getTagsByAttr,getAllTag,getInnerElement,getTagContents
+from HTML_API                       import google,safe_url,getInnerHTML,FindAllTags,getSoup
+from webpage_scrape                 import scraper
 from selenium.webdriver.support.select import Select
 py_path.append(                             os_path.join(os_environ['BD'],'files_folders'))
-from API_system                 import get_input
+from API_system                     import get_input
+py_path.append(                             os_path.join(os_environ['HOME'],'.scripts'))
+from system_settings                import *
+from System_Control                 import System_Reporter
+SYS_r                                   =   System_Reporter()
+py_path.append(                             os_path.join(os_environ['BD'],'geolocation'))
+from f_postgres                     import pgSQL_Functions,ST_Parts
+PGFS                                    =   pgSQL_Functions()
+
 import                                      pandas              as pd
 pd.set_option(                              'expand_frame_repr', False)
 pd.set_option(                              'display.max_columns', None)
@@ -38,19 +47,17 @@ from time                           import sleep                as delay
 from sqlalchemy                     import create_engine
 from logging                        import getLogger
 from logging                        import INFO                 as logging_info
-py_path.append(                             os_path.join(os_environ['HOME'],'.scripts'))
-from system_settings                import *
-from System_Control                 import System_Reporter
-SYS_r                                   =   System_Reporter()
-getLogger(                              'sqlalchemy.dialects.postgresql').setLevel(logging_info)
-routing_eng                             =   create_engine(r'postgresql://postgres:postgres@%s:%s/%s'
-                                                  %(DB_HOST,DB_PORT,'routing'),
-                                                  encoding='utf-8',
-                                                  echo=False)
 from psycopg2                       import connect              as pg_connect
-conn                                    =   pg_connect("dbname='routing' "+
-                                                           "user='postgres' "+
-                                                     "host='%s' password='' port=8800" % DB_HOST);
+
+getLogger(                                  'sqlalchemy.dialects.postgresql').setLevel(logging_info)
+routing_eng                             =   create_engine(r'postgresql://postgres:postgres@%s:%s/%s'
+                                                        %(DB_HOST,DB_PORT,'routing'),
+                                                        encoding='utf-8',
+                                                        echo=False)
+
+conn                                    =   pg_connect( "dbname='routing' "+
+                                                        "user='postgres' "+
+                                                        "host='%s' password='' port=8800" % DB_HOST);
 cur                                     =   conn.cursor()
 
 
@@ -88,17 +95,18 @@ class Scrape_Vendors:
 
     def __init__(self):
         T                           =   {'user'                 :   os_environ['USER'],
-                                             'guid'                 :   str(get_guid().hex)[:7],
-                                             'today'                :   dt.datetime.now(),
-                                             'oldest_comments'      :   str(9*30),                      # in days
-                                             'transcation_cnt'      :   '100',
-                                             'growl_notice'         :   True,
-                                             'debug'                :   True}
+                                         'guid'                 :   str(get_guid().hex)[:7],
+                                         'today'                :   dt.datetime.now(),
+                                         'oldest_comments'      :   str(9*30),                      # in days
+                                         'transcation_cnt'      :   '100',
+                                         'growl_notice'         :   True,
+                                         'debug'                :   True}
         T.update(                       {'tmp_tbl'              :   'tmp_' + T['guid']})
         self.T                      =   T
         self.SL                     =   Seamless(self)
         self.Yelp                   =   Yelp(self)
         self.Yelp_API               =   Yelp_API()
+        self.SF                     =   Scrape_Functions(self)
         self.SV                     =   self
 
     def post_screenshot(self,br):
@@ -355,17 +363,49 @@ class Seamless:
         except:
             cuisine                     =   None
 
+        upd_vend_content                =   self.T['today'].isoformat()
         page_vars                       =   [seamless_link,vendor_id,vend_name,addr,zipcode,phone,price,
                                              rating,rating_total,rating_perc,description,reviews,
-                                             deliv_est,deliv_min,pickup_est,cuisine,estimates_blob]
-        a                               =   'sl_link,vend_id,vend_name,address,zipcode,phone,price'.split(',')
-        b                               =   'rating,rating_total,rating_perc,description'.split(',')
-        c                               =   'reviews,deliv_est,deliv_min,pickup_est,cuisine,estimates_blob'.split(',')
-        var_names                       =   a + b + c
+                                             deliv_est,deliv_min,pickup_est,cuisine,estimates_blob,
+                                             upd_vend_content]
+        var_names                       =   ','.join( [  'sl_link,vend_id,vend_name,address,zipcode,phone,price',
+                                                         'rating,rating_total,rating_perc,description,reviews',
+                                                         'deliv_est,deliv_min,pickup_est,cuisine,estimates_blob',
+                                                         'upd_vend_content'] ).split(',')
         conn.set_isolation_level(           0)
         cur.execute(                        'drop table if exists %(tmp_tbl)s' % self.T)
         pd.DataFrame(                       [page_vars],columns=var_names).to_sql(self.T['tmp_tbl'],routing_eng)
 
+        # first try to update vend_id
+        self.T.update(                      {'wc'             :   '%%' })
+        cmd                             =   """
+                                                update seamless s
+                                                set
+                                                    vend_id         =   t.vend_id
+                                                from %(tmp_tbl)s t
+                                                where
+                                                    ((
+                                                    concat('%(wc)s',s.address,'%(wc)s')
+                                                        ilike concat('%(wc)s',t.address,'%(wc)s')
+                                                    OR
+                                                    concat('%(wc)s',t.address,'%(wc)s')
+                                                        ilike concat('%(wc)s',s.address,'%(wc)s')
+                                                    )
+                                                    OR
+                                                    (
+                                                    concat('%(wc)s',s.vend_name,'%(wc)s')
+                                                        ilike concat('%(wc)s',t.vend_name,'%(wc)s')
+                                                    OR
+                                                    concat('%(wc)s',t.vend_name,'%(wc)s')
+                                                        ilike concat('%(wc)s',s.vend_name,'%(wc)s')
+                                                    ))
+                                                and   s.zipcode     =   t.zipcode
+                                                and   s.phone       =   t.phone
+                                                and   s.upd_vend_content < t.upd_vend_content::timestamp with time zone
+
+                                            """ % self.T
+        conn.set_isolation_level(           0)
+        cur.execute(                        cmd)
         # upsert to seamless
         cmd                             =   """
                                                 with upd as (
@@ -453,11 +493,14 @@ class Seamless:
                                                           contents=False)[0].attrs['href']
                 br.open_page(               review_url)
                 self.SL.save_comments(      br,html,seamless_link)
+
             except Exception, err:
                 print tb_format_exc()
                 print sys_exc_info()[0]
                 print seamless_link
                 from ipdb import set_trace as i_trace; i_trace()
+
+        # from ipdb import set_trace as i_trace; i_trace()
 
         return
     #   seamless: 1 of 3
@@ -831,13 +874,11 @@ class Seamless:
                                                         'sl_link'      :   sl_link} )
 
 
-        br.quit()
-
-
         self.T.update(                      {'line_no'                  :   I.currentframe().f_back.f_lineno})
         msg                             =   '%(line_no)s SL@%(user)s<%(guid)s>: Prev. Closed Updated.' % self.T
         print msg
         SYS_r._growl(                       msg)
+        br.quit()
         return True
     #   seamless: 3 of 3
     def scrape_sl_3_known_vendor_pages(self,query_str=''):
@@ -911,12 +952,13 @@ class Seamless:
                 cur.execute(                "update seamless set skipped=true,checked_out=null where sl_link = %s"%current_url)
                 skipped                +=   1
 
-        br.quit()
+
         self.T.update(                      {'line_no'                  :   I.currentframe().f_back.f_lineno,
                                             'current_url'               :   br.get_url()})
         msg                             =   '%(line_no)s SL@%(user)s<%(guid)s>: Known Vendors Updated.' % self.T
         print msg
         SYS_r._growl(                       msg)
+        br.quit()
         return True
 
 
@@ -1132,12 +1174,14 @@ class Yelp:
                     conn.set_isolation_level(0)
                     cur.execute(        cmd)
 
-        br.quit()
+
 
         self.T.update(                      {'line_no'                  :   I.currentframe().f_back.f_lineno})
         msg                             =   '%(line_no)s Yelp@%(user)s<%(guid)s>: Search Results Scraped.' % self.T
         print msg
         SYS_r._growl(                       msg)
+        br.quit()
+        return True
     #   yelp:     1 of 2
     def scrape_yelp_1_api(self,query_str='',scrape_lattice='scrape_lattice'):
         """
@@ -1360,9 +1404,10 @@ class Yelp:
             if last_run:
                 break
 
-        br.quit()
+
         print msg
         SYS_r._growl(                       msg)
+        br.quit()
         return
     #   yelp:     2 of 2
     def scrape_yelp_2_vendor_pages(self,query_str=''):
@@ -1571,11 +1616,303 @@ class Yelp:
             # Save Comments To Separate Table
             self.save_comments(                  br,html,vend_data['url'])
 
-        br.quit()
+
         msg                             =   '%(line_no)s Yelp@%(user)s<%(guid)s>: Known Vendors Updated.' % self.T
         print msg
         SYS_r._growl(                       msg)
+        br.quit()
         return True
+
+
+class Scrape_Functions:
+
+    def __init__(self,_parent):
+        self.SV                     =   _parent
+        self.T                      =   _parent.T
+        self.PGF                    =   pgSQL_Functions()
+        self.SF                     =   self
+
+    def consolidate_yelp_urls(self):
+        df                              =   pd.read_sql('select url from yelp where url is not null',routing_eng)
+        all_urls                        =   df.url.tolist()
+        uniq_urls                       =   df.url.unique().tolist()
+        if len(all_urls)==len(uniq_urls):
+            print "Fully Consolidated"
+            return
+        df['url_cnt']               =   df.url.map(lambda s: all_urls.count(s))
+
+        ndf                             =   df[df.url_cnt>1].copy()
+
+        self.T.update(                      {'tmp_tbl_2'            :   self.T['tmp_tbl'] + '_2',
+                                             'tmp_tbl_3'            :   self.T['tmp_tbl']  + '_3',
+                                             'src_tbl'              :   'yelp',
+                                             'uid_col'              :   'id',
+                                             'partition_col'        :   'url',
+                                             'sort_col'             :   'last_api_update',
+                                             'sort_order'           :   'DESC'} )
+        conn.set_isolation_level(           0)
+        cur.execute(                        'drop table if exists %(tmp_tbl)s;' % self.T)
+        ndf.to_sql(                         tmp_tbl,routing_eng)
+
+        cmd                             =   """
+
+                                                drop table if exists %(tmp_tbl_2)s;
+                                                create table %(tmp_tbl_2)s as (
+                                                    select *
+                                                    from
+                                                        yelp y,
+                                                        (select array_agg(t.url) all_urls from %(tmp_tbl)s t) as f1
+                                                    where all_urls && array[y.url]
+                                                    );
+
+                                                drop table if exists %(tmp_tbl_3)s;
+                                                create table %(tmp_tbl_3)s as
+                                                        WITH res AS (
+                                                            SELECT
+                                                                t.%(uid_col)s %(uid_col)s,
+                                                                ROW_NUMBER() OVER(PARTITION BY t.%(partition_col)s
+                                                                                  ORDER BY %(sort_col)s %(sort_order)s) AS rk
+                                                            FROM %(tmp_tbl_2)s t
+                                                            )
+                                                        SELECT t.*
+                                                        FROM
+                                                            res s,
+                                                            %(tmp_tbl_2)s t
+                                                        WHERE s.rk = 1
+                                                        and s.%(uid_col)s = t.%(uid_col)s;
+
+                                            """ % self.T
+        conn.set_isolation_level(           0)
+        cur.execute(                        cmd)
+
+        PGF.Run.make_column_primary_serial_key(self.T['tmp_tbl_3'],'gid',True)
+
+        cmds,table_cols                 =   [],pd.read_sql('select * from %(tmp_tbl_3)s limit 1' % self.T,
+                                                           routing_eng).columns.tolist()
+        pop_list,src_cols               =   [],pd.read_sql('select * from %(src_tbl)s limit 1' % self.T,
+                                                           routing_eng).columns.tolist()
+        for it in table_cols:
+            self.T.update({'var':it})
+            if src_cols.count(it)==0:
+                cmds.append(                'alter table %(tmp_tbl_3)s drop column %(var)s;' % self.T)
+                pop_list.append(            it)
+            else:
+                cmd                     =   """ update %(tmp_tbl_3)s t3 set %(var)s = t2.%(var)s
+                                                from %(tmp_tbl_2)s t2
+                                                where (t3.%(var)s is null or t3.%(var)s::text = 'None'::text)
+                                                and not (t2.%(var)s is null or t2.%(var)s::text = 'None'::text);
+                                            """ % self.T
+                cmds.append(                cmd)
+        for it in pop_list:
+            if table_cols.count(it):
+                z                       =   table_cols.pop(table_cols.index(it))
+
+        self.T.update(                      {  'insert_cols'        :   ','.join(table_cols),
+                                               'select_cols'        :   ','.join(['t.'+it for it in table_cols]) })
+
+        conn.set_isolation_level(           0)
+        cur.execute(                        '\n'.join(cmds))
+
+        cmd                             =   """
+
+                                                delete from yelp y
+                                                using (select array_agg(t.url) all_urls from %(tmp_tbl_3)s t) as f1
+                                                where all_urls && array[y.url];
+
+                                                insert into %(src_tbl)s (
+                                                    %(insert_cols)s
+                                                )
+                                                select %(select_cols)s from %(tmp_tbl_3)s t;
+
+                                                drop table if exists %(tmp_tbl_3)s;
+                                                drop table if exists %(tmp_tbl_2)s;
+                                                drop table if exists %(tmp_tbl)s;
+
+                                            """ % self.T
+        conn.set_isolation_level(           0)
+        cur.execute(                        cmd)
+
+        cmd                             =   """
+                                                select
+                                                    all_%(partition_col)s   =   uniq_%(partition_col)s  a,
+                                                    all_%(uid_col)s         =   uniq_%(uid_col)s        b,
+                                                    uniq_%(partition_col)s  =   uniq_%(uid_col)s        c
+                                                from
+                                                    (select count(t1.%(partition_col)s) all_%(partition_col)s
+                                                        from %(src_tbl)s t1
+                                                        where t1.%(partition_col)s is not null) as f1,
+
+                                                    (select count(distinct t2.%(partition_col)s) uniq_%(partition_col)s
+                                                        from %(src_tbl)s t2
+                                                        where t2.%(partition_col)s is not null) as f2,
+
+                                                    (select count(t3.%(uid_col)s) all_%(uid_col)s
+                                                        from %(src_tbl)s t3
+                                                        where t3.%(uid_col)s is not null) as f3,
+
+                                                    (select count(distinct t4.%(uid_col)s) uniq_%(uid_col)s
+                                                        from %(src_tbl)s t4
+                                                        where t4.%(uid_col)s is not null) as f4
+                                            """ % self.T
+        a,b,c                           =   pd.read_sql(cmd,routing_eng).iloc[0,:]
+        assert True == a == b == c == True
+
+    def clean_street_names(self,df,from_label,to_label):
+
+        def remove_non_ascii(text):
+            return re_sub(r'[^\x00-\x7F]+',' ', text)
+
+        st_parts                        =   ST_Parts()
+
+        df_ignore                       =   df[df[from_label].map(lambda s: type(s))==NoneType]
+        df_ignore_idx                   =   df_ignore.index.tolist()
+        if len(df_ignore_idx)>0:
+            df                          =   df.ix[df[df.index.isin(df_ignore_idx)==False].index,:]
+
+        df[to_label]                    =   df[from_label].map(lambda s: s.lower().strip())
+        df[to_label]                    =   df[to_label].map(remove_non_ascii)
+
+        # st_strip_before
+        for k,v in st_parts.ST_STRIP_BEFORE_DICT.iteritems():
+            df[to_label]                =   df[to_label].map(lambda s: re_sub(k,v,s))
+
+        # st_prefix
+        for k,v in st_parts.ST_PREFIX_DICT.iteritems():
+            df[to_label]                =   df[to_label].map(lambda s: re_sub(r'^('+k+r')\s',v+r' ',s)
+                                                if st_parts.ST_SUFFIX_DICT.values().count(
+                                                re_sub(r'^('+k+r')\s',v+r' ',s)
+                                                ) == 0 else s)
+
+        # st_suffix
+        for k,v in st_parts.ST_SUFFIX_DICT.iteritems():
+            df[to_label]                =   df[to_label].map(lambda s: re_sub(r'\s('+k+r')$'   ,r' '+v,s))
+
+        # st_body
+        for k,v in st_parts.ST_BODY_DICT.iteritems():
+            df[to_label]                =   df[to_label].map(lambda s: re_sub(k,v,s))
+
+        # st_strip_after
+        for k,v in st_parts.ST_STRIP_AFTER_DICT.iteritems():
+            df[to_label]                =   df[to_label].map(lambda s: re_sub(k,v,s))
+
+        return df.append(                   df_ignore)
+
+    def match_vend_info_by_uniq_vars(self):
+        match_var = 'vend_name'
+
+        sl = pd.read_sql("""select vend_id,%(match_var)s,y_vend_id
+                            from seamless where %(match_var)s is not null
+                            and y_vend_id is null""" % {'match_var':match_var} ,engine)
+        y = pd.read_sql(""" select id,%(match_var)s,sl_vend_id
+                            from yelp where %(match_var)s is not null
+                            and sl_vend_id is null""" % {'match_var':match_var} ,engine)
+
+        all_y_match_var = y[match_var].tolist()
+        all_sl_match_var = sl[match_var].tolist()
+        match_cnt_col = '%(match_var)s_cnt' % {'match_var':match_var}
+        y[match_cnt_col] = y[match_var].map(lambda s: all_y_match_var.count(s))
+        sl[match_cnt_col] = sl[match_var].map(lambda s: all_sl_match_var.count(s))
+
+        y_uniq = y[ y[match_cnt_col]==1].copy()
+        sl_uniq = sl[ sl[match_cnt_col]==1 ].copy()
+        y_match_D = dict(zip(y_uniq[match_var].tolist(),y_uniq.index.tolist()))
+        sl_match_D = dict(zip(sl_uniq[match_var].tolist(),sl_uniq.index.tolist()))
+
+        y_f = lambda s: '' if sl_match_D.has_key(s)==False else sl_uniq.ix[sl_match_D[s],'vend_id']
+        y_uniq['sl_vend_id'] = y_uniq[match_var].map(y_f)
+
+        sl_f = lambda s: '' if y_match_D.has_key(s)==False else y_uniq.ix[y_match_D[s],'id']
+        sl_uniq['y_vend_id'] = sl_uniq[match_var].map(sl_f)
+        assert len(sl_uniq[sl_uniq.y_vend_id!=''])==len(y_uniq[y_uniq.sl_vend_id!=''])
+
+        sl_uniq.to_sql(INSTANCE_GUID,engine,index=False)
+        conn.set_isolation_level(0)
+        cur.execute("""
+        update seamless s set y_vend_id=t.y_vend_id
+        from %(tmp)s t
+        where t.vend_id = s.vend_id
+        and not t.y_vend_id='';
+
+        drop table %(tmp)s;
+
+        """ % {'tmp':INSTANCE_GUID} )
+
+        y_uniq.to_sql(INSTANCE_GUID,engine,index=False)
+        conn.set_isolation_level(0)
+        cur.execute("""
+                update yelp y set sl_vend_id=t.sl_vend_id::bigint
+                from %(tmp)s t
+                where t.id = y.id
+                and not t.sl_vend_id='';
+
+                drop table %(tmp)s;
+
+                """ % {'tmp':INSTANCE_GUID} )
+
+        chk="""
+        select sl_cnt=y_cnt chk
+        from
+            (select count(*) sl_cnt from seamless where y_vend_id is not null) as f1,
+            (select count(*) y_cnt from yelp where sl_vend_id is not null) as f2
+        """
+        assert pd.read_sql(chk,engine).chk[0]==True
+        return
+
+    def match_distinct_mnv_var(self,tbl='seamless',tbl_id='vend_id',vend_name='vend_name',match_var='vend_name'):
+        """
+        Matches distinct $tbl variables with distinct mn_vendor vars.
+
+        Usages:
+
+            match_distinct_mnv_var(tbl='yelp',tbl_id='id',vend_name='vend_name',match_var='phone')
+            match_distinct_mnv_var(tbl='seamless',tbl_id='vend_id',vend_name='vend_name',match_var='vend_name')
+            match_distinct_mnv_var(tbl='yelp',tbl_id='id',vend_name='vend_name',match_var='address')
+
+
+            match_tables = ['seamless','yelp']
+            match_vars = ['vend_name','phone','norm_addr']
+
+            it=match_vars[1]
+            match_distinct_mnv_var(tbl='seamless',tbl_id='vend_id',vend_name='vend_name',match_var=it)
+
+
+        """
+        T = {'tbl':tbl,
+             'tbl_id':tbl_id,
+             'vend_name':vend_name,
+             'match_var':match_var}
+
+        x = pd.read_sql("select * from %(tbl)s"%T,engine)
+
+        x_var_tot = x[match_var].tolist()
+        x[match_var+'_cnt'] = x[match_var].map(lambda i: x_var_tot.count(i))
+        x_var_id_dict = dict(zip(x[x[match_var+'_cnt']==1][match_var].tolist(),x[x[match_var+'_cnt']==1][tbl_id].tolist()))
+        x_var_id_dict_keys = x_var_id_dict.keys()
+
+        mnv  = pd.read_sql("select * from mnv where %(tbl)s_id is null"%T,engine)
+        mnv_var_tot = mnv[match_var].tolist()
+        mnv[match_var+'_cnt'] = mnv[match_var].map(lambda i: mnv_var_tot.count(i))
+        mnv_x = mnv[ (mnv[match_var].isin(x_var_id_dict_keys)==True)&(mnv[match_var+'_cnt']==1) ].copy()
+        mnv_x['%(tbl)s_id'%T] = mnv_x[match_var].map(x_var_id_dict)
+
+        conn.set_isolation_level(0)
+        cur.execute( """drop table if exists tmp;""")
+        mnv_x.to_sql('tmp',engine)
+        conn.set_isolation_level(0)
+        cur.execute("""
+            alter table tmp add column tid serial primary key;
+            update tmp set tid = nextval(pg_get_serial_sequence('tmp','tid'));
+        """)
+        conn.set_isolation_level(0)
+        cur.execute("""
+            update mnv m
+            set %(tbl)s_id = t.%(tbl)s_id
+            from tmp t
+            where m.camis = t.camis;
+
+            drop table tmp;
+        """%T)
+
 
 
 

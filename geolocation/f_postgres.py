@@ -72,89 +72,90 @@ MN_ZIPCODES = [10001, 10002, 10003, 10005, 10006, 10007,
                10270, 10271, 10276, 10278, 10279, 10280,
                10281, 10282, 10286]
 
-def global_f_postgres_vars():
-    global engine,BASE_SAVE_PATH,ST_STRIP_BEFORE_DICT,ST_PREFIX_DICT,ST_SUFFIX_DICT
-    global ST_BODY_DICT,ST_STRIP_AFTER_DICT
-    # engine = create_engine(r'postgresql://postgres:postgres@localhost/routing')
-    engine = create_engine(r'postgresql://postgres:postgres@192.168.3.52:8800/routing',
-                       encoding='utf-8',
-                       echo=False)
-    BASE_SAVE_PATH = '/Users/admin/Projects/GIS/table_data/'
+class ST_Parts:
 
-    ST_STRIP_BEFORE_DICT    =   {
-                                r'(,|"|'+r"')"                  :r'',
-                                r'(\s){2,}'                     :r' ',
-                                r'(?P<num>[0-9])(\s)(th)'       :r'\g<num>th',
-                                }
+    def __init__(self):
 
-    ST_PREFIX_DICT = {  r'east'         :r'e',
-                        r'north'        :r'n',
-                        r'south'        :r's',
-                        r'west'         :r'w',
-                        }
 
-    ST_SUFFIX_DICT = {  'alley'         :r'aly',
-                        'avenue'        :r'ave',
-                        'boulevard'     :r'blvd',
-                        'circle'        :r'cir',
-                        'court'         :r'ct',
-                        'drive'         :r'dr',
-                        'east'          :r'e',
-                        'highway'       :r'hwy',
-                        'island'        :r'isle',
-                        'lane'          :r'ln',
-                        'market'        :r'mkt',
-                        'north'         :r'n',
-                        'parkway'       :r'pkwy',
-                        'place'         :r'pl',
-                        'plaza'         :r'plz',
-                        'road'          :r'rd',
-                        'south'         :r's',
-                        'square'        :r'sq',
-                        'street'        :r'st',
-                        'terrace'       :r'ter',
-                        'west'          :r'w',
-                        }
+        ST_STRIP_BEFORE_DICT    =   {
+                                    r'(,|"|'+r"')"                  :r'',
+                                    r'(\s){2,}'                     :r' ',
+                                    r'(?P<num>[0-9])(\s)(th)'       :r'\g<num>th',
+                                    }
 
-    ST_BODY_DICT = {    r'\s(north)\s'          :r' n ',
-                        r'\s(south)\s'          :r' s ',
-                        r'\s(west)\s'           :r' w ',
-                        r'\s(east)\s'           :r' e ',
-                        r'\s(avenue)\s'         :r' ave ',
-                        r'\s(place)\s'          :r' pl ',
-                        r'\s(square)\s'         :r' sq ',
-                        r'\s(terrace)\s'        :r' ter ',
-
-                        r'(1st|first)'          :r'1',
-                        r'(2nd|second)'         :r'2',
-                        r'(3rd|third)'          :r'3',
-                        r'(4th|fourth)'         :r'4',
-                        r'(5th|fifth)'          :r'5',
-                        r'(6th|sixth)'          :r'6',
-                        r'(7th|seventh)'        :r'7',
-                        r'(8th|eigth)'          :r'8',
-                        r'(9th|nineth|ninth)'   :r'9',
-                        r'(0th)'                :r'0',
-                        r'(1th)'                :r'1',
-                        r'(2th)'                :r'2',
-                        r'(3th)'                :r'3',
-
-                        r'(tenth)'              :r'10',
-                        r'(eleventh)'           :r'11',
-                        r'(twelth|twelfth)'     :r'12',
-
-                        r'(ave[nues]*)\s(of)(\s(the))?\s(amer[icas]*)$'       :r'6 ave',
-
-                        r'^(st.|st)\s'           :r'saint ',
-                        r'^fort\s'               :r'ft ',
-                        r'^f\sd\sr\s'            :r'fdr ',
-
-                        }
-
-    ST_STRIP_AFTER_DICT =   {
-                            r'(\.|,|\-)'         :r'',
+        ST_PREFIX_DICT = {  r'east'         :r'e',
+                            r'north'        :r'n',
+                            r'south'        :r's',
+                            r'west'         :r'w',
                             }
-global_f_postgres_vars()
+
+        ST_SUFFIX_DICT = {  'alley'         :r'aly',
+                            'avenue'        :r'ave',
+                            'boulevard'     :r'blvd',
+                            'circle'        :r'cir',
+                            'court'         :r'ct',
+                            'drive'         :r'dr',
+                            'east'          :r'e',
+                            'highway'       :r'hwy',
+                            'island'        :r'isle',
+                            'lane'          :r'ln',
+                            'market'        :r'mkt',
+                            'north'         :r'n',
+                            'parkway'       :r'pkwy',
+                            'place'         :r'pl',
+                            'plaza'         :r'plz',
+                            'road'          :r'rd',
+                            'south'         :r's',
+                            'square'        :r'sq',
+                            'street'        :r'st',
+                            'terrace'       :r'ter',
+                            'west'          :r'w',
+                            }
+
+        ST_BODY_DICT = {    r'\s(north)\s'          :r' n ',
+                            r'\s(south)\s'          :r' s ',
+                            r'\s(west)\s'           :r' w ',
+                            r'\s(east)\s'           :r' e ',
+                            r'\s(avenue)\s'         :r' ave ',
+                            r'\s(place)\s'          :r' pl ',
+                            r'\s(square)\s'         :r' sq ',
+                            r'\s(terrace)\s'        :r' ter ',
+
+                            r'(1st|first)'          :r'1',
+                            r'(2nd|second)'         :r'2',
+                            r'(3rd|third)'          :r'3',
+                            r'(4th|fourth)'         :r'4',
+                            r'(5th|fifth)'          :r'5',
+                            r'(6th|sixth)'          :r'6',
+                            r'(7th|seventh)'        :r'7',
+                            r'(8th|eigth)'          :r'8',
+                            r'(9th|nineth|ninth)'   :r'9',
+                            r'(0th)'                :r'0',
+                            r'(1th)'                :r'1',
+                            r'(2th)'                :r'2',
+                            r'(3th)'                :r'3',
+
+                            r'(tenth)'              :r'10',
+                            r'(eleventh)'           :r'11',
+                            r'(twelth|twelfth)'     :r'12',
+
+                            r'(ave[nues]*)\s(of)(\s(the))?\s(amer[icas]*)$'       :r'6 ave',
+
+                            r'^(st.|st)\s'           :r'saint ',
+                            r'^fort\s'               :r'ft ',
+                            r'^f\sd\sr\s'            :r'fdr ',
+
+                            }
+
+        ST_STRIP_AFTER_DICT =   {
+                                r'(\.|,|\-)'         :r'',
+                                }
+        self.ST_STRIP_BEFORE_DICT       =   ST_STRIP_BEFORE_DICT
+        self.ST_PREFIX_DICT             =   ST_PREFIX_DICT
+        self.ST_SUFFIX_DICT             =   ST_SUFFIX_DICT
+        self.ST_BODY_DICT               =   ST_BODY_DICT
+        self.ST_STRIP_AFTER_DICT        =   ST_STRIP_AFTER_DICT
+
 
 
 
@@ -223,12 +224,8 @@ def clean_street_names(df,from_label,to_label):
     def remove_non_ascii(text):
         return re_sub(r'[^\x00-\x7F]+',' ', text)
 
-    #if str(type(df)).find('PLyResult')!=-1:
-    # return 'GOOD'
-        # df = pd.DataFrame(df)
-
     df_ignore = df[df[from_label].map(lambda s: type(s))==NoneType]
-    df_ignore_idx = df_ignore.index
+    df_ignore_idx = df_ignore.index.tolist()
     if len(df_ignore_idx)>0:
         df = df.ix[df[df.index.isin(df_ignore_idx)==False].index,:]
 
@@ -237,27 +234,26 @@ def clean_street_names(df,from_label,to_label):
 
     # st_strip_before
     for k,v in ST_STRIP_BEFORE_DICT.iteritems():
-        df[to_label]=df[to_label].map(lambda s: re_sub(k,v,s)) 
+        df[to_label]=df[to_label].map(lambda s: re_sub(k,v,s))
 
     # st_prefix
     for k,v in ST_PREFIX_DICT.iteritems():
-        #df[to_label]=df[to_label].map(lambda s: re_sub(r'^('+k+r')\s',v+r' ',s))  
-        df[to_label]=df[to_label].map(lambda s: re_sub(r'^('+k+r')\s',v+r' ',s) 
+        df[to_label]=df[to_label].map(lambda s: re_sub(r'^('+k+r')\s',v+r' ',s)
                                         if ST_SUFFIX_DICT.values().count(
                                         re_sub(r'^('+k+r')\s',v+r' ',s)
                                         ) == 0 else s)
 
     # st_suffix
     for k,v in ST_SUFFIX_DICT.iteritems():
-        df[to_label]=df[to_label].map(lambda s: re_sub(r'\s('+k+r')$'   ,r' '+v,s))    
-   
+        df[to_label]=df[to_label].map(lambda s: re_sub(r'\s('+k+r')$'   ,r' '+v,s))
+
     # st_body
     for k,v in ST_BODY_DICT.iteritems():
         df[to_label]=df[to_label].map(lambda s: re_sub(k,v,s))
-    
+
     # st_strip_after
     for k,v in ST_STRIP_AFTER_DICT.iteritems():
-        df[to_label]=df[to_label].map(lambda s: re_sub(k,v,s)) 
+        df[to_label]=df[to_label].map(lambda s: re_sub(k,v,s))
 
     return df.append(df_ignore)
 
@@ -830,20 +826,6 @@ def add_geoms_to_index():
     engine.execute('drop table if exists temp')
 
 
-def make_column_primary_serial_key(table='',p_key='id',new_col=False):
-    T = {'1':table,
-         '2':p_key}
-    if new_col==True:
-        cmd = """
-        ALTER TABLE %(1)s ADD COLUMN %(2)s SERIAL;
-        """.replace('\n',' ') % T
-        engine.execute(cmd)
-    cmd = """
-    UPDATE %(1)s SET %(2)s = nextval(pg_get_serial_sequence('%(1)s','%(2)s'));
-    ALTER TABLE %(1)s ADD PRIMARY KEY (%(2)s);
-    """.replace('\n',' ') % T
-    engine.execute(cmd)
-
 def save_point_shape(fPath,x,y):
 
     schema = {
@@ -1248,6 +1230,7 @@ def use_USPS_street_abbr_as_nyc_street_names():
     tmp = d.ix[:50,:]
     tmp['clean2'] = tmp.full_stname.map(lambda s: multisub(usps_repl_list,s.lower()))
     tmp.ix[:,['full_stname','clean_name','clean2']]
+
 def combine_east_west():
     ### Combine East/West Streets
     a = gd.read_postgis("select street,geom from address_idx where geom is not null",engine)
@@ -1388,6 +1371,7 @@ def compare_lion_ways_content():
             print '-',it
         print '\n',len(t),'rows had geoms stripped\n'
 
+
 class pgSQL_Functions:
 
     def __init__(self):
@@ -1400,6 +1384,9 @@ class pgSQL_Functions:
             self.Run                    =   self
 
         def make_column_primary_serial_key(self,table_name,uid_col,is_new_col=True):
+            """
+            Usage: make_column_primary_serial_key('table_name','uid_col',is_new_col=True)
+            """
             T                           =   {'tbl'                  :   table_name,
                                              'uid_col'              :   uid_col,
                                              'is_new_col'           :   is_new_col}
