@@ -1564,8 +1564,6 @@ class Tables:
                 cur.execute(                cmd)
 
         T                               =   {  'latt_tbl'           :   lattice_table_name,
-                                               'excl_addr_1'        :   '%%FDR DRIVE%%',
-                                               'excl_addr_2'        :   '%%F D R DRIVE%%',
                                                'tmp_tbl'            :   'tmp_'+INSTANCE_GUID,
                                                'tmp_tbl_2'          :   'tmp_'+INSTANCE_GUID+'_2',
                                                'tmp_tbl_3'          :   'tmp_'+INSTANCE_GUID+'_3',
@@ -1604,9 +1602,7 @@ class Tables:
                                                     FROM pluto_centroids pc
                                                     INNER JOIN pluto p on p.gid=pc.p_gid
                                                     WHERE NOT p.zipcode=0
-                                                    AND p.address is not null
-                                                    AND not p.address ilike '%(excl_addr_1)s'
-                                                    AND not p.address ilike '%(excl_addr_2)s';
+                                                    AND p.real_address is true;
 
 
                                             DROP TABLE IF EXISTS %(tmp_tbl_3)s;
