@@ -1350,8 +1350,6 @@ def scrape_yelp_vendor_pages(query_str=''):
     query_str                       =   t if not query_str else query_str
     d                               =   pd.read_sql( query_str,routing_eng )
 
-    from ipdb import set_trace as i_trace; i_trace()
-
     y_links                         =   d.url.tolist()
     br                              =   scraper('phantom').browser
     comment_sort_opts               =   '?sort_by=date_desc&start=0'
