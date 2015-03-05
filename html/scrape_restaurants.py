@@ -372,7 +372,7 @@ class Seamless:
 
         return
     #   seamless: 1 of 3
-    def scrape_sl_search_results(self,query_str=''):
+    def scrape_sl_1_search_results(self,query_str=''):
         """
         get results from seamless address search and update pgsql -- worked 2014.11.16
         """
@@ -620,7 +620,7 @@ class Seamless:
         print msg
         return True
     #   seamless: 2 of 3
-    def scrape_sl_previously_closed_vendors(self,query_str=''):
+    def scrape_sl_2_previously_closed_vendors(self,query_str=''):
         """
         get url and html for closed vendors -- worked 2014.11.18
         """
@@ -765,7 +765,7 @@ class Seamless:
         SYS_r._growl(                       msg)
         return True
     #   seamless: 3 of 3
-    def scrape_sl_known_vendor_pages(self,query_str=''):
+    def scrape_sl_3_known_vendor_pages(self,query_str=''):
         print self.T['guid']
         self.T.update(                      {'tbl_name'                     :   'seamless',
                                              'tbl_uid'                      :   'id',
@@ -924,7 +924,7 @@ class Yelp:
 
     # YELP FUNCTIONS
     #   yelp:     0 of 2
-    def scrape_yelp_search_results(self,query_str=''):
+    def scrape_yelp_0_search_results(self,query_str=''):
         """
         get results from yelp address search and update pgsql
         """
@@ -1064,7 +1064,7 @@ class Yelp:
         print msg
         SYS_r._growl(                       msg)
     #   yelp:     1 of 2
-    def scrape_yelp_api(self,query_str='',scrape_lattice='scrape_lattice'):
+    def scrape_yelp_1_api(self,query_str='',scrape_lattice='scrape_lattice'):
         """
         get results from yelp Search API with scape lattice addresses and update pgsql -- worked 2014.11.17
         """
@@ -1290,7 +1290,7 @@ class Yelp:
         SYS_r._growl(                       msg)
         return
     #   yelp:     2 of 2
-    def scrape_yelp_vendor_pages(self,query_str=''):
+    def scrape_yelp_2_vendor_pages(self,query_str=''):
         """
         use yelp.url to get hours from each page and update pgsql
         """

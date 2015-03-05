@@ -1317,6 +1317,7 @@ def combine_east_west():
     engine.execute('drop table if exists temp')
 
 
+
 def compare_lion_ways_content():
     ### Read Lion Ways from DB/File
     current_db,new_db = 'lion_ways','lion_ways2'
@@ -1386,66 +1387,96 @@ def compare_lion_ways_content():
         for it in rem_cols:
             print '-',it
         print '\n',len(t),'rows had geoms stripped\n'
-def make_functions():
-    cmd="""CREATE OR REPLACE FUNCTION
-            z_get_way_between_ways( IN get_way text, in ways1 text,
-                                    IN ways2 text, out geom_res geometry(LineString,4326))
-             AS $$
-            begin
-                select st_line_substring(line1,arr[1],arr[2]) into geom_res
-                from (
-                    select line1, array_sort(array[pt1, pt2]) arr
+
+class New_Functions:
+
+    def z_make_column_primary_serial_key(self):
+        cmd="""CREATE OR REPLACE FUNCTION public.z_make_column_primary_serial_key(
+                    table_name text,
+                    col_name text,
+                    new_col boolean)
+                  RETURNS text AS
+                $BODY$
+                if new_col:
+                    T = {'tbl':table_name,'uid_col':col_name}
+                    p0 = "ALTER TABLE %(tbl)s ADD COLUMN %(uid_col)s SERIAL;" % T
+                    e = plpy.execute(p0)
+
+
+                p1 = "UPDATE %(tbl)s SET %(uid_col)s = nextval(pg_get_serial_sequence('%(tbl)s','%(uid_col)s'))" % T
+                e = plpy.execute(p1)
+
+                p2 = "ALTER TABLE %(tbl)s ADD PRIMARY KEY (%(uid_col)s)" % T
+                e = plpy.execute(p2)
+
+                return 'ok'
+
+                $BODY$
+                LANGUAGE plpythonu
+            """
+        engine.execute(cmd)
+    def z_get_way_between_ways(self):
+        cmd="""CREATE OR REPLACE FUNCTION
+                z_get_way_between_ways( IN get_way text, in ways1 text,
+                                        IN ways2 text, out geom_res geometry(LineString,4326))
+                 AS $$
+                begin
+                    select st_line_substring(line1,arr[1],arr[2]) into geom_res
                     from (
-                        select
-                            line1,
-                            st_line_locate_point(line1,z_intersection_point_bin(get_way,ways1)) pt1,
-                            st_line_locate_point(line1,z_intersection_point_bin(get_way,ways2)) pt2
-                        from
-                            (select geom line1 from address_idx where street = get_way limit 1) as l1
-                    ) as t
-                ) as t;
+                        select line1, array_sort(array[pt1, pt2]) arr
+                        from (
+                            select
+                                line1,
+                                st_line_locate_point(line1,z_intersection_point_bin(get_way,ways1)) pt1,
+                                st_line_locate_point(line1,z_intersection_point_bin(get_way,ways2)) pt2
+                            from
+                                (select geom line1 from address_idx where street = get_way limit 1) as l1
+                        ) as t
+                    ) as t;
+                end;
+                $$ language plpgsql;
+            """.replace('\n','')
+        engine.execute(cmd)
+    def z_intersection_point(self):
+        cmd="""
+            DROP FUNCTION z_intersection_point(text,text);
+            CREATE OR REPLACE FUNCTION z_intersection_point(IN way1 text, IN way2 text)
+              RETURNS text AS $$
+            declare
+                _geom geometry; geom_type text;
+            begin
+                select st_intersection(line1,line2) into _geom
+                from
+                    (select geom line1 from address_idx where street = way1 limit 1) as _line1,
+                    (select geom line2 from address_idx where street = way2 limit 1) as _line2;
+                select geometrytype(_geom) into geom_type;
+                if geom_type = 'LINESTRING' then
+                    return st_astext(st_line_interpolate_point(_geom,0.5));
+                elsif geom_type = 'POINT' then
+                    return st_astext(_geom);
+                end if;
             end;
             $$ language plpgsql;
-        """.replace('\n','')
-    engine.execute(cmd)
-    cmd="""
-        DROP FUNCTION z_intersection_point(text,text);
-        CREATE OR REPLACE FUNCTION z_intersection_point(IN way1 text, IN way2 text)
-          RETURNS text AS $$
-        declare
-            _geom geometry; geom_type text;
-        begin
-            select st_intersection(line1,line2) into _geom
-            from
-                (select geom line1 from address_idx where street = way1 limit 1) as _line1,
-                (select geom line2 from address_idx where street = way2 limit 1) as _line2;
-            select geometrytype(_geom) into geom_type;
-            if geom_type = 'LINESTRING' then
-                return st_astext(st_line_interpolate_point(_geom,0.5));
-            elsif geom_type = 'POINT' then
-                return st_astext(_geom);
-            end if;
-        end;
-        $$ language plpgsql;
-        """.replace('\n','')
-    engine.execute(cmd)
-    cmd="""
-        CREATE OR REPLACE FUNCTION
-        z_get_way_box( IN way1 text, in way2 text, in way3 text, in way4 text, out geom_res geometry(Polygon,4326))
-        AS $$
-        begin
+            """.replace('\n','')
+        engine.execute(cmd)
+    def z_get_way_box(self):
+        cmd="""
+            CREATE OR REPLACE FUNCTION
+            z_get_way_box( IN way1 text, in way2 text, in way3 text, in way4 text, out geom_res geometry(Polygon,4326))
+            AS $$
+            begin
 
-            select st_makepolygon(st_linemerge(st_collect(array[
-            z_get_way_between_ways(way1,way2,way4),
-            z_get_way_between_ways(way2,way1,way3),
-            z_get_way_between_ways(way3,way2,way4),
-            z_get_way_between_ways(way4,way1,way3)
-            ]))) into geom_res;
+                select st_makepolygon(st_linemerge(st_collect(array[
+                z_get_way_between_ways(way1,way2,way4),
+                z_get_way_between_ways(way2,way1,way3),
+                z_get_way_between_ways(way3,way2,way4),
+                z_get_way_between_ways(way4,way1,way3)
+                ]))) into geom_res;
 
-        end;
-        $$ language plpgsql;
-        """.replace('\n','')
-    engine.execute(cmd)
+            end;
+            $$ language plpgsql;
+            """.replace('\n','')
+        engine.execute(cmd)
 
 class Tables:
     """
