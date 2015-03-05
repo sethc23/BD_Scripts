@@ -1448,6 +1448,14 @@ def make_functions():
     engine.execute(cmd)
 
 class Tables:
+    """
+
+    Pluto:
+
+        update pluto set address = regexp_replace(address,'F\sD\sR','FDR','g') where address ilike '%f d r%';
+
+
+    """
 
     def __init__(self):
         pass
@@ -1505,15 +1513,18 @@ class Tables:
                                                 DROP TABLE IF EXISTS %(latt_tbl)s;
 
                                                 CREATE TABLE %(latt_tbl)s (
-                                                    gid     serial primary key,
-                                                    x       double precision,
-                                                    y       double precision,
-                                                    bbl     numeric,
-                                                    address text,
-                                                    zipcode integer,
-                                                    yelp_cnt integer DEFAULT 0,
-                                                    yelp_updated timestamp with time zone,
-                                                    geom    geometry(Point,4326));
+                                                    gid             serial primary key,
+                                                    x               double precision,
+                                                    y               double precision,
+                                                    bbl             numeric,
+                                                    address         text,
+                                                    zipcode         integer,
+                                                    yelp_cnt        integer DEFAULT 0,
+                                                    yelp_updated    timestamp with time zone,
+                                                    sl_open_cnt     integer DEFAULT 0,
+                                                    sl_closed_cnt   integer DEFAULT 0,
+                                                    sl_updated      timestamp with time zone,
+                                                    geom            geometry(Point,4326));
 
                                                 UPDATE %(latt_tbl)s
                                                 SET gid = nextval(pg_get_serial_sequence('%(latt_tbl)s','gid'));

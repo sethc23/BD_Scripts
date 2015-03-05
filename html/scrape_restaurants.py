@@ -627,9 +627,13 @@ def scrape_sl_previously_closed_vendors(query_str=''):
 
                 K                   =   br.browser.find_elements_by_tag_name('img')[0]
 
+                start_location      =   br.browser.set_window_position
+                start_size          =   br.browser.set_window_size
                 br.browser.set_window_position=K.location
                 br.browser.set_window_size=K.size
                 post_screenshot(br)
+                br.browser.set_window_position=start_location
+                br.browser.set_window_size=start_size
                 SYS_r._growl(           'SL Update @ "%s" (Prev. Closed Vendors) -- NEED CAPTCHA' % os_environ['USER'],
                                         'http://demo.aporodelivery.com/phantomjs.html' )
                 captcha_input       =   get_input("Captcha code?\n")

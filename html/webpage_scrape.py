@@ -109,6 +109,72 @@ class Webdriver():
     def execute(self,script,*args):
         return self.browser.execute(script,*args)
 
+    def wait_for_condition(self,condition,param1,param2,invert=False,timeout_seconds=45,poll_frequency=0.5):
+        """
+
+            NOTE -- UNTESTED
+
+            Usage:
+
+                br.wait_for_condition('presence_of_element_located','id','some_tag_id_value',
+                                    invert=False,timeout_seconds=45,poll_frequency=1.0)
+
+
+            WebDriverWait(self, driver, timeout, poll_frequency=0.5, ignored_exceptions=None)
+
+        """
+        def element_types(element_type):
+            global By
+            from selenium.webdriver.common.by import By
+            element_types           =  {'class_name'            :By.CLASS_NAME,
+                                        'id'                    :By.ID,
+                                        'link_text'             :By.LINK_TEXT,
+                                        'name'                  :By.NAME,
+                                        'partial_link_text'     :By.PARTIAL_LINK_TEXT,
+                                        'tag_name'              :By.TAG_NAME,
+                                        'xpath'                 :By.XPATH}
+            assert element_types.keys().count(element_type)>0
+            return element_types[element_type]
+        def expected_conditions(condition,*params):
+            global EC
+            from selenium.webdriver.support import expected_conditions as EC
+            expected_conditions     =  {"title_is"                                  :   EC.title_is,
+                                        "title_contains"                            :   EC.title_contains,
+                                        "presence_of_element_located"               :   EC.presence_of_element_located,
+                                        "visibility_of_element_located"             :   EC.visibility_of_element_located,
+                                        "visibility_of"                             :   EC.visibility_of,
+                                        "presence_of_all_elements_located"          :   EC.presence_of_all_elements_located,
+                                        "text_to_be_present_in_element"             :   EC.text_to_be_present_in_element,
+                                        "text_to_be_present_in_element_value"       :   EC.text_to_be_present_in_element_value,
+                                        "frame_to_be_available_and_switch_to_it"    :   EC.frame_to_be_available_and_switch_to_it,
+                                        "invisibility_of_element_located"           :   EC.invisibility_of_element_located,
+                                        "element_to_be_clickable"                   :   EC.element_to_be_clickable,
+                                        "staleness_of"                              :   EC.staleness_of,
+                                        "element_to_be_selected"                    :   EC.element_to_be_selected,
+                                        "element_located_to_be_selected"            :   EC.element_located_to_be_selected,
+                                        "element_selection_state_to_be"             :   EC.element_selection_state_to_be,
+                                        "element_located_selection_state_to_be"     :   EC.element_located_selection_state_to_be,
+                                        "alert_is_present"                          :   EC.alert_is_present}
+            assert expected_conditions.keys().count(condition)>0
+            if condition=='presence_of_element_located':
+                expected_res        =   (element_types(params[0]), params[1])
+                condition_res       =   expected_conditions[condition](expected_res)
+            else:
+                assert True=='DEVELOPMENT INCOMPLETE'
+            return condition_res
+
+
+        global WebDriverWait
+        from selenium.webdriver.support.ui import WebDriverWait
+
+
+        if not invert:
+            WebDriverWait(self.browser, timeout_seconds,poll_frequency).until(
+                expected_conditions(condition,param1,param2))
+        else:
+            WebDriverWait(self.browser, timeout_seconds,poll_frequency).until_not(
+                expected_conditions(condition,param1,param2))
+
     def wait_for_page(self,timeout_seconds=45):
         """
         Include start page to confirm change started ??
