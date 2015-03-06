@@ -265,20 +265,89 @@ def get_business_abbr(g):
         A = A.append(df,ignore_index=True)
     return A
 
+def generate_regex_from_parsed_data(A,common_use_col='common_use',abbrev_col='usps_abbr'):
+    """
 
-dir_path                                =   os_path.join(os_environ['BD'],'geolocation/USPS')
-fpath_pdf                               =   dir_path + '/usps_business_abbr.pdf'
-fpath_xml                               =   dir_path + '/usps_business_abbr.xml'
-save_csv_path                           =   dir_path + '/usps_business_abbr.csv'
+    Also, common_use_col = 'prim_suff'
 
-t                                       =   extract_pdf_contents_from_stdout(fpath_pdf)
-g                                       =   make_dataframe_with_contents(t)
+    """
 
-# A                                       =   get_street_abbrs(g)
-A                                       =   get_business_abbr(g)
+    g                                       =   A.groupby(common_use_col)
+    df                                      =   pd.DataFrame({common_use_col:g.groups.keys()}
+                                                      ).sort(common_use_col).reset_index(drop=True)
+
+    use_abbr_map                            =   dict(zip(A[common_use_col].tolist(),A[abbrev_col].tolist()))
+    df['usps_abbr']                         =   df[common_use_col].map(use_abbr_map)
+
+    f                                       =   lambda s: str(g.get_group(s).common_use.map(
+                                                lambda s: s.lower()).tolist()
+                                                ).strip(' ').replace(', ',' | ').replace("'",'').strip('[]')
+    df['pattern']                           =   df[common_use_col].map(f)
+    df['combined']                          =   df.ix[:,['pattern','usps_abbr']].apply(
+                                                    lambda s: (s[0],s[1].lower()),axis=1)
+    usps_repl_list                          =   df.combined.tolist()
+
+    return df,usps_repl_list
+
+    # def one(fpath,the_list):
+    #     with open(fpath,'w') as f:
+    #         for item in the_list:
+    #             print f, item
+    #
+    # def two(fpath,the_list):
+    #     f                                   =   open(fpath,'w')
+    #     for item in the_list:
+    #         f.write(                            "%s\n" % item)
+    #     f.close(                                )
+    #
+    # def three(fpath,the_list):
+    #     f                                   =   open(fpath,'w')
+    #     f.write(                                '%s\n' % json.dumps(Pickle.dumps(the_list)))
+    #     f.close(                                )
+    #
+    # def four():
+    #     import pickle
+    #     pickle.dump(                                itemlist, outfile)
+    #
+    # print len(                                  df)
+    # print df
+    # z                                       =   raw_input('type "y" to confirm save...')
+    # if z=='y':
+    #     fpath                               = save_csv_path.replace('.csv','_1_regex.txt')
+    #     %timeit one(fpath,usps_repl_list)
+    #     %timeit range(1000)
+    #     fpath = fpath.replace('1','2')
+    #     %timeit two(fpath,usps_repl_list)
+    #     fpath = fpath.replace('2','3')
+    #     %timeit three(fpath,usps_repl_list)
+
+    #     f = open(save_csv_path.replace('.csv','_regex.txt'),'w')
+    #     f.write(usps_repl_list)
+    #     f.close()
+
+def save_to_file(A,save_csv_path):
+    print '\n','Save Path:\n\n\t\t',save_csv_path,'\n'
+    z                                   =   raw_input('type "y" to confirm save...')
+    if z=='y':
+        A.to_csv(                           save_csv_path)
+
+def load_from_file(save_csv_path):
+    return pd.read_csv(save_csv_path)
 
 
-print '\n','Save Path:\n\n\t\t',save_csv_path,'\n'
-z=raw_input('type "y" to confirm save...')
-if z=='y':
-    A.to_csv(save_csv_path)
+
+dir_path                                    =   os_path.join(os_environ['BD'],'geolocation/USPS')
+fpath_pdf                                   =   dir_path + '/usps_business_abbr.pdf'
+fpath_xml                                   =   dir_path + '/usps_business_abbr.xml'
+save_csv_path                               =   dir_path + '/usps_business_abbr.csv'
+
+# t                                          =   extract_pdf_contents_from_stdout(fpath_pdf)
+# g                                          =   make_dataframe_with_contents(t)
+
+# A                                          =   get_street_abbrs(g)
+# A                                          =   get_business_abbr(g)
+
+# save_to_file(                                  A,save_csv_path)
+
+# A                                          =   load_from_file(save_csv_path)
+

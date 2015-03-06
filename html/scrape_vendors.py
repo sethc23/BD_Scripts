@@ -1825,7 +1825,7 @@ class Scrape_Functions:
         sl_uniq['y_vend_id'] = sl_uniq[match_var].map(sl_f)
         assert len(sl_uniq[sl_uniq.y_vend_id!=''])==len(y_uniq[y_uniq.sl_vend_id!=''])
 
-        sl_uniq.to_sql(INSTANCE_GUID,engine,index=False)
+        sl_uniq.to_sql(self.T['guid'],engine,index=False)
         conn.set_isolation_level(0)
         cur.execute("""
         update seamless s set y_vend_id=t.y_vend_id
@@ -1835,9 +1835,9 @@ class Scrape_Functions:
 
         drop table %(tmp)s;
 
-        """ % {'tmp':INSTANCE_GUID} )
+        """ % {'tmp':self.T['guid']} )
 
-        y_uniq.to_sql(INSTANCE_GUID,engine,index=False)
+        y_uniq.to_sql(self.T['guid'],engine,index=False)
         conn.set_isolation_level(0)
         cur.execute("""
                 update yelp y set sl_vend_id=t.sl_vend_id::bigint
@@ -1847,7 +1847,7 @@ class Scrape_Functions:
 
                 drop table %(tmp)s;
 
-                """ % {'tmp':INSTANCE_GUID} )
+                """ % {'tmp':self.T['guid']} )
 
         chk="""
         select sl_cnt=y_cnt chk
