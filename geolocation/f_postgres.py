@@ -1400,7 +1400,8 @@ class pgSQL_Functions:
     class Make:
 
         def __init__(self):
-            self.Make                   =   self
+            pass
+
 
         def z_make_column_primary_serial_key(self):
             """
@@ -1503,7 +1504,83 @@ class pgSQL_Functions:
                 end;
                 $$ language plpgsql;
                 """.replace('\n','')
-            engine.execute(cmd)
+            conn.set_isolation_level(       0)
+            cur.execute(                    cmd)
+        def z_parse_NY_addrs(self):
+            T = {'fct_name'                 :   'z_parse_NY_addrs',
+                 'fct_args_types'           :   [ ['IN','src_table','text'],
+                                                  ['IN','addr_col_lbl','text'],
+                                                  ['IN','zip_col_lbl','text'],
+                                                  ['IN','tmp_res_limit','integer'],],
+                 'fct_return'               :   'SETOF parsed_addr',
+                 'fct_lang'                 :   'plpythonu',
+                 'cmt'                      :   """ Example:  ''select
+                                                                    orig_addr,num,predir,name,suftype,
+                                                                    city,state,zip
+                                                                from z_parse_NY_addrs(''pluto'',''address'',''zipcode'',100);'' """}
+            T.update( {'fct_args'           :   ', '.join([' '.join(j) for j in T['fct_args_types']]),
+                       'fct_types'          :   ', '.join([j[2] for j in T['fct_args_types'] if j[0].upper()!='OUT']),
+                       })
+
+
+            a="""
+
+                DROP FUNCTION IF EXISTS %(fct_name)s( %(fct_types)s );
+                DROP TYPE IF EXISTS parsed_addr;
+
+                CREATE TYPE parsed_addr AS (
+                    orig_addr character varying,
+                    num integer,
+                    predir text,
+                    name text,
+                    suftype text,
+                    city text,
+                    state text,
+                    zip integer
+                );
+
+
+                CREATE OR REPLACE FUNCTION public.%(fct_name)s( %(fct_args)s )
+                RETURNS %(fct_return)s
+                AS $$
+
+                    if int(tmp_res_limit)==0:
+                        res_limit = "ALL"
+                    else:
+                        res_limit = int(tmp_res_limit)
+
+                    T = {   '_FROM_TBL'         :   src_table,
+                            '_ADDR_COL_LBL'     :   addr_col_lbl,
+                            '_ZIP_COL_LBL'      :   zip_col_lbl,
+                            '_LIMIT'            :   res_limit, }
+                    q=\"\"\"
+                        select  _addr orig_addr,
+                                (_parsed).house_num::integer num,
+                                (_parsed).predir,
+                                (_parsed).name,
+                                (_parsed).suftype,
+                                (_parsed).city,
+                                (_parsed).state,
+                                (_parsed).postcode::integer zip
+                        from
+                        (select standardize_address('tiger.pagc_lex','tiger.pagc_gaz', 'tiger.pagc_rules',
+                                concat(f1.address,', New York, NY, ',f1.zipcode) ) _parsed,f1.address _addr
+                                from
+                                    (select ##(_ADDR_COL_LBL)s address,##(_ZIP_COL_LBL)s zipcode
+                                    from ##(_FROM_TBL)s limit ##(_LIMIT)s
+                                ) as f1
+                        ) as f2;
+                    \"\"\" ## T
+
+                    return plpy.execute(q)
+
+                $$ LANGUAGE %(fct_lang)s;
+
+            COMMENT ON FUNCTION public.%(fct_name)s(%(fct_types)s) IS '%(cmt)s';
+            """ % T
+            cmd                         =   a.replace('##','%')
+            conn.set_isolation_level(       0)
+            cur.execute(                    cmd)
         def z_find_addr_matches_in(self):
             a="""
 
