@@ -1530,13 +1530,15 @@ class pgSQL_Functions:
 
                 CREATE TYPE parsed_addr AS (
                     orig_addr character varying,
-                    num integer,
+                    num text,
+                    pretype text,
                     predir text,
                     name text,
                     suftype text,
+                    sufdir text,
                     city text,
                     state text,
-                    zip integer
+                    zip text
                 );
 
 
@@ -1545,31 +1547,41 @@ class pgSQL_Functions:
                 AS $$
 
                     if int(tmp_res_limit)==0:
-                        res_limit = "ALL"
+                        limit_input = ""
                     else:
-                        res_limit = int(tmp_res_limit)
+                        limit_input = "limit ##s::integer" + str(int(tmp_res_limit))
 
                     T = {   '_FROM_TBL'         :   src_table,
                             '_ADDR_COL_LBL'     :   addr_col_lbl,
                             '_ZIP_COL_LBL'      :   zip_col_lbl,
-                            '_LIMIT'            :   res_limit, }
+                            '_LIMIT'            :   limit_input, }
                     q=\"\"\"
-                        select  _addr orig_addr,
-                                (_parsed).house_num::integer num,
+                        select  orig_addr,
+                                (_parsed).house_num num,
+                                (_parsed).pretype,
                                 (_parsed).predir,
-                                (_parsed).name,
+                                regexp_replace( (_parsed).name,'(.*)(\_)(.*)','\\1 \\3','g') as name,
                                 (_parsed).suftype,
+                                (_parsed).sufdir,
                                 (_parsed).city,
                                 (_parsed).state,
-                                (_parsed).postcode::integer zip
+                                (_parsed).postcode zip
                         from
                         (select standardize_address('tiger.pagc_lex','tiger.pagc_gaz', 'tiger.pagc_rules',
-                                concat(f1.address,', New York, NY, ',f1.zipcode) ) _parsed,f1.address _addr
+                                concat(f2.address,', New York, NY, ',f2.zipcode) ) _parsed,f2.orig_addr orig_addr
+
                                 from
-                                    (select ##(_ADDR_COL_LBL)s address,##(_ZIP_COL_LBL)s zipcode
-                                    from ##(_FROM_TBL)s limit ##(_LIMIT)s
-                                ) as f1
-                        ) as f2;
+                                    (select
+                                        z_custom_addr_filter( (select rtrim(concat(num,'|',street,' ',city,' ',state,' ',zip))
+                                                                from parse_address( f1.address )) ) address,
+                                        f1.zipcode zipcode,
+                                        f1.address orig_addr
+                                    from
+                                        (select ##(_ADDR_COL_LBL)s address,##(_ZIP_COL_LBL)s zipcode
+                                        from ##(_FROM_TBL)s ##(_LIMIT)s
+                                    ) as f1
+                                ) as f2
+                        ) as f3;
                     \"\"\" ## T
 
                     return plpy.execute(q)
@@ -1580,14 +1592,49 @@ class pgSQL_Functions:
             """ % T
             cmd                         =   a.replace('##','%')
             conn.set_isolation_level(       0)
+            self.z_custom_addr_pre_filter()
             cur.execute(                    cmd)
-        def z_find_addr_matches_in(self):
-            a="""
+
+        def z_custom_addr_pre_filter(self):
+            cmd="""
+
+                CREATE OR REPLACE FUNCTION public.z_custom_addr_pre_filter(IN addr text,OUT new_addr text)
+                RETURNS text AS $$
+
+                    begin
+
+                        select upper(rtrim(addr)) into new_addr;
+                        select regexp_replace(new_addr,
+                                                '(.*)\|(.*)?(\s)(TERRACE)$',
+                                                '\\1|\\2 TERR') into new_addr;
+                        select regexp_replace(new_addr,
+                                                '(.*)\|(PARK TERR)$',
+                                                '\\1|PARK_TERR') into new_addr;
+                        select regexp_replace(new_addr,
+                                                '(.*)\|(LN)(\s)(.*)?',
+                                                '\\1|\\2\\_\\3 ') into new_addr;
+                        select regexp_replace(new_addr,
+                                                '([0-9]+)[\-]?([a-zA-Z]+)\|(.*)',
+                                                '\\1|\\3, Bldg. \\2') into new_addr;
+                        select regexp_replace(new_addr,
+                                                '([0-9]+)[\-]([0-9]+)\|(.*)',
+                                                '\\1|\\3, Bldg. \\2') into new_addr;
 
 
+
+                        select regexp_replace(new_addr,
+                                                '(.*)?\|(.*)?',
+                                                '\\1 \\2','g') into new_addr;
+
+
+                    end;
+
+                $$ LANGUAGE plpgsql;
 
             """
-            pass
+            conn.set_isolation_level(       0)
+            cur.execute(                    cmd)
+
 
 class Tables:
     """
