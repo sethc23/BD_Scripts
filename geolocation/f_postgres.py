@@ -47,6 +47,7 @@ INSTANCE_GUID                           =   'tmp_'+str(get_guid().hex)[:7]
 
 # py_path.append(                         os_path.join(os_environ['BD'],'geolocation'))
 # from f_postgres import geoparse#,ST_PREFIX_DICT,ST_SUFFIX_DICT
+
 #### from f_vendor_postgre import get_bldg_street_idx
 #### from f_vendor_postgre import get_addr_body,match_simple_regex
 #### from f_vendor_postgre import match_simple,match_simple_regex,match_levenshtein_series
@@ -55,22 +56,7 @@ INSTANCE_GUID                           =   'tmp_'+str(get_guid().hex)[:7]
 # from ipdb import set_trace as i_trace; i_trace()
 
 
-MN_ZIPCODES = [10001, 10002, 10003, 10005, 10006, 10007,
-               10008, 10009, 10010, 10012, 10013, 10014,
-               10016, 10017, 10018, 10019, 10020, 10021,
-               10022, 10023, 10024, 10025, 10027, 10028,
-               10029, 10030, 10031, 10032, 10033, 10034,
-               10035, 10036, 10037, 10038, 10039, 10040,
-               10041, 10048, 10055, 10101, 10103, 10104,
-               10105, 10106, 10107, 10108, 10110, 10111,
-               10112, 10113, 10116, 10118, 10119, 10120,
-               10121, 10122, 10123, 10128, 10150, 10151,
-               10152, 10153, 10154, 10155, 10158, 10159,
-               10162, 10165, 10166, 10167, 10168, 10169,
-               10170, 10171, 10172, 10173, 10174, 10175,
-               10176, 10177, 10178, 10249, 10256, 10268,
-               10270, 10271, 10276, 10278, 10279, 10280,
-               10281, 10282, 10286]
+
 
 class ST_Parts:
 
@@ -1677,280 +1663,324 @@ class Tables:
     def __init__(self):
         pass
 
-    def make_scrape_lattice(self,pt_buff_in_miles,lattice_table_name):
-        meters_in_one_mile              =   1609.34
+    class Make:
 
-        z                               =   pd.read_sql("select min(lat) a,max(lat) b,min(lon) c,max(lon) d from lws_vertices_pgr",routing_eng)
-        lat_min,lat_max,lon_min,lon_max =   z.a[0],z.b[0],z.c[0],z.d[0]
-        lat_mid,lon_mid                 =   lat_min+((lat_max-lat_min)/float(2)),lon_min+((lon_max-lon_min)/float(2))
-        lat_cmd                         =   """
-                                            SELECT ST_Distance_Sphere(ptA,ptB) lat_dist
-                                            from (SELECT ST_GeomFromText('POINT(%s %s)',4326) as ptA,
-                                                         ST_GeomFromText('POINT(%s %s)',4326) as ptB) as foo;
-                                            """%(str(lon_mid),str(lat_max),str(lon_mid),str(lat_min))
-        lon_cmd                         =   """
-                                            SELECT ST_Distance_Sphere(ptA,ptB) lon_dist
-                                            from (SELECT ST_GeomFromText('POINT(%s %s)',4326) as ptA,
-                                                         ST_GeomFromText('POINT(%s %s)',4326) as ptB) as foo;
-                                            """%(str(lon_max),str(lat_mid),str(lon_min),str(lat_mid))
-        lat_range                       =   pd.read_sql(lat_cmd,routing_eng).lat_dist[0] + (pt_buff_in_miles * meters_in_one_mile)
-        lon_range                       =   pd.read_sql(lon_cmd,routing_eng).lon_dist[0] + (pt_buff_in_miles * meters_in_one_mile)
-        lat_segs                        =   int(round(lat_range/float(pt_buff_in_miles * meters_in_one_mile),))
-        lon_segs                        =   int(round(lon_range/float(pt_buff_in_miles * meters_in_one_mile),))
+        def __init__(self):
+            pass
 
-        lat_mid_distances               =   np.arange(0,lat_range,
-                                                    pt_buff_in_miles * meters_in_one_mile)+((pt_buff_in_miles * meters_in_one_mile)/2)
-        lon_mid_distances               =   np.arange(0,lon_range,
-                                                    pt_buff_in_miles * meters_in_one_mile)+((pt_buff_in_miles * meters_in_one_mile)/2)
+        def scrape_lattice(self,pt_buff_in_miles,lattice_table_name):
+            meters_in_one_mile              =   1609.34
 
-        # set starting point
-        lat_d                           =   lat_mid_distances[0]
-        lon_d                           =   lon_mid_distances[0]
-        T                               =   {   'latt_tbl'          :   lattice_table_name,
-                                                'X'                 :   str(lon_min),
-                                                'Y'                 :   str(lat_min),
-                                                'sw_dist'           :   str(np.sqrt(lat_d**2 + lon_d**2)),
-                                                'sw_rad'            :   str(225)   }
-        cmd                             =   """
-                                                select
-                                                    st_x(sw_geom::geometry(Point,4326))  min_x,
-                                                    st_y(sw_geom::geometry(Point,4326))  min_y
-                                                FROM
-                                                    (select
-                                                        ST_Project( st_geomfromtext('Point(%(X)s %(Y)s)',4326),
-                                                                    %(sw_dist)s,
-                                                                    radians(%(sw_rad)s)) sw_geom) as foo;
+            z                               =   pd.read_sql("select min(lat) a,max(lat) b,min(lon) c,max(lon) d from lws_vertices_pgr",routing_eng)
+            lat_min,lat_max,lon_min,lon_max =   z.a[0],z.b[0],z.c[0],z.d[0]
+            lat_mid,lon_mid                 =   lat_min+((lat_max-lat_min)/float(2)),lon_min+((lon_max-lon_min)/float(2))
+            lat_cmd                         =   """
+                                                SELECT ST_Distance_Sphere(ptA,ptB) lat_dist
+                                                from (SELECT ST_GeomFromText('POINT(%s %s)',4326) as ptA,
+                                                             ST_GeomFromText('POINT(%s %s)',4326) as ptB) as foo;
+                                                """%(str(lon_mid),str(lat_max),str(lon_mid),str(lat_min))
+            lon_cmd                         =   """
+                                                SELECT ST_Distance_Sphere(ptA,ptB) lon_dist
+                                                from (SELECT ST_GeomFromText('POINT(%s %s)',4326) as ptA,
+                                                             ST_GeomFromText('POINT(%s %s)',4326) as ptB) as foo;
+                                                """%(str(lon_max),str(lat_mid),str(lon_min),str(lat_mid))
+            lat_range                       =   pd.read_sql(lat_cmd,routing_eng).lat_dist[0] + (pt_buff_in_miles * meters_in_one_mile)
+            lon_range                       =   pd.read_sql(lon_cmd,routing_eng).lon_dist[0] + (pt_buff_in_miles * meters_in_one_mile)
+            lat_segs                        =   int(round(lat_range/float(pt_buff_in_miles * meters_in_one_mile),))
+            lon_segs                        =   int(round(lon_range/float(pt_buff_in_miles * meters_in_one_mile),))
 
-                                            """ % T
-        min_x,min_y                     =   pd.read_sql(cmd,routing_eng).ix[0,['min_x','min_y']]
+            lat_mid_distances               =   np.arange(0,lat_range,
+                                                        pt_buff_in_miles * meters_in_one_mile)+((pt_buff_in_miles * meters_in_one_mile)/2)
+            lon_mid_distances               =   np.arange(0,lon_range,
+                                                        pt_buff_in_miles * meters_in_one_mile)+((pt_buff_in_miles * meters_in_one_mile)/2)
 
-        # create lattice table
-        conn.set_isolation_level(           0)
-        cur.execute(                        """
-                                                DROP TABLE IF EXISTS %(latt_tbl)s;
+            # set starting point
+            lat_d                           =   lat_mid_distances[0]
+            lon_d                           =   lon_mid_distances[0]
+            T                               =   {   'latt_tbl'          :   lattice_table_name,
+                                                    'X'                 :   str(lon_min),
+                                                    'Y'                 :   str(lat_min),
+                                                    'sw_dist'           :   str(np.sqrt(lat_d**2 + lon_d**2)),
+                                                    'sw_rad'            :   str(225)   }
+            cmd                             =   """
+                                                    select
+                                                        st_x(sw_geom::geometry(Point,4326))  min_x,
+                                                        st_y(sw_geom::geometry(Point,4326))  min_y
+                                                    FROM
+                                                        (select
+                                                            ST_Project( st_geomfromtext('Point(%(X)s %(Y)s)',4326),
+                                                                        %(sw_dist)s,
+                                                                        radians(%(sw_rad)s)) sw_geom) as foo;
 
-                                                CREATE TABLE %(latt_tbl)s (
-                                                    gid             serial primary key,
-                                                    x               double precision,
-                                                    y               double precision,
-                                                    bbl             numeric,
-                                                    address         text,
-                                                    zipcode         integer,
-                                                    yelp_cnt        integer DEFAULT 0,
-                                                    yelp_updated    timestamp with time zone,
-                                                    sl_open_cnt     integer DEFAULT 0,
-                                                    sl_closed_cnt   integer DEFAULT 0,
-                                                    sl_updated      timestamp with time zone,
-                                                    geom            geometry(Point,4326));
+                                                """ % T
+            min_x,min_y                     =   pd.read_sql(cmd,routing_eng).ix[0,['min_x','min_y']]
 
-                                                UPDATE %(latt_tbl)s
-                                                SET gid = nextval(pg_get_serial_sequence('%(latt_tbl)s','gid'));
+            # create lattice table
+            conn.set_isolation_level(           0)
+            cur.execute(                        """
+                                                    DROP TABLE IF EXISTS %(latt_tbl)s;
 
-                                            """ % T )
+                                                    CREATE TABLE %(latt_tbl)s (
+                                                        gid             serial primary key,
+                                                        x               double precision,
+                                                        y               double precision,
+                                                        bbl             numeric,
+                                                        address         text,
+                                                        zipcode         integer,
+                                                        yelp_cnt        integer DEFAULT 0,
+                                                        yelp_updated    timestamp with time zone,
+                                                        sl_open_cnt     integer DEFAULT 0,
+                                                        sl_closed_cnt   integer DEFAULT 0,
+                                                        sl_updated      timestamp with time zone,
+                                                        geom            geometry(Point,4326));
 
+                                                    UPDATE %(latt_tbl)s
+                                                    SET gid = nextval(pg_get_serial_sequence('%(latt_tbl)s','gid'));
 
-
-        # create and push X/Y points to pgsql -- set geom at end
-        pt                              =   0
-        for i in range(0,lat_segs):
-            lat_d                       =   lat_mid_distances[i]
-            for j in range(0,lon_segs):
-                lon_d                   =   lon_mid_distances[j]
-                T                       =   {   'table_name'        :lattice_table_name,
-                                                'X'                 :str(min_x),
-                                                'Y'                 :str(min_y),
-                                                'n_dist'            :str(lat_d),
-                                                'ne_dist'           :str(np.sqrt(lat_d**2 + lon_d**2)),
-                                                'e_dist'            :str(lon_d),
-                                                'n_rad'             :str(0),
-                                                'ne_rad'            :str(45),
-                                                'e_rad'             :str(90)   }
-                # (lat_min,lon_min) is southwest most point
-                # lattice created by moving northeast
-
-                ## North     azimuth 0       (0)
-                ## East      azimuth 90      (pi/2)
-                ## South     azimuth 180     (pi)
-                ## West      azimuth 270     (pi*1.5)
-                cmd                     =   """
-                                            INSERT INTO %(table_name)s(x,y)
-                                                select
-                                                    st_x(e_geom::geometry(Point,4326))  e_geom_x,
-                                                    st_y(n_geom::geometry(Point,4326))  n_geom_y
-                                                FROM
-                                                    (select
-                                                        ST_Project( st_geomfromtext('Point(%(X)s %(Y)s)',4326),
-                                                                    %(n_dist)s,
-                                                                    radians(%(n_rad)s)) n_geom) as foo1,
-                                                    (select
-                                                        ST_Project( st_geomfromtext('Point(%(X)s %(Y)s)',4326),
-                                                                    %(e_dist)s,
-                                                                    radians(%(e_rad)s)) e_geom) as foo2;
-
-                                            """.replace('\n','')%T
-                conn.set_isolation_level(   0)
-                cur.execute(                cmd)
-
-        T                               =   {  'latt_tbl'           :   lattice_table_name,
-                                               'tmp_tbl'            :   'tmp_'+INSTANCE_GUID,
-                                               'tmp_tbl_2'          :   'tmp_'+INSTANCE_GUID+'_2',
-                                               'tmp_tbl_3'          :   'tmp_'+INSTANCE_GUID+'_3',
-                                               'buf_rad'            :   str(int((pt_buff_in_miles *
-                                                                          meters_in_one_mile)/2.0))}
-
-        conn.set_isolation_level(           0)
-        cur.execute(                        """
-                                            UPDATE %(latt_tbl)s SET geom = ST_SetSRID(ST_MakePoint(x,y), 4326);
-
-                                            -- 1. Remove points outside geographic land boundary of manhattan
-
-                                            DROP TABLE IF EXISTS %(tmp_tbl)s;
-
-                                            CREATE TABLE %(tmp_tbl)s as
-                                            select st_buffer(st_concavehull(all_pts,50)::geography,%(buf_rad)s)::geometry geom
-                                                from
-                                                (SELECT ST_Collect(f.the_geom) as all_pts
-                                                    FROM (
-                                                    SELECT (ST_Dump(geom)).geom as the_geom
-                                                    FROM pluto_centroids)
-                                                    as f)
-                                                as f1;
-
-                                            delete from %(latt_tbl)s l
-                                            using %(tmp_tbl)s t
-                                            where not st_within(l.geom,t.geom);
-
-                                            drop table %(tmp_tbl)s;
+                                                """ % T )
 
 
-                                            -- 2. match lattice points with closest tax lots and collect addresses
-                                            DROP TABLE IF EXISTS %(tmp_tbl_2)s;
-                                            CREATE TABLE %(tmp_tbl_2)s as
-                                                    SELECT st_collect(pc.geom) all_pts
-                                                    FROM pluto_centroids pc
-                                                    INNER JOIN pluto p on p.gid=pc.p_gid
-                                                    WHERE NOT p.zipcode=0
-                                                    AND p.real_address is true;
+
+            # create and push X/Y points to pgsql -- set geom at end
+            pt                              =   0
+            for i in range(0,lat_segs):
+                lat_d                       =   lat_mid_distances[i]
+                for j in range(0,lon_segs):
+                    lon_d                   =   lon_mid_distances[j]
+                    T                       =   {   'table_name'        :lattice_table_name,
+                                                    'X'                 :str(min_x),
+                                                    'Y'                 :str(min_y),
+                                                    'n_dist'            :str(lat_d),
+                                                    'ne_dist'           :str(np.sqrt(lat_d**2 + lon_d**2)),
+                                                    'e_dist'            :str(lon_d),
+                                                    'n_rad'             :str(0),
+                                                    'ne_rad'            :str(45),
+                                                    'e_rad'             :str(90)   }
+                    # (lat_min,lon_min) is southwest most point
+                    # lattice created by moving northeast
+
+                    ## North     azimuth 0       (0)
+                    ## East      azimuth 90      (pi/2)
+                    ## South     azimuth 180     (pi)
+                    ## West      azimuth 270     (pi*1.5)
+                    cmd                     =   """
+                                                INSERT INTO %(table_name)s(x,y)
+                                                    select
+                                                        st_x(e_geom::geometry(Point,4326))  e_geom_x,
+                                                        st_y(n_geom::geometry(Point,4326))  n_geom_y
+                                                    FROM
+                                                        (select
+                                                            ST_Project( st_geomfromtext('Point(%(X)s %(Y)s)',4326),
+                                                                        %(n_dist)s,
+                                                                        radians(%(n_rad)s)) n_geom) as foo1,
+                                                        (select
+                                                            ST_Project( st_geomfromtext('Point(%(X)s %(Y)s)',4326),
+                                                                        %(e_dist)s,
+                                                                        radians(%(e_rad)s)) e_geom) as foo2;
+
+                                                """.replace('\n','')%T
+                    conn.set_isolation_level(   0)
+                    cur.execute(                cmd)
+
+            T                               =   {  'latt_tbl'           :   lattice_table_name,
+                                                   'tmp_tbl'            :   'tmp_'+INSTANCE_GUID,
+                                                   'tmp_tbl_2'          :   'tmp_'+INSTANCE_GUID+'_2',
+                                                   'tmp_tbl_3'          :   'tmp_'+INSTANCE_GUID+'_3',
+                                                   'buf_rad'            :   str(int((pt_buff_in_miles *
+                                                                              meters_in_one_mile)/2.0))}
+
+            conn.set_isolation_level(           0)
+            cur.execute(                        """
+                                                UPDATE %(latt_tbl)s SET geom = ST_SetSRID(ST_MakePoint(x,y), 4326);
+
+                                                -- 1. Remove points outside geographic land boundary of manhattan
+
+                                                DROP TABLE IF EXISTS %(tmp_tbl)s;
+
+                                                CREATE TABLE %(tmp_tbl)s as
+                                                select st_buffer(st_concavehull(all_pts,50)::geography,%(buf_rad)s)::geometry geom
+                                                    from
+                                                    (SELECT ST_Collect(f.the_geom) as all_pts
+                                                        FROM (
+                                                        SELECT (ST_Dump(geom)).geom as the_geom
+                                                        FROM pluto_centroids)
+                                                        as f)
+                                                    as f1;
+
+                                                delete from %(latt_tbl)s l
+                                                using %(tmp_tbl)s t
+                                                where not st_within(l.geom,t.geom);
+
+                                                drop table %(tmp_tbl)s;
 
 
-                                            DROP TABLE IF EXISTS %(tmp_tbl_3)s;
-                                            CREATE TABLE %(tmp_tbl_3)s as
-                                            WITH res AS (
-                                                SELECT
-                                                    l.gid l_gid,
-                                                    st_closestpoint(t.all_pts,l.geom) t_geom,
-                                                    ROW_NUMBER() OVER(PARTITION BY l.geom
-                                                                      ORDER BY st_closestpoint(t.all_pts,l.geom) DESC) AS rk
-                                                FROM %(latt_tbl)s l,%(tmp_tbl_2)s t
-                                                )
-                                            SELECT s.l_gid l_gid,p.gid p_gid
-                                                FROM res s
-                                                INNER JOIN pluto_centroids pc on pc.geom=s.t_geom
-                                                INNER JOIN pluto p on p.gid=pc.p_gid
-                                                WHERE s.rk = 1;
+                                                -- 2. match lattice points with closest tax lots and collect addresses
+                                                DROP TABLE IF EXISTS %(tmp_tbl_2)s;
+                                                CREATE TABLE %(tmp_tbl_2)s as
+                                                        SELECT st_collect(pc.geom) all_pts
+                                                        FROM pluto_centroids pc
+                                                        INNER JOIN pluto p on p.gid=pc.p_gid
+                                                        WHERE NOT p.zipcode=0
+                                                        AND p.real_address is true;
 
 
-                                            update %(latt_tbl)s l
-                                            set
-                                                address = p.address,
-                                                bbl = p.bbl,
-                                                zipcode = p.zipcode
-                                            from %(tmp_tbl_3)s t
-                                            INNER JOIN pluto p on p.gid=t.p_gid
-                                            WHERE t.l_gid = l.gid;
-
-                                            drop table %(tmp_tbl_3)s;
-                                            drop table %(tmp_tbl_2)s;
-
-
-                                            -- 3. remove lattice points furthest from tax lot having duplicate BBL values
-                                            DROP TABLE IF EXISTS %(tmp_tbl_2)s;
-                                            CREATE TABLE %(tmp_tbl_2)s as
+                                                DROP TABLE IF EXISTS %(tmp_tbl_3)s;
+                                                CREATE TABLE %(tmp_tbl_3)s as
                                                 WITH res AS (
                                                     SELECT
                                                         l.gid l_gid,
-                                                        ROW_NUMBER() OVER(PARTITION BY l.bbl
-                                                                          ORDER BY st_distance(pc.geom,l.geom) ASC) AS rk
-
-                                                    FROM %(latt_tbl)s l
-                                                    INNER JOIN pluto p on p.bbl=l.bbl
-                                                    INNER JOIN pluto_centroids pc on pc.p_gid = p.gid
+                                                        st_closestpoint(t.all_pts,l.geom) t_geom,
+                                                        ROW_NUMBER() OVER(PARTITION BY l.geom
+                                                                          ORDER BY st_closestpoint(t.all_pts,l.geom) DESC) AS rk
+                                                    FROM %(latt_tbl)s l,%(tmp_tbl_2)s t
                                                     )
-                                                SELECT s.l_gid l_gid
+                                                SELECT s.l_gid l_gid,p.gid p_gid
                                                     FROM res s
+                                                    INNER JOIN pluto_centroids pc on pc.geom=s.t_geom
+                                                    INNER JOIN pluto p on p.gid=pc.p_gid
                                                     WHERE s.rk = 1;
 
-                                            DROP TABLE IF EXISTS %(tmp_tbl_3)s;
-                                            CREATE TABLE %(tmp_tbl_3)s as
-                                                select *
-                                                from %(latt_tbl)s l
-                                                WHERE EXISTS (select 1 from %(tmp_tbl_2)s t where t.l_gid=l.gid);
-                                            drop table %(latt_tbl)s;
-                                            ALTER TABLE %(tmp_tbl_3)s rename to %(latt_tbl)s;
 
-                                            DROP TABLE IF EXISTS %(tmp_tbl_2)s;
-                                            DROP TABLE IF EXISTS %(tmp_tbl_3)s;
+                                                update %(latt_tbl)s l
+                                                set
+                                                    address = p.address,
+                                                    bbl = p.bbl,
+                                                    zipcode = p.zipcode
+                                                from %(tmp_tbl_3)s t
+                                                INNER JOIN pluto p on p.gid=t.p_gid
+                                                WHERE t.l_gid = l.gid;
 
-
-
-                                            """ % T )
+                                                drop table %(tmp_tbl_3)s;
+                                                drop table %(tmp_tbl_2)s;
 
 
-        T.update(                           { 'latt_tbl'            :   lattice_table_name,})
+                                                -- 3. remove lattice points furthest from tax lot having duplicate BBL values
+                                                DROP TABLE IF EXISTS %(tmp_tbl_2)s;
+                                                CREATE TABLE %(tmp_tbl_2)s as
+                                                    WITH res AS (
+                                                        SELECT
+                                                            l.gid l_gid,
+                                                            ROW_NUMBER() OVER(PARTITION BY l.bbl
+                                                                              ORDER BY st_distance(pc.geom,l.geom) ASC) AS rk
 
-        # PROVE THAT ALL ADDRESSES ARE UNIQUE ( assuming no two addresses have the same BBL )
-        assert True                    ==   pd.read_sql(""" select all_bbl=uniq_bbl _bool
-                                                            from
-                                                                (select count(distinct y1.bbl) uniq_bbl
-                                                                    from %(latt_tbl)s y1) as f1,
-                                                                (select count(y2.bbl) all_bbl
-                                                                    from %(latt_tbl)s y2) as f2
-                                                        """ % T,routing_eng)._bool[0]
+                                                        FROM %(latt_tbl)s l
+                                                        INNER JOIN pluto p on p.bbl=l.bbl
+                                                        INNER JOIN pluto_centroids pc on pc.p_gid = p.gid
+                                                        )
+                                                    SELECT s.l_gid l_gid
+                                                        FROM res s
+                                                        WHERE s.rk = 1;
 
-    def make_usps_table(self):
-        py_path.append(                         os_path.join(os_environ['BD'],'geolocation/USPS'))
-        from USPS_syntax_pdf_scrape         import *
-        py_path.append(                         os_path.join(os_environ['BD'],'html'))
-        from scrape_vendors import *
-        SV = Scrape_Vendors()
+                                                DROP TABLE IF EXISTS %(tmp_tbl_3)s;
+                                                CREATE TABLE %(tmp_tbl_3)s as
+                                                    select *
+                                                    from %(latt_tbl)s l
+                                                    WHERE EXISTS (select 1 from %(tmp_tbl_2)s t where t.l_gid=l.gid);
+                                                drop table %(latt_tbl)s;
+                                                ALTER TABLE %(tmp_tbl_3)s rename to %(latt_tbl)s;
 
-        # Files
-        dir_path = os_path.join(os_environ['BD'],'geolocation/USPS')
-        fpath_pdf                               =   dir_path + '/usps_business_abbr.pdf'
-        fpath_xml                               =   dir_path + '/usps_business_abbr.xml'
+                                                DROP TABLE IF EXISTS %(tmp_tbl_2)s;
+                                                DROP TABLE IF EXISTS %(tmp_tbl_3)s;
 
-        street_abbr_csv                         =   dir_path + '/usps_street_abbr.csv'
-        biz_abbr_csv                            =   dir_path + '/usps_business_abbr.csv'
-        regex_biz_abbr_csv                      =   dir_path + '/usps_business_abbr_regex.csv'
-        regex_street_abbr_csv                   =   dir_path + '/usps_street_abbr_regex.csv'
-        # t                                       =   extract_pdf_contents_from_stdout(fpath_pdf)
 
-        A = load_from_file(street_abbr_csv).ix[:,['common_use','usps_abbr']]
-        B = load_from_file(biz_abbr_csv).ix[:,['common_use','usps_abbr']]
 
-        # Asserts Based on Previous Run
-        assert len(A)==482
-        assert len(B)==5969
-        assert len(A)+len(B)==6451
+                                                """ % T )
 
-        B.to_sql('usps',eng,index=False)
-        A.to_sql('tmp_usps',eng,index=False)
 
-        SV.SF.PGFS.Run.make_column_primary_serial_key('usps','gid',True)
-        SV.SF.PGFS.Run.make_column_primary_serial_key('tmp_usps','gid',True)
+            T.update(                           { 'latt_tbl'            :   lattice_table_name,})
 
-        conn.set_isolation_level(0)
-        cur.execute("""
+            # PROVE THAT ALL ADDRESSES ARE UNIQUE ( assuming no two addresses have the same BBL )
+            assert True                    ==   pd.read_sql(""" select all_bbl=uniq_bbl _bool
+                                                                from
+                                                                    (select count(distinct y1.bbl) uniq_bbl
+                                                                        from %(latt_tbl)s y1) as f1,
+                                                                    (select count(y2.bbl) all_bbl
+                                                                        from %(latt_tbl)s y2) as f2
+                                                            """ % T,routing_eng)._bool[0]
 
-        alter table usps add column abbr_type text;
-        update usps set abbr_type='business';
+        def usps_table(self):
+            py_path.append(                         os_path.join(os_environ['BD'],'geolocation/USPS'))
+            from USPS_syntax_pdf_scrape         import *
+            py_path.append(                         os_path.join(os_environ['BD'],'html'))
+            from scrape_vendors import *
+            SV = Scrape_Vendors()
 
-        alter table tmp_usps add column abbr_type text;
-        update tmp set abbr_type='street';
+            # Files
+            dir_path = os_path.join(os_environ['BD'],'geolocation/USPS')
+            fpath_pdf                               =   dir_path + '/usps_business_abbr.pdf'
+            fpath_xml                               =   dir_path + '/usps_business_abbr.xml'
 
-        insert into usps (common_use,usps_abbr,abbr_type)
-        select t.common_use,t.usps_abbr,t.abbr_type
-        from tmp_usps t;
+            street_abbr_csv                         =   dir_path + '/usps_street_abbr.csv'
+            biz_abbr_csv                            =   dir_path + '/usps_business_abbr.csv'
+            regex_biz_abbr_csv                      =   dir_path + '/usps_business_abbr_regex.csv'
+            regex_street_abbr_csv                   =   dir_path + '/usps_street_abbr_regex.csv'
+            # t                                       =   extract_pdf_contents_from_stdout(fpath_pdf)
 
-        drop table tmp_usps;
-        """)
+            A = load_from_file(street_abbr_csv).ix[:,['common_use','usps_abbr']]
+            B = load_from_file(biz_abbr_csv).ix[:,['common_use','usps_abbr']]
+
+            # Asserts Based on Previous Run
+            assert len(A)==482
+            assert len(B)==5969
+            assert len(A)+len(B)==6451
+
+            B.to_sql('usps',eng,index=False)
+            A.to_sql('tmp_usps',eng,index=False)
+
+            SV.SF.PGFS.Run.make_column_primary_serial_key('usps','gid',True)
+            SV.SF.PGFS.Run.make_column_primary_serial_key('tmp_usps','gid',True)
+
+            conn.set_isolation_level(0)
+            cur.execute("""
+
+            alter table usps add column abbr_type text;
+            update usps set abbr_type='business';
+
+            alter table tmp_usps add column abbr_type text;
+            update tmp set abbr_type='street';
+
+            insert into usps (common_use,usps_abbr,abbr_type)
+            select t.common_use,t.usps_abbr,t.abbr_type
+            from tmp_usps t;
+
+            drop table tmp_usps;
+            """)
+
+        def mn_zipcodes(self):
+            """
+            incomplete and untested
+            """
+            src = 'http://www.unitedstateszipcodes.org/zip_code_database.csv'
+            z = pd.read_csv(src)
+            x = z[(z.state=='NY')&(z.county=='New York County')&(z.type!='PO BOX')].sort('zip')
+
+            # print len(x)
+            # print x.type.unique().tolist()
+            # print str(x.zip.tolist())
+            #
+            # # result
+            # mn_zipcodes = [10001, 10002, 10003, 10004, 10005, 10006,
+            #                10007, 10009, 10010, 10011, 10012, 10013,
+            #                10014, 10015, 10016, 10017, 10018, 10019,
+            #                10020, 10021, 10022, 10023, 10024, 10025,
+            #                10026, 10027, 10028, 10029, 10030, 10031,
+            #                10032, 10033, 10034, 10035, 10036, 10037,
+            #                10038, 10039, 10040, 10041, 10043, 10044,
+            #                10045, 10046, 10047, 10048, 10055, 10060,
+            #                10065, 10069, 10072, 10075, 10079, 10080,
+            #                10081, 10082, 10087, 10090, 10094, 10095,
+            #                10096, 10098, 10099, 10102, 10103, 10104,
+            #                10105, 10106, 10107, 10109, 10110, 10111,
+            #                10112, 10114, 10115, 10117, 10118, 10119,
+            #                10120, 10121, 10122, 10123, 10124, 10125,
+            #                10126, 10128, 10130, 10131, 10132, 10133,
+            #                10138, 10149, 10151, 10152, 10153, 10154,
+            #                10155, 10157, 10158, 10160, 10161, 10162,
+            #                10164, 10165, 10166, 10167, 10168, 10169,
+            #                10170, 10171, 10172, 10173, 10174, 10175,
+            #                10176, 10177, 10178, 10179, 10184, 10196,
+            #                10197, 10199, 10203, 10211, 10212, 10213,
+            #                10256, 10257, 10258, 10259, 10260, 10261,
+            #                10265, 10269, 10270, 10271, 10273, 10275,
+            #                10277, 10278, 10279, 10280, 10281, 10282,
+            #                10285, 10286, 10292]

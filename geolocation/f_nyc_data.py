@@ -2,6 +2,7 @@ import pandas as pd
 from re import sub as re_sub  # re_sub('pattern','repl','string','count')
 from re import search as re_search # re_search('pattern','string')
 from json import dumps as j_dumps
+from os.path import isfile as os_path_isfile
 
 def create_numbered_streets(a='numbered_streets_from_lots',street_column='addr'):
 
@@ -60,15 +61,16 @@ def create_numbered_streets(a='numbered_streets_from_lots',street_column='addr')
     return numbered_streets
 
 
-SND_NON_S_PATH = '/Users/admin/Projects/GIS/table_data/snd14Bcow_non_s_recs.csv'
-SND_S_PATH = '/Users/admin/Projects/GIS/table_data/snd14Bcow_s_recs.csv'
-
 def parse_NYC_snd_datafile(fpath=''):
 
-    f = open(fpath,'r')
-    x=f.readlines()
-    f.close()
-    
+    f                                   =   open(fpath,'r')
+    x                                   =   f.readlines()
+    f.close(                                )
+
+    base_path                           =   fpath.rstrip('.txt')
+    SND_NON_S_PATH                      =   base_path + '_non_s_recs.csv'
+    SND_S_PATH                          =   base_path + '_s_recs.csv'
+
     print '\n',SND_NON_S_PATH,'\n',SND_S_PATH,'\n'
 
     # Characters Allowed:  [a-z0-9A-Z],[-&'/]
@@ -184,6 +186,7 @@ def parse_NYC_snd_datafile(fpath=''):
     df_non_s = df_non_s.ix[:,ns_cols]
     print '\n',len(df_non_s),'non-S-Type records\n'
     print df_non_s.head()
+    assert False==os_path_isfile(SND_NON_S_PATH)
     df_non_s.to_csv(SND_NON_S_PATH)
     # df_non_s.ix[:300,:]
 
@@ -192,6 +195,7 @@ def parse_NYC_snd_datafile(fpath=''):
     df_s = df_s.ix[:,s_cols]
     print '\n',len(df_s),'S-Type records\n'
     print df_s.head()
+    assert False==os_path_isfile(SND_S_PATH)
     df_s.to_csv(SND_S_PATH)
     # df_s.ix[:300,:]
     return 'success'

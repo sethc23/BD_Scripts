@@ -12,8 +12,6 @@ from subprocess                     import PIPE             as sub_PIPE
 
 
 
-
-
 def extract_pdf_contents_from_stdout(fpath_pdf):
     cmd                                 =   'pdftohtml -i -stdout -xml %s' % fpath_pdf
     p                                   =   sub_popen(cmd,stdout=sub_PIPE,shell=True)

@@ -4,7 +4,7 @@ from sqlalchemy import create_engine
 from re import sub as re_sub  # re_sub('pattern','repl','string','count')
 from sys import path as sys_path
 
-from f_postgres import clean_street_names,ST_PREFIX_DICT,ST_SUFFIX_DICT
+from f_postgres import clean_street_names,routing_eng #,ST_PREFIX_DICT,ST_SUFFIX_DICT
 #from f_postgres import update_address_idx_matches
 
 # engine = create_engine(r'postgresql://postgres:postgres@192.168.3.52:8800/routing')
@@ -13,7 +13,7 @@ from f_postgres import clean_street_names,ST_PREFIX_DICT,ST_SUFFIX_DICT
 def find_address_idx_matches(addr_list):
     cmd = ('select * from address_idx '+
            'where addr = any(array'+str(addr_list)+')')
-    return pd.read_sql_query(cmd,engine)
+    return pd.read_sql_query(cmd,routing_eng)
 
 def explode_addresses(df='cols = addr,norm_addr'):
     
@@ -80,7 +80,7 @@ def match_levenshtein_series(ur='user_recognized_addr',r='remaining_addr',df='so
         and a.one_word is true
         order by levenshtein(a.street,%(1)s,1,0,4)
         """.replace('\n',' ') % T
-    dbm = db_matches = pd.read_sql_query(cmd,engine)
+    dbm = db_matches = pd.read_sql_query(cmd,routing_eng)
     dbm = dbm[dbm.levenshtein<=3]
     ur,r = update_with_idx_matches(ur,r,dbm,input_addr_col=T['1'],result_idx_col=T['2'])
     get_show_info(r,df,show_info)
@@ -95,7 +95,7 @@ def match_levenshtein_series(ur='user_recognized_addr',r='remaining_addr',df='so
         and a.one_word is true
         order by a.street
         """.replace('\n',' ') % T
-    dbm = db_matches = pd.read_sql_query(cmd,engine)
+    dbm = db_matches = pd.read_sql_query(cmd,routing_eng)
     ur,r = update_with_idx_matches(ur,r,dbm,input_addr_col=T['1'],result_idx_col=T['2'])
     get_show_info(r,df,show_info)
     
@@ -105,7 +105,7 @@ def match_levenshtein_series(ur='user_recognized_addr',r='remaining_addr',df='so
         from address_idx a
         inner join unnest(array[%(3)s]) %(1)s
         on levenshtein(a.street,%(1)s,1,1,4)<=1""".replace('\n',' ') % T
-    dbm = db_matches = pd.read_sql_query(cmd,engine)
+    dbm = db_matches = pd.read_sql_query(cmd,routing_eng)
     ur,r = update_with_idx_matches(ur,r,dbm,input_addr_col=T['1'],result_idx_col=T['2'])
     get_show_info(r,df,show_info)
     
@@ -116,7 +116,7 @@ def match_levenshtein_series(ur='user_recognized_addr',r='remaining_addr',df='so
         inner join unnest(array[%(3)s]) %(1)s
         on street ~* %(1)s
         """.replace('\n',' ') % T
-    dbm = db_matches = pd.read_sql_query(cmd,engine)
+    dbm = db_matches = pd.read_sql_query(cmd,routing_eng)
     ur,r = update_with_idx_matches(ur,r,dbm,input_addr_col=T['1'],result_idx_col=T['2'])
     get_show_info(r,df,show_info)
 
@@ -133,7 +133,7 @@ def match_simple_regex(ur='user_recognized_addr',r='remaining_addr',df='source_d
         on a.street ~* %(1)s
         where one_word is true
         """.replace('\n',' ') % T
-    dbm = db_matches = pd.read_sql_query(cmd,engine)
+    dbm = db_matches = pd.read_sql_query(cmd,routing_eng)
     ur,r = update_with_idx_matches(ur,r,dbm,input_addr_col=from_label,result_idx_col='idx')
     get_show_info(r,df,show_info)
     return ur,r
@@ -148,7 +148,7 @@ def match_simple(ur='user_recognized_addr',r='remaining_addr',df='source_df',fro
         inner join unnest(array[%(3)s]) %(1)s
         on a.street = %(1)s
         """.replace('\n',' ') % T
-    dbm = db_matches = pd.read_sql_query(cmd,engine)
+    dbm = db_matches = pd.read_sql_query(cmd,routing_eng)
     ur,r = update_with_idx_matches(ur,x,dbm,input_addr_col=T['1'],result_idx_col=T['2'])
     get_show_info(r,x,show_info)
     return ur,r
@@ -177,7 +177,7 @@ def pagc_normalize_address(r,from_label='full_address',to_label='norm_addr'):
         select r,lower(pprint_addy(pagc_normalize_address(r))) %(to_label)s
         from unnest(array[%(arr)s]) r
         """.replace('\n','') % T
-    n = pd.read_sql_query(cmd,engine)
+    n = pd.read_sql_query(cmd,routing_eng)
     n_map = dict(zip(n.r.tolist(),n[to_label].tolist()))
     r[to_label+'_num'] = r[from_label].map(lambda s: n_map[s].split(',')[0].split(' ')[0])
     r[to_label] = r[from_label].map(lambda s: str(' '.join(n_map[s].split(',')[0].split(' ')[1:])))
