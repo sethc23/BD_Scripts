@@ -1984,3 +1984,7 @@ class Tables:
             #                10265, 10269, 10270, 10271, 10273, 10275,
             #                10277, 10278, 10279, 10280, 10281, 10282,
             #                10285, 10286, 10292]
+
+        def nyc_snd(self):
+            from f_nyc_data import *
+            load_parsed_snd_datafile_into_db()

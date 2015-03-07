@@ -1,8 +1,22 @@
-import pandas as pd
-from re import sub as re_sub  # re_sub('pattern','repl','string','count')
-from re import search as re_search # re_search('pattern','string')
-from json import dumps as j_dumps
-from os.path import isfile as os_path_isfile
+
+from os                             import environ          as os_environ
+from uuid                           import uuid4            as get_guid
+from os                             import path             as os_path
+from sys                            import path             as py_path
+from os.path                        import isfile           as os_path_isfile
+
+import                                  pandas              as pd
+from re                             import sub              as re_sub  # re_sub('pattern','repl','string','count')
+from re                             import search           as re_search # re_search('pattern','string')
+from json                           import dumps            as j_dumps
+
+
+BASE_SAVE_PATH                      =   os_path.join(os_environ['BD'],'geolocation/NYC/snd15a/')
+src_fpath                           =   BASE_SAVE_PATH+'snd15Acow.txt'
+base_path                           =   src_fpath.rstrip('.txt')
+SND_NON_S_PATH                      =   base_path + '_non_s_recs.csv'
+SND_S_PATH                          =   base_path + '_s_recs.csv'
+
 
 def create_numbered_streets(a='numbered_streets_from_lots',street_column='addr'):
 
@@ -199,3 +213,90 @@ def parse_NYC_snd_datafile(fpath=''):
     df_s.to_csv(SND_S_PATH)
     # df_s.ix[:300,:]
     return 'success'
+
+def load_parsed_snd_datafile_into_db():
+    py_path.append(os_path.join(os_environ['BD'],'html'))
+    from scrape_vendors import *
+    SV = Scrape_Vendors()
+    T                               =   SV.T
+
+    d = pd.read_csv(SND_NON_S_PATH,index_col=0)
+    d = d[d.boro==1].drop(['len_full_name','min_SNL','stn20'],axis=1)
+    for it in d.columns.tolist():
+        d[it] = d[it].map(lambda s: s if type(s)!=str else s.strip())
+
+    # 1. PROVE ONLY MN STREETS ARE CONSIDERED
+    assert len(d.boro.unique().tolist())==1
+    assert d.boro.unique().tolist()[0]==1
+    # 2. Remove non-essential Geographic Feature Types (GFT)
+    remove_gft_features = ['B','C','J','O','R']
+    rem_idx = d[d.GFT.isin(remove_gft_features)].index.tolist()
+    d = d.drop(rem_idx,axis=0)
+    assert len(d[d.GFT.isin(remove_gft_features)])==0
+    # 3. PROVE ALL STREET NAMES ARE UPPER CASE
+    d['stname'] = d['stname'].map(lambda s: s.upper())
+    assert len(d[d.stname.str.match('[a-z]+')])==0
+    # 4. Remove Roadbeds (Horizontal Typology Type Code (ht_name_type_code='R')
+    rem_idx = d[d.ht_name_type_code=='R'].index.tolist()
+    d = d.drop(rem_idx,axis=0)
+    assert len(d[d.ht_name_type_code=='R'])==0
+
+    dd = pd.read_csv(SND_S_PATH,index_col=0)
+    l_funct = lambda s: 0 if len(str(s).strip())==0 else int(s)
+    dd['progen_b10sc_1'] = dd.progen_b10sc_1.map(l_funct)
+    dd['progen_b10sc_1'] = dd.progen_b10sc_1.astype(int)
+    dd['progen_b10sc_2'] = dd.progen_b10sc_2.map(l_funct)
+    dd['progen_b10sc_2'] = dd.progen_b10sc_2.astype(int)
+    dd['sc5_1'] = dd.progen_b10sc_1.map(lambda s: 0 if len(str(s).strip())==0
+                                        else 0 if str(s)[1:6]=='' else int(str(s)[1:6]))
+    dd['sc5_2'] = dd.progen_b10sc_2.map(lambda s: 0 if len(str(s).strip())==0
+                                        else 0 if str(s)[1:6]=='' else int(str(s)[1:6]))
+    dd['sc7_1'] = dd.progen_b10sc_1.map(lambda s: 0 if len(str(s).strip())==0
+                                        else 0 if str(s)[1:8]=='' else int(str(s)[1:8]))
+    dd['sc7_2'] = dd.progen_b10sc_2.map(lambda s: 0 if len(str(s).strip())==0
+                                        else 0 if str(s)[1:8]=='' else int(str(s)[1:8]))
+    dd['scL3_1'] = dd.progen_b10sc_1.map(lambda s: 0 if len(str(s).strip())==0
+                                         else 0 if str(s)[8:]=='' else int(str(s)[8:]))
+    dd['scL3_2'] = dd.progen_b10sc_2.map(lambda s: 0 if len(str(s).strip())==0
+                                         else 0 if str(s)[8:]=='' else int(str(s)[8:]))
+
+    dd = dd[dd.boro==1].drop(['numeric_ind','len_full_name'],axis=1)
+    for it in dd.columns.tolist():
+        dd[it] = dd[it].map(lambda s: s if type(s)!=str else s.strip())
+
+    # 1. PROVE ONLY MN STREETS ARE CONSIDERED
+    assert len(dd.boro.unique().tolist())==1
+    assert dd.boro.unique().tolist()[0]==1
+    # 2. Remove non-essential Geographic Feature Types (GFT)
+    remove_features = ['B','C','J','O','R']
+    rem_idx = dd[dd.GFT.isin(['B','C','J','O','R'])].index.tolist()
+    dd = dd.drop(rem_idx,axis=0)
+    assert len(dd[dd.GFT.isin(['B','C','J','O','R'])])==0
+    # 3. PROVE ALL STREET NAMES ARE UPPER CASE
+    dd['stname'] = dd['stname'].map(lambda s: s.upper())
+    assert len(dd[dd.stname.str.match('[a-z]+')])==0
+
+    ##
+    # START STREET DATAFRAME
+    ##
+
+    streets = d.copy()
+    # PROVE ALL NAP'S WERE REMOVED
+    rem_idx = streets[streets.GFT.isin(['N','X'])].index.tolist()
+    streets = streets.drop(rem_idx,axis=0)
+    assert len(streets[streets.GFT.isin(['N','X'])])==0
+
+    grps = streets.groupby('sc5')
+    df_cols = ['primary_name','variation','full_variation']
+    df = pd.DataFrame(columns=df_cols)
+    for k,v in grps.groups.iteritems():
+        t = grps.get_group(k)
+        non_primary_idx = t[t.primary_flag!='P'].index.tolist()
+        primary_idx = t[t.index.isin(non_primary_idx)==False].index.tolist()
+        tdf = pd.DataFrame()
+        tdf['variation'] = t.ix[non_primary_idx,'stname'].tolist()
+        tdf['full_variation'] = t.ix[non_primary_idx,'full_stname'].tolist()
+        tdf['primary_name'] = t.ix[primary_idx,'full_stname'].tolist()[0]
+        df = df.append(tdf,ignore_index=True)
+
+    df.to_sql('nyc_snd',routing_eng,index=False)
