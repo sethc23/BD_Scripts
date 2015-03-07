@@ -1649,6 +1649,126 @@ class pgSQL_Functions:
             conn.set_isolation_level(       0)
             cur.execute(                    cmd)
 
+class pgSQL_Triggers:
+
+    def __init__(self):
+        self.Create                     =   self.Create()
+        self.Destroy                    =   self.Destroy()
+
+    class Create:
+        def __init__(self):
+            self.Create                 =   self
+        def z_auto_add_primary_key(self):
+            c                           =   """
+                DROP FUNCTION if exists z_auto_add_primary_key();
+
+                CREATE OR REPLACE FUNCTION z_auto_add_primary_key()
+                  RETURNS event_trigger AS
+                $BODY$
+                DECLARE
+                    has_index boolean;
+                    tbl text;
+                    _seq text;
+                BEGIN
+                    has_index = (select relhasindex from pg_class
+                            where relnamespace=2200
+                            and relkind='r'
+                            order by oid desc limit 1);
+
+                    IF (
+                        pg_trigger_depth()=0
+                        and has_index=False )
+                    THEN
+                        tbl = (select relname t from pg_class
+                            where relnamespace=2200
+                            and relkind='r'
+                            order by oid desc limit 1);
+                        _seq = format('%I_uid_seq',tbl);
+                        execute format('alter table %I add column uid serial primary key',tbl);
+                        execute format('alter table %I alter column uid set default z_next_free(
+                                    ''%I'',
+                                    ''uid'',
+                                    ''%I'')',tbl,tbl,_seq);
+                    end if;
+                END;
+                $BODY$
+                  LANGUAGE plpgsql;
+
+
+                DROP EVENT TRIGGER if exists missing_primary_key_trigger;
+
+                CREATE EVENT TRIGGER missing_primary_key_trigger
+                ON ddl command end
+                WHEN TAG IN ('CREATE TABLE')
+                EXECUTE PROCEDURE z_auto_add_primary_key();
+
+                                                """
+            conn.set_isolation_level(           0)
+            cur.execute(                        c)
+        def z_auto_add_last_updated_field(self):
+            c                           =   """
+                DROP FUNCTION if exists z_auto_add_last_updated_field() cascade;
+
+                CREATE OR REPLACE FUNCTION z_auto_add_last_updated_field()
+                  RETURNS event_trigger AS
+                $BODY$
+                DECLARE
+                    last_table text;
+                    has_last_updated boolean;
+
+
+                BEGIN
+                    last_table := (select relname from pg_class
+                                 where relnamespace=2200
+                                 and relkind='r'
+                                 order by oid desc limit 1);
+
+                    SELECT count(*)>0 INTO has_last_updated FROM information_schema.columns
+                        where table_name='||quote_ident(last_table)||'
+                        and column_name='last_updated';
+
+                    IF (
+                        pg_trigger_depth()=0
+                        and has_last_updated=False )
+                    THEN
+                        execute format('alter table %I add column last_updated timestamp with time zone',last_table);
+                    end if;
+
+                END;
+                $BODY$
+                  LANGUAGE plpgsql;
+
+                DROP EVENT TRIGGER if exists missing_last_updated_field;
+
+                CREATE EVENT TRIGGER missing_last_updated_field
+                ON ddl_command_end
+                WHEN TAG IN ('CREATE TABLE')
+                EXECUTE PROCEDURE z_auto_add_last_updated_field();
+                                            """
+            conn.set_isolation_level(0)
+            cur.execute(c)
+
+    class Destroy:
+        def __init__(self):
+            self.Destroy                =   self
+        def z_auto_add_primary_key(self):
+            c                           =   """
+            DROP FUNCTION if exists
+                z_auto_add_primary_key() cascade;
+
+            DROP EVENT TRIGGER if exists missing_primary_key_trigger;
+                                            """
+            conn.set_isolation_level(0)
+            cur.execute(c)
+        def z_auto_add_last_updated_field(self):
+            c                           =   """
+            DROP FUNCTION if exists
+                z_auto_add_last_updated_field() cascade;
+
+            DROP EVENT TRIGGER if exists missing_last_updated_field;
+                                            """
+            conn.set_isolation_level(0)
+            cur.execute(c)
 
 class Tables:
     """
@@ -1667,6 +1787,7 @@ class Tables:
 
         def __init__(self):
             pass
+
 
         def scrape_lattice(self,pt_buff_in_miles,lattice_table_name):
             meters_in_one_mile              =   1609.34
@@ -1902,7 +2023,7 @@ class Tables:
             py_path.append(                         os_path.join(os_environ['BD'],'geolocation/USPS'))
             from USPS_syntax_pdf_scrape         import *
             py_path.append(                         os_path.join(os_environ['BD'],'html'))
-            from scrape_vendors import *
+            from scrape_vendors                 import *
             SV = Scrape_Vendors()
 
             # Files

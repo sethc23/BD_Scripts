@@ -1629,7 +1629,6 @@ class Scrape_Functions:
     def __init__(self,_parent):
         self.SV                     =   _parent
         self.T                      =   _parent.T
-        self.PGFS                   =   PGFS
         self.SF                     =   self
 
     def consolidate_yelp_urls(self):
