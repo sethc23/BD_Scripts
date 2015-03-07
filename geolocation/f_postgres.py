@@ -1530,6 +1530,7 @@ class pgSQL_Functions:
 
                 CREATE TYPE parsed_addr AS (
                     orig_addr character varying,
+                    bldg text,
                     num text,
                     pretype text,
                     predir text,
@@ -1546,13 +1547,14 @@ class pgSQL_Functions:
                 RETURNS %(fct_return)s
                 AS $$
 
-                    T = {   '_QUERY_STR'        :   query_str.replace('####','##'), }
+                    query_dict = {   '_QUERY_STR'        :   query_str.replace('####','##'), }
                     q=\"\"\"
                         select  orig_addr,
+                                (_parsed).building bldg,
                                 (_parsed).house_num num,
                                 (_parsed).pretype,
                                 (_parsed).predir,
-                                regexp_replace( (_parsed).name,'(.*)([Q]{4})(.*)','\\1 \\3','g') as name,
+                                regexp_replace( (_parsed).name,'(.*)([Q]{4})(.*)','\\\\1 \\\\3','g') as name,
                                 (_parsed).suftype,
                                 (_parsed).sufdir,
                                 (_parsed).city,
@@ -1566,17 +1568,28 @@ class pgSQL_Functions:
                                 from
                                     (
                                     select
-                                        z_custom_addr_pre_filter( (select rtrim(concat(num,'|',street,' ',city,' ',state,' ',zip))
-                                                                from parse_address( f1.address )) ) address,
+                                        z_custom_addr_pre_filter(
+
+                                            CASE count( (select * from regexp_matches(f1.address,
+                                                                        '^([0-9]+)([a-zA-Z]*)[\-]?([a-zA-Z0-9]*)',
+                                                                        'g')) )
+                                            WHEN 0 THEN concat(0,'|',f1.address)
+                                            WHEN 1 THEN regexp_replace(f1.address,
+                                                            '^([0-9]+)([\-]?)([a-zA-Z0-9]*)\s(.*)',
+                                                            '\\\\1\\\\2\\\\3|\\\\4')
+                                            END
+
+                                                                ) address,
                                         f1.zipcode zipcode,
                                         f1.address orig_addr
                                     from
                                         (
                                         ##(_QUERY_STR)s
                                         ) as f1
+                                    group by f1.address,f1.zipcode
                                     ) as f2
                             ) as f3;
-                    \"\"\" ## T
+                    \"\"\" ## query_dict
 
                     return plpy.execute(q)
 
@@ -1589,6 +1602,13 @@ class pgSQL_Functions:
             self.z_custom_addr_pre_filter()
             cur.execute(                    cmd)
         def z_custom_addr_pre_filter(self):
+            """
+
+            Most of these should really be systematically created from the NYC Street Name Dictionary (SND)
+
+            See here: http://www.nyc.gov/html/dcp/html/bytes/applbyte.shtml#geocoding_application
+
+            """
             cmd="""
 
                 CREATE OR REPLACE FUNCTION public.z_custom_addr_pre_filter(IN addr text,OUT new_addr text)
@@ -1597,23 +1617,38 @@ class pgSQL_Functions:
                     begin
 
                         select upper(rtrim(addr)) into new_addr;
+
                         select regexp_replace(new_addr,
-                                                '(.*)\|(.*)?(\s)(TERRACE)$',
-                                                '\\1|\\2 TERR') into new_addr;
+                                                '([0-9]+)\|(AVE|AVENUE|AV)[\s]?([a-zA-Z]*)$',
+                                                '0|\\1 \\2 \\3') into new_addr;
+
                         select regexp_replace(new_addr,
-                                                '(.*)\|(PARK TERR)$',
-                                                '\\1|PARK_TERR') into new_addr;
+                                                '([0-9]+)\|(WEST|EAST)\s(END|RIVER)\s(AVE|AVENUE|AV|DRIVE|DR|DRV)[\s]?([a-zA-Z]*)$',
+                                                '\\1|\\2QQQQ\\3 \\4 \\5') into new_addr;
+
+                        select regexp_replace(new_addr,
+                                                '(.*)\|(.*)?(\s)(TERRACE)[\s]?([a-zA-Z]*)$',
+                                                '\\1|\\2 TERR \\5') into new_addr;
+
                         select regexp_replace(new_addr,
                                                 '(.*)\|(LA)(\s)(.*)?',
-                                                '\\1|\\2qqqq\\4 ') into new_addr;
+                                                '\\1|\\2QQQQ\\4 ') into new_addr;
                         select regexp_replace(new_addr,
-                                                '([0-9]+)[\-]?([a-zA-Z]+)\|(.*)',
+                                                '([0-9]+)[\-]([a-zA-Z0-9]+)\|(.*)',
                                                 '\\1|\\3, Bldg. \\2') into new_addr;
                         select regexp_replace(new_addr,
-                                                '([0-9]+)[\-]([0-9]+)\|(.*)',
+                                                '([0-9]+)([a-zA-Z]+)\|(.*)',
                                                 '\\1|\\3, Bldg. \\2') into new_addr;
 
 
+                        -- PUT PIECES BACK TOGETHER
+                        --   1. Put 'Bldg. #' in the front.
+                        --   2. Replace '|' with ' '.
+
+                        select regexp_replace(new_addr,
+                                                '([0-9]+)\|(.*)(,\s)(Bldg\.)\s([a-zA-Z0-9]+)$',
+                                                'Bldg. \\5, \\1|\\2',
+                                                'g') into new_addr;
 
                         select regexp_replace(new_addr,
                                                 '(.*)?\|(.*)?',
@@ -1871,3 +1906,51 @@ class Tables:
                                                                 (select count(y2.bbl) all_bbl
                                                                     from %(latt_tbl)s y2) as f2
                                                         """ % T,routing_eng)._bool[0]
+
+    def make_usps_table(self):
+        py_path.append(                         os_path.join(os_environ['BD'],'geolocation/USPS'))
+        from USPS_syntax_pdf_scrape         import *
+        py_path.append(                         os_path.join(os_environ['BD'],'html'))
+        from scrape_vendors import *
+        SV = Scrape_Vendors()
+
+        # Files
+        dir_path = os_path.join(os_environ['BD'],'geolocation/USPS')
+        fpath_pdf                               =   dir_path + '/usps_business_abbr.pdf'
+        fpath_xml                               =   dir_path + '/usps_business_abbr.xml'
+
+        street_abbr_csv                         =   dir_path + '/usps_street_abbr.csv'
+        biz_abbr_csv                            =   dir_path + '/usps_business_abbr.csv'
+        regex_biz_abbr_csv                      =   dir_path + '/usps_business_abbr_regex.csv'
+        regex_street_abbr_csv                   =   dir_path + '/usps_street_abbr_regex.csv'
+        # t                                       =   extract_pdf_contents_from_stdout(fpath_pdf)
+
+        A = load_from_file(street_abbr_csv).ix[:,['common_use','usps_abbr']]
+        B = load_from_file(biz_abbr_csv).ix[:,['common_use','usps_abbr']]
+
+        # Asserts Based on Previous Run
+        assert len(A)==482
+        assert len(B)==5969
+        assert len(A)+len(B)==6451
+
+        B.to_sql('usps',eng,index=False)
+        A.to_sql('tmp_usps',eng,index=False)
+
+        SV.SF.PGFS.Run.make_column_primary_serial_key('usps','gid',True)
+        SV.SF.PGFS.Run.make_column_primary_serial_key('tmp_usps','gid',True)
+
+        conn.set_isolation_level(0)
+        cur.execute("""
+
+        alter table usps add column abbr_type text;
+        update usps set abbr_type='business';
+
+        alter table tmp_usps add column abbr_type text;
+        update tmp set abbr_type='street';
+
+        insert into usps (common_use,usps_abbr,abbr_type)
+        select t.common_use,t.usps_abbr,t.abbr_type
+        from tmp_usps t;
+
+        drop table tmp_usps;
+        """)

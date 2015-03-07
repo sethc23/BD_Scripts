@@ -1,11 +1,15 @@
 
 
+from os                             import environ          as os_environ
+from os                             import path             as os_path
+from sys                            import path             as py_path
 from bs4                            import BeautifulSoup    as soup
 import                                  pandas              as pd
 pd.set_option(                          'display.max_rows', 1000)
 from re                             import findall          as re_findall
 from subprocess                     import Popen            as sub_popen
 from subprocess                     import PIPE             as sub_PIPE
+
 
 
 
@@ -43,6 +47,36 @@ def make_dataframe_with_contents(_file_contents):
     g                                   =   pd.DataFrame(d)
     return g
 
+def street_abbrs_checks(A):
+    print 'add rows to adjust for cases where prim_suff was not included as common_use'
+    a = A.prim_suff.unique().tolist()
+    b = A.common_use.unique().tolist()
+    z = pd.DataFrame({'all_u':a})
+    z['cnt'] = z.all_u.map(lambda s: b.count(s))
+    z['common_use'] = a
+    suff_idx_map = dict(zip(A.prim_suff.tolist(),A.index.tolist()))
+    z['usps_abbr'] = z.all_u.map(lambda s: A.ix[suff_idx_map[s],'usps_abbr'])
+    z = z[z.cnt==0].drop(['cnt'],axis=1).rename(columns={'all_u':'prim_suff'})
+    print len(z),'rows added'
+    print '\n',z,'\n'
+    A = A.append(z,ignore_index=True).sort('prim_suff').reset_index(drop=True)
+
+
+    print len(A),'before haircut, e.g., remove nulls, dupes'
+    erroneous = A[(A.prim_suff.isnull()==True)|
+      (A.common_use.isnull()==True)|
+      (A.usps_abbr.isnull()==True)].reset_index(drop=True)
+    print '\nErroneous Rows:\n\n',erroneous
+    err_idx = erroneous.index.tolist()
+    A = A[A.index.isin(err_idx)==False]
+    print len(A),'after erroneous'
+    A['dupes'] = A.apply(lambda s: s[1]==s[2],axis=1)
+    dupe_idx = A[A.dupes==True].index.tolist()
+    prim_suff_list = A.prim_suff.tolist()
+    A['cnt'] = A.prim_suff.map(lambda s: prim_suff_list.count(s))
+    print '\n',A[(A.index.isin(dupe_idx)==True)].sort('cnt'),'\n'
+    A = A[A.index.isin(dupe_idx)==False].reset_index(drop=True)
+    print len(A),'after dupes'
 
 def get_street_abbrs(g):
     pgs_grp                                 =   g.groupby('page_num')
@@ -132,7 +166,7 @@ def get_street_abbrs(g):
     A = A[A.index.isin(dupe_idx)==False].reset_index(drop=True)
     print len(A),'after dupes'
 
-
+    street_abbrs_checks(A)
 
     print '\n','Save Path:\n\n\t\t',save_csv_path,'\n'
     z=raw_input('type "y" to confirm save...')
@@ -286,8 +320,8 @@ def generate_regex_from_parsed_data(A,common_use_col='common_use',abbrev_col='us
     df['combined']                          =   df.ix[:,['pattern','usps_abbr']].apply(
                                                     lambda s: (s[0],s[1].lower()),axis=1)
     usps_repl_list                          =   df.combined.tolist()
-
     return df,usps_repl_list
+
 
     # def one(fpath,the_list):
     #     with open(fpath,'w') as f:
@@ -335,19 +369,30 @@ def load_from_file(save_csv_path):
     return pd.read_csv(save_csv_path)
 
 
+from sys import argv
+if __name__ == '__main__':
+    return_var                      =   None
 
-dir_path                                    =   os_path.join(os_environ['BD'],'geolocation/USPS')
-fpath_pdf                                   =   dir_path + '/usps_business_abbr.pdf'
-fpath_xml                                   =   dir_path + '/usps_business_abbr.xml'
-save_csv_path                               =   dir_path + '/usps_business_abbr.csv'
 
-# t                                          =   extract_pdf_contents_from_stdout(fpath_pdf)
-# g                                          =   make_dataframe_with_contents(t)
+    dir_path                                    =   os_path.join(os_environ['BD'],'geolocation/USPS')
+    fpath_pdf                                   =   dir_path + '/usps_business_abbr.pdf'
+    fpath_xml                                   =   dir_path + '/usps_business_abbr.xml'
+    save_csv_path                               =   dir_path + '/usps_business_abbr.csv'
 
-# A                                          =   get_street_abbrs(g)
-# A                                          =   get_business_abbr(g)
 
-# save_to_file(                                  A,save_csv_path)
+    if len(argv)>1:
+        pass
+    # t                                          =   extract_pdf_contents_from_stdout(fpath_pdf)
+    # g                                          =   make_dataframe_with_contents(t)
 
-# A                                          =   load_from_file(save_csv_path)
+    # A                                          =   get_street_abbrs(g)
+    # A                                          =   get_business_abbr(g)
 
+    # save_to_file(                                  A,save_csv_path)
+
+    # A                                          =   load_from_file(save_csv_path)
+
+    # af,usps_repl_list = make_dataframe_with_regex_params(A,common_use_col='common_use',abbrev_col='usps_abbr')
+    # print 'Af',len(af)
+    # bf,usps_repl_list = make_dataframe_with_regex_params(B,common_use_col='common_use',abbrev_col='usps_abbr')
+    # print 'Bf',len(af)
