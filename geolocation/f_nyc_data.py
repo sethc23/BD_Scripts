@@ -9,7 +9,6 @@ from re                             import sub              as re_sub  # re_sub(
 from re                             import search           as re_search # re_search('pattern','string')
 
 
-
 BASE_SAVE_PATH                      =   os_path.join(os_environ['BD'],'geolocation/NYC/snd15a/')
 src_fpath                           =   BASE_SAVE_PATH+'snd15Acow.txt'
 base_path                           =   src_fpath.rstrip('.txt')
@@ -253,8 +252,8 @@ def parse_NYC_snd_datafile(fpath=''):
 
 def load_parsed_snd_datafile_into_db(table_name='nyc_snd',drop_prev=True):
     py_path.append(os_path.join(os_environ['BD'],'html'))
-    from scrape_vendors import *
-    SV = Scrape_Vendors()
+    from scrape_vendors             import Scrape_Vendors
+    SV                              =   Scrape_Vendors()
     T                               =   SV.T
 
     def push_first_part_to_sql(streets,table_name,drop_prev):
@@ -388,6 +387,9 @@ def load_parsed_snd_datafile_into_db(table_name='nyc_snd',drop_prev=True):
             from nyc_snd_tmp t
             where n.sc5=t.sc5_1;
 
+            -- 276 distinct sc5_1 in _tmp
+            -- 221 rows for below (276 without regex exclusions)
+
             update nyc_snd _orig set stname_grp = name_grp
             from
 
@@ -403,5 +405,7 @@ def load_parsed_snd_datafile_into_db(table_name='nyc_snd',drop_prev=True):
 
                 group by f2.s_sc5) as f1
             where s_sc5 = _orig.sc5::bigint;
+
+            -- 454 rows in nyc_snd with non-null stname_grp
 
             """

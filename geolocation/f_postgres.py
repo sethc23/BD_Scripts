@@ -1770,6 +1770,7 @@ class pgSQL_Triggers:
             conn.set_isolation_level(0)
             cur.execute(c)
 
+
 class Tables:
     """
 
@@ -2021,9 +2022,9 @@ class Tables:
 
         def usps_table(self):
             py_path.append(                         os_path.join(os_environ['BD'],'geolocation/USPS'))
-            from USPS_syntax_pdf_scrape         import *
+            from USPS_syntax_pdf_scrape         import load_from_file
             py_path.append(                         os_path.join(os_environ['BD'],'html'))
-            from scrape_vendors                 import *
+            from scrape_vendors                 import Scrape_Vendors
             SV = Scrape_Vendors()
 
             # Files
@@ -2107,5 +2108,5 @@ class Tables:
             #                10285, 10286, 10292]
 
         def nyc_snd(self):
-            from f_nyc_data import *
-            load_parsed_snd_datafile_into_db()
+            from f_nyc_data import load_parsed_snd_datafile_into_db
+            load_parsed_snd_datafile_into_db(table_name='nyc_snd',drop_prev=True)
