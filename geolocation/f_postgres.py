@@ -1508,10 +1508,7 @@ class pgSQL_Functions:
             cur.execute(                    cmd)
         def z_parse_NY_addrs(self):
             T = {'fct_name'                 :   'z_parse_NY_addrs',
-                 'fct_args_types'           :   [ ['IN','src_table','text'],
-                                                  ['IN','addr_col_lbl','text'],
-                                                  ['IN','zip_col_lbl','text'],
-                                                  ['IN','tmp_res_limit','integer'],],
+                 'fct_args_types'           :   [ ['','query_str','text'],],
                  'fct_return'               :   'SETOF parsed_addr',
                  'fct_lang'                 :   'plpythonu',
                  'cmt'                      :   """ Example:  ''select
@@ -1522,11 +1519,14 @@ class pgSQL_Functions:
                        'fct_types'          :   ', '.join([j[2] for j in T['fct_args_types'] if j[0].upper()!='OUT']),
                        })
 
+            for it in T['fct_args'].split(','):
+                arg=it.strip().split(' ')[0]
+                T.update({arg:arg})
 
             a="""
 
+                DROP TYPE IF EXISTS parsed_addr CASCADE;
                 DROP FUNCTION IF EXISTS %(fct_name)s( %(fct_types)s );
-                DROP TYPE IF EXISTS parsed_addr;
 
                 CREATE TYPE parsed_addr AS (
                     orig_addr character varying,
@@ -1546,42 +1546,36 @@ class pgSQL_Functions:
                 RETURNS %(fct_return)s
                 AS $$
 
-                    if int(tmp_res_limit)==0:
-                        limit_input = ""
-                    else:
-                        limit_input = "limit ##s::integer" + str(int(tmp_res_limit))
-
-                    T = {   '_FROM_TBL'         :   src_table,
-                            '_ADDR_COL_LBL'     :   addr_col_lbl,
-                            '_ZIP_COL_LBL'      :   zip_col_lbl,
-                            '_LIMIT'            :   limit_input, }
+                    T = {   '_QUERY_STR'        :   query_str.replace('####','##'), }
                     q=\"\"\"
                         select  orig_addr,
                                 (_parsed).house_num num,
                                 (_parsed).pretype,
                                 (_parsed).predir,
-                                regexp_replace( (_parsed).name,'(.*)(\_)(.*)','\\1 \\3','g') as name,
+                                regexp_replace( (_parsed).name,'(.*)([Q]{4})(.*)','\\1 \\3','g') as name,
                                 (_parsed).suftype,
                                 (_parsed).sufdir,
                                 (_parsed).city,
                                 (_parsed).state,
                                 (_parsed).postcode zip
                         from
-                        (select standardize_address('tiger.pagc_lex','tiger.pagc_gaz', 'tiger.pagc_rules',
+                            (
+                            select standardize_address('tiger.pagc_lex','tiger.pagc_gaz', 'tiger.pagc_rules',
                                 concat(f2.address,', New York, NY, ',f2.zipcode) ) _parsed,f2.orig_addr orig_addr
 
                                 from
-                                    (select
-                                        z_custom_addr_filter( (select rtrim(concat(num,'|',street,' ',city,' ',state,' ',zip))
+                                    (
+                                    select
+                                        z_custom_addr_pre_filter( (select rtrim(concat(num,'|',street,' ',city,' ',state,' ',zip))
                                                                 from parse_address( f1.address )) ) address,
                                         f1.zipcode zipcode,
                                         f1.address orig_addr
                                     from
-                                        (select ##(_ADDR_COL_LBL)s address,##(_ZIP_COL_LBL)s zipcode
-                                        from ##(_FROM_TBL)s ##(_LIMIT)s
-                                    ) as f1
-                                ) as f2
-                        ) as f3;
+                                        (
+                                        ##(_QUERY_STR)s
+                                        ) as f1
+                                    ) as f2
+                            ) as f3;
                     \"\"\" ## T
 
                     return plpy.execute(q)
@@ -1594,7 +1588,6 @@ class pgSQL_Functions:
             conn.set_isolation_level(       0)
             self.z_custom_addr_pre_filter()
             cur.execute(                    cmd)
-
         def z_custom_addr_pre_filter(self):
             cmd="""
 
@@ -1611,8 +1604,8 @@ class pgSQL_Functions:
                                                 '(.*)\|(PARK TERR)$',
                                                 '\\1|PARK_TERR') into new_addr;
                         select regexp_replace(new_addr,
-                                                '(.*)\|(LN)(\s)(.*)?',
-                                                '\\1|\\2\\_\\3 ') into new_addr;
+                                                '(.*)\|(LA)(\s)(.*)?',
+                                                '\\1|\\2qqqq\\4 ') into new_addr;
                         select regexp_replace(new_addr,
                                                 '([0-9]+)[\-]?([a-zA-Z]+)\|(.*)',
                                                 '\\1|\\3, Bldg. \\2') into new_addr;
