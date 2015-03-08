@@ -74,7 +74,7 @@ def create_numbered_streets(a='numbered_streets_from_lots',street_column='addr')
     return numbered_streets
 
 
-def parse_NYC_snd_datafile(fpath=''):
+def parse_NYC_snd_datafile(fpath='',with_regex=True):
 
     from json import dumps as j_dumps
     from os.path import isfile as os_path_isfile
@@ -218,6 +218,8 @@ def parse_NYC_snd_datafile(fpath=''):
     # --
     df_non_s = df_non_s.drop(remove_cols,axis=1)
 
+
+
     print '\n',len(df_non_s),'non-S-Type records\n'
     # print df_non_s.head()
     assert False==os_path_isfile(SND_NON_S_PATH)
@@ -251,7 +253,7 @@ def parse_NYC_snd_datafile(fpath=''):
     assert True==os_path_isfile(SND_S_PATH)
     return 'success'
 
-def load_parsed_snd_datafile_into_db(table_name='nyc_snd',drop_prev=True):
+def load_parsed_snd_datafile_into_db(table_name='snd',drop_prev=True):
     py_path.append(os_path.join(os_environ['BD'],'html'))
     from scrape_vendors             import Scrape_Vendors,conn,cur,routing_eng
     SV                              =   Scrape_Vendors()
@@ -371,7 +373,7 @@ def load_parsed_snd_datafile_into_db(table_name='nyc_snd',drop_prev=True):
     # PG SQL CMDS...
     cmd =   """
 
-            alter table nyc_snd
+            alter table snd
                 add column west boolean default false,
                 add column east boolean default false,
                 add column sc5_2 bigint,
@@ -380,14 +382,14 @@ def load_parsed_snd_datafile_into_db(table_name='nyc_snd',drop_prev=True):
             -- 276 distinct sc5_1 in _tmp
             -- 221 rows for below (276 without regex exclusions)
 
-            update nyc_snd _orig set stname_grp = name_grp
+            update snd _orig set stname_grp = name_grp
             from
 
             (select array_agg(t.stname) name_grp,f2.s_sc5 s_sc5
                 from
-                    (select array_agg(distinct a.variation) orig_variations from nyc_snd a) as f3,
-                    nyc_snd_tmp t,
-                    (select distinct s.sc5_1 s_sc5 from nyc_snd_tmp s) as f2
+                    (select array_agg(distinct a.variation) orig_variations from snd a) as f3,
+                    snd_tmp t,
+                    (select distinct s.sc5_1 s_sc5 from snd_tmp s) as f2
                 where t.sc5_1 = f2.s_sc5
                 and not (orig_variations && array[t.stname] )
                 and not (t.stname ilike '%roadbed%' or t.stname ilike '%EXTENSION%'
@@ -396,85 +398,496 @@ def load_parsed_snd_datafile_into_db(table_name='nyc_snd',drop_prev=True):
                 group by f2.s_sc5) as f1
             where s_sc5 = _orig.sc5::bigint;
 
-            -- 454 rows in nyc_snd with non-null stname_grp
+            -- 454 rows in snd with non-null stname_grp
 
-            insert into nyc_snd (variation,primary_name,sc5)
+            insert into snd (variation,primary_name,sc5)
             select variation,primary_name,sc5
             from
-                (select distinct unnest(n.stname_grp) variation,n.primary_name primary_name,n.sc5 sc5 from nyc_snd n) as f1,
-                (select array_agg(full_variation) all_full_varies,array_agg(variation) all_varies,array_agg(primary_name) all_primaries from nyc_snd t) as f2
+                (select distinct unnest(n.stname_grp) variation,n.primary_name primary_name,n.sc5 sc5 from snd n) as f1,
+                (select array_agg(full_variation) all_full_varies,array_agg(variation) all_varies,array_agg(primary_name) all_primaries from snd t) as f2
             where not (all_full_varies && array[variation] OR all_varies && array[variation] OR all_primaries && array[variation]);
 
 
             -- ASSERT -- res==True
             --select all_vars=uniq_vars res
             --from
-            --    (select count(n1.variation) all_vars from nyc_snd n1 where n1.variation is not null or n1.variation !='') as f1,
-            --    (select count(distinct n2.variation) uniq_vars from nyc_snd n2 where n2.variation is not null or n2.variation !='') as f2;
+            --    (select count(n1.variation) all_vars from snd n1 where n1.variation is not null or n1.variation !='') as f1,
+            --    (select count(distinct n2.variation) uniq_vars from snd n2 where n2.variation is not null or n2.variation !='') as f2;
 
 
-            update nyc_snd n set east = true
+            update snd n set east = true
             from
                 (select t.progen_word_1 t_progen_word_1,
                     t.progen_word_2 t_progen_word_2,
                     t.sc5_1 t_sc5_1,
                     t.sc5_2 t_sc5_2
-                from nyc_snd_tmp t) as f1
+                from snd_tmp t) as f1
             where ( (n.sc5 = t_sc5_1 or n.sc5 = t_sc5_2) OR  (n.sc5_2 = t_sc5_1 or n.sc5_2 = t_sc5_2) )
             and (t_progen_word_1 = 'E' or t_progen_word_2 = 'E');
 
 
-            update nyc_snd n set west = true
+            update snd n set west = true
             from
                 (select t.progen_word_1 t_progen_word_1,
                     t.progen_word_2 t_progen_word_2,
                     t.sc5_1 t_sc5_1,
                     t.sc5_2 t_sc5_2
-                from nyc_snd_tmp t) as f1
+                from snd_tmp t) as f1
             where ( (n.sc5 = t_sc5_1 or n.sc5 = t_sc5_2) OR  (n.sc5_2 = t_sc5_1 or n.sc5_2 = t_sc5_2) )
             and (t_progen_word_1 = 'W' or t_progen_word_2 = 'W');
 
+            -- ASSERT -- len({below}) == 0
+            --select progen_word_1 from snd_tmp where progen_word_1 ilike 'w';
 
             -- ASSERT -- len({below}) == 0
-            --select progen_word_1 from nyc_snd_tmp where progen_word_1 ilike 'w';
-
-            -- ASSERT -- len({below}) == 0
-            --select progen_word_2 from nyc_snd_tmp where progen_word_2 ilike 'e';
+            --select progen_word_2 from snd_tmp where progen_word_2 ilike 'e';
 
 
-            update nyc_snd set primary_name = regexp_replace(primary_name,
+            update snd set primary_name = regexp_replace(primary_name,
                 '^(EAST|WEST)([\s]+)([0-9]+)\s(.*)$','\\1 \\3 \\4','g');
-            update nyc_snd set full_variation = regexp_replace(full_variation,
+            update snd set full_variation = regexp_replace(full_variation,
                 '^(EAST|WEST)([\s]+)([0-9]+)\s(.*)$','\\1 \\3 \\4','g');
-            update nyc_snd set variation = regexp_replace(variation,
+            update snd set variation = regexp_replace(variation,
                 '^(EAST|WEST)([\s]+)([0-9]+)\s(.*)$','\\1 \\3 \\4','g');
-            update nyc_snd set full_variation = regexp_replace(full_variation,
+            update snd set full_variation = regexp_replace(full_variation,
                 '^(TRANSVRS|CPE|CPW|DOUGLASS|RIIS|RISS|NY|PATH|VLADECK|NEW)([\s]+)([0-9]+)\s(.*)$','\\1 \\3 \\4','g');
-            update nyc_snd set variation = regexp_replace(variation,
+            update snd set variation = regexp_replace(variation,
                 '^(TRANSVRS|CPE|CPW|DOUGLASS|RIIS|RISS|NY|PATH|VLADECK|NEW)([\s]+)([0-9]+)\s(.*)$','\\1 \\3 \\4','g');
 
-            update nyc_snd set primary_name = 'FDR DRIVE' where primary_name = 'F D R DRIVE';
+            update snd set primary_name = 'FDR DRIVE' where primary_name = 'F D R DRIVE';
 
             -- ASSERT -- len({below}) == 0
-            --select count(*)=0 res from nyc_snd where variation!=full_variation;
+            --select count(*)=0 res from snd where variation!=full_variation;
 
-            alter table nyc_snd drop column full_variation;
+            alter table snd drop column if exists full_variation;
 
-            --PROVE ALL STREETNAMES AND STREET IDS ARE FOUND IN 'nyc_snd'
+            --PROVE ALL STREETNAMES AND STREET IDS ARE FOUND IN 'snd'
             -- ASSERT -- res==True
             --select count(*)=0 res from
-            --    nyc_snd_tmp t,
-            --    (select array_agg(n.sc5) all_sc5 from nyc_snd n) as f1,
-            --    (select array_agg(n2.sc5_2) all_sc5_2 from nyc_snd n2) as f2,
-            --    (select array_agg(n3.variation) all_names from nyc_snd n3) as f3
+            --    snd_tmp t,
+            --    (select array_agg(n.sc5) all_sc5 from snd n) as f1,
+            --    (select array_agg(n2.sc5_2) all_sc5_2 from snd n2) as f2,
+            --    (select array_agg(n3.variation) all_names from snd n3) as f3
             --where NOT ( t.sc5_1::bigint = ANY (all_sc5) OR t.sc5_1::bigint = ANY (all_sc5_2) )
             --and NOT ( t.sc5_2::bigint = ANY (all_sc5) OR t.sc5_2::bigint = ANY (all_sc5_2) )
             --and NOT ( t.stname = ANY (all_names) );
 
-            drop table nyc_snd_tmp;
-            update nyc_snd set last_updated = 'now'::timestamp with time zone;
+            drop table if exists snd_tmp;
+            update snd set last_updated = 'now'::timestamp with time zone;
 
+            update snd s set primary_name = regexp_replace(s.primary_name,
+                '([a-zA-Z0-9])[\s\s]+([a-zA-Z0-9]*)','\\1 \\2','g')
 
+            drop table if exists tmp_snd;
             """
     conn.set_isolation_level(           0)
     cur.execute(                        cmd)
+
+    d = pd.read_sql("select * from snd",routing_eng)
+    d = d.sort('primary_name').reset_index(drop=True)
+    l_funct = lambda s: 0 if len(str(s).strip())==0 else int(s)
+    d['sc5']=d.sc5.map(l_funct)
+
+
+    cols = ['pattern','repl','_flags']
+    ndf = pd.DataFrame(columns=cols)
+    grp = d.groupby('primary_name')
+    for k,v in grp.groups.iteritems():
+        patt = '('+' | '.join(d.ix[v,'variation'].tolist()) + ')'
+        ndf = ndf.append(dict(zip(cols,[patt,k,'g'])),ignore_index=True)
+
+    ndf['repl'] = ndf.repl.str.replace(r'([a-zA-Z0-9]*)([\s\s]+)([a-zA-Z0-9]*)',r'\g<1> \g<3>')
+    ndf.to_sql('tmp_snd',routing_eng,index=False)
+
+    a="""
+
+        select s.variation,s.primary_name
+        from snd s,(select array_agg(t.address) all_addr from pluto p where p.geom is null) as f1
+        where s.variation = ANY (all_addr);
+
+        select sl_addr
+        from
+        (select array_agg(s.variation) all_variations from snd s) as f1,
+        (select sl.address sl_addr from seamless sl where geom is null) as f2
+        where sl_addr = ANY (all_variations);
+
+    """
+    return
+
+class NYC_Tables:
+    def __init__(self):
+        py_path.append(                     os_path.join(os_environ['BD'],'html'))
+        from scrape_vendors         import Scrape_Vendors,conn,cur,routing_eng
+        SV                              =   Scrape_Vendors()
+        self.SV                         =   SV
+        self.T                          =   SV.T
+        self.conn                       =   conn
+        self.cur                        =   cur
+        self.routing_eng                =   routing_eng
+
+
+    def prep_data(self,data_type,data_set,purpose,args=None):
+        """
+        This is a custom function for preparing data in a particular way.
+
+        Uses:
+
+            df = prep_data(data_type='db',data_set='seamless',purpose='get_bldg_street_idx')
+
+            df = prep_data(data_type='db',data_set='mnv',purpose='get_bldg_street_idx')
+
+            df = prep_data(data_type='db',data_set='yelp',purpose='google_geocode')
+
+
+        """
+        py_path.append(os_path.join(os_environ['BD'],'geolocation'))
+        from f_vendor_postgre       import get_bldg_street_idx
+        from f_postgres             import clean_street_names
+        from pygeocoder             import Geocoder
+        from time                   import sleep            as delay
+        conn                        =   self.conn
+        cur                         =   self.cur
+        routing_eng                 =   self.routing_eng
+
+        def format_db(db,purpose,args):
+
+            # ------------------
+            # ------------------
+            if   (db=='seamless' or db=='seamless_geom_error'):
+                T = {'db_tbl'     : db,
+                     'id_col'     :'vend_id',
+                     'vend_name'  :'vend_name',
+                     'address_col':'address',
+                     'zip_col'    :'zipcode',
+                    }
+            elif (db=='yelp' or db=='yelp_geom_error'):
+                T = {'db_tbl'     : db,
+                     'id_col'     :'gid',
+                     'vend_name'  :'vend_name',
+                     'address_col':'address',
+                     'zip_col'    :'postal_code',
+                        }
+            elif db=='mnv':
+                T = {'db_tbl'     : db,
+                     'id_col'     :'id',
+                     'vend_name'  :'vend_name',
+                     'address_col':'address',
+                     'zip_col'    :'zipcode',
+                        }
+            # ------------------
+            # ------------------
+
+            if purpose=='google_geocode':
+                cmd = """
+                        select %(id_col)s id,%(vend_name)s vend_name,%(address_col)s address,%(zip_col)s zipcode
+                        from %(db_tbl)s
+                        where address is not null
+                        and (char_length(bbl::text)!=10 or bbl is null)
+                      """%T
+                df = pd.read_sql(cmd,self.routing_eng)
+                return df,T
+
+            if purpose=='get_bldg_street_idx':
+                cmd = """
+                        select %(id_col)s id,%(address_col)s address,%(zip_col)s zipcode
+                        from %(db_tbl)s
+                        where address is not null
+                        and (bbl::text='NaN' or bbl is null or char_length(bbl::text)<10)
+                      """%T
+                df = pd.read_sql(cmd,self.routing_eng)
+                # df = clean_street_names(df,'address','address')
+                self.SV.SF.clean_street_names(df,'address','address')
+                df['address'] = df.address.map(lambda s: s.decode('ascii','ignore').encode('utf-8','ignore'))
+                df['bldg_num'] = df.address.map(lambda s: s.split(' ')[0])
+                df['clean_bldg_num'] = df.bldg_num.map(lambda s: None if ''==''.join([it for it in str(s) if str(s).isdigit()])
+                                                      else int(''.join([it for it in str(s) if str(s).isdigit()])) )
+                df = df[df.clean_bldg_num.map(lambda s: True if str(s)[0].isdigit() else False)].reset_index(drop=True)
+                df['bldg_street'] = df.address.map(lambda s: ' '.join(s.split(' ')[1:]))
+                df['clean_bldg_num'] = df.clean_bldg_num.map(int)
+                df['zipcode'] = df.zipcode.map(int)
+                df['addr_set'] = map(lambda s: ' '.join(map(str,s.tolist())),df.ix[:,['clean_bldg_num','bldg_street']].as_matrix())
+                df.rename(columns={'clean_bldg_num':'addr_num',
+                                  'bldg_street':'addr_street'},inplace=True)
+                return df,T
+
+
+        if data_type=='db':
+            return format_db(data_set,purpose,args)
+    def add_geom_using_address(self,working_table):
+        """
+
+        Usages:
+
+            working_table = 'seamless' | 'yelp' | 'seamless_geom_error' | 'mnv'
+
+        """
+
+        py_path.append(os_path.join(os_environ['BD'],'geolocation'))
+        from f_vendor_postgre       import get_bldg_street_idx
+
+        conn                        =   self.conn
+        cur                         =   self.cur
+        routing_eng                 =   self.routing_eng
+
+        # 1. load NYC TABLE -- Libraries & F(x)s
+        # 2. format data for and run 'get_bldg_street_idx' function
+        df,T = self.prep_data(data_type='db',data_set=working_table,purpose='get_bldg_street_idx')
+        recognized,not_recog,to_check_later = get_bldg_street_idx(   df,
+                                                                     addr_set_col='addr_set',
+                                                                     addr_num_col='addr_num',
+                                                                     addr_street_col='addr_street',
+                                                                     zipcode_col='zipcode',
+                                                                     show_info=False  )
+        addr_tot = pd.read_sql('select count(*) u from %s'%working_table,self.routing_eng).u[0]
+        addr_uniq = len(df.addr_set.unique().tolist())
+        addr_recog = len(recognized)
+        addr_unrecog = len(not_recog)
+        addr_TCL = len(to_check_later)
+
+        # 3. push data to table 'tmp'
+        recognized['addr_set'] = map(lambda s: ' '.join(map(str,s.tolist())),
+                                  recognized.ix[:,['addr_num','addr_street']].as_matrix())
+        z=pd.merge(df,recognized.ix[:,['addr_set','bldg_street_idx']],on='addr_set',how='outer')
+        conn.set_isolation_level(0)
+        cur.execute('drop table if exists tmp')
+        z.to_sql('tmp',self.routing_eng)
+        conn.set_isolation_level(0)
+        cur.execute("""
+        alter table tmp drop column if exists "index";
+        alter table tmp add column gid serial primary key;
+        update tmp set gid = nextval(pg_get_serial_sequence('tmp','gid'));
+        """)
+        tmp_rows = len(z)
+
+        # 4. add necessary columns if not exist to $working_table
+        cmd = """   select column_name cols, data_type
+                    from INFORMATION_SCHEMA.COLUMNS
+                    where table_name = '%s'"""%working_table
+        tbl_info = pd.read_sql(cmd,self.routing_eng)
+        tbl_cols = map(str,tbl_info.cols.tolist())
+        cols_needed = {'camis':'integer',
+                       'bbl':'integer',
+                       'lot_cnt':'integer DEFAULT 1',
+                       'geom':'geometry(Point,4326)'}
+        for k,v in cols_needed.iteritems():
+            if tbl_cols.count(k)==0:
+                conn.set_isolation_level(0)
+                cur.execute('alter table %(tbl)s add column %(k)s %(v)s'%{'tbl':working_table,'k':k,'v':v})
+
+        # 5. update table $working_table and delete table 'tmp'
+        conn.set_isolation_level(0)
+        cur.execute("""
+
+        update %(db_tbl)s s set bbl = l.bbl
+            from tmp t,lot_pts l
+            where
+                char_length(l.bbl::text)>=10
+                and t.bldg_street_idx::text != 'NaN'
+                and t.addr_num::text != 'NaN'
+                and t.id=s.%(id_col)s
+                and (
+                    to_number(concat(t.bldg_street_idx,'.',to_char(t.addr_num,'00000')),'00000.00000')
+                    between l.lot_idx_start and l.lot_idx_end
+                    );
+
+        update %(db_tbl)s s set lot_cnt = (select count(l.bbl) from %(db_tbl)s l
+                                         where s.bbl is not null
+                                         and l.bbl is not null
+                                         and l.bbl=s.bbl);
+
+        update %(db_tbl)s s set geom = pc.geom
+            from pluto_centroids pc
+            where
+                pc.bbl = s.bbl
+                and pc.bbl is not null;
+
+        drop table if exists tmp;
+
+        """%T)
+
+        no_geoms = pd.read_sql('select count(*) c from %(db_tbl)s where geom is null'%T,self.routing_eng).c[0]
+
+        # 6. provide result info
+        print '\tTABLE:',working_table
+        print addr_tot,'\t\ttotal addresses in %s'%working_table
+        print addr_uniq,'\t\tunique addresses in %s'%working_table
+        print addr_recog,'\t\t\trecognized'
+        print addr_unrecog,'\t\t\tnot_recog'
+        print addr_TCL,'\t\t\tto_check_later'
+        print tmp_rows,'\t\trows in tmp'
+        print no_geoms,'\t\trows without geoms'
+    def add_geom_using_geocoding(self,working_tbl,print_gps=True):
+        """
+
+        Usages:
+
+             add_geom_using_geocoding(self,working_tbl=('seamless' | 'yelp' | 'mnv'))
+
+        """
+
+
+        tbl                         =   working_tbl
+        print_gps                   =   False
+
+        conn                        =   self.conn
+        cur                         =   self.cur
+        routing_eng                 =   self.routing_eng
+
+        df,T = self.prep_data(data_type='db',data_set=tbl,purpose='google_geocode')
+        addr_start_cnt = len(df)
+        df['zipcode'] = df.zipcode.map(lambda s: '' if str(s).lower()=='nan' else str(int(s)))
+        df['chk_addr'] = df.ix[:,['address','zipcode']].apply(lambda s: str(s[0]+', New York, NY, '+str(s[1])).strip(),axis=1)
+        uniq_addr_start_cnt = len(df.chk_addr.unique().tolist())
+
+        # get google geocode results
+        all_chk_addr = df.chk_addr.tolist()
+        uniq_addr = pd.DataFrame({'addr':all_chk_addr}).addr.unique().tolist()
+        uniq_addr_dict = dict(zip(uniq_addr,range(len(uniq_addr))))
+        _iter = pd.Series(uniq_addr).iterkv()
+
+        # if two vendors have same address: only one id will be associated with address
+
+        y,z=[],[]
+        pt,s=0,'Address\tZip\tLat.\tLong.\r'
+        #    print '\n"--" means only one result found.\nOtherwise, numbered results will be shown.'
+        if print_gps==True: print s
+        for k,it in _iter:
+            try:
+                results = Geocoder.geocode(it)
+
+                if results.count > 1:
+                    for i in range(0,results.count):
+
+                        res=results[i]
+                        r_data = res.data[0]
+                        t = {'res_i'            : i,
+                             'orig_addr'        : it.rstrip(),
+                             'addr_valid'       : res.valid_address,
+                             'partial_match'    : r_data['partial_match'] if res.valid_address != True else False,
+                             'form_addr'        : res.formatted_address,
+                             'geometry'         : r_data['geometry'],
+                             'res_data'         : str(r_data),
+                             }
+
+                        y.append(t)
+                        z.append(k)
+                        a=str(i)+'\t'+str(it.rstrip())+'\t'+str(res.postal_code)+'\t'+str(res.coordinates[0])+'\t'+str(res.coordinates[1])
+                        s+=a+'\r'
+                        if print_gps==True: print a
+
+                else:
+
+                    res=results
+                    r_data = res.data[0]
+                    partial_option = True if r_data.keys().count('partial_match') != 0 else False
+                    t = {'res_i'            : -1,
+                         'orig_addr'        : it.rstrip(),
+                         'addr_valid'       : res.valid_address,
+                         'partial_match'    : r_data['partial_match'] if partial_option else False,
+                         'form_addr'        : res.formatted_address,
+                         'geometry'         : r_data['geometry'],
+                         'res_data'             : str(r_data),
+                         }
+
+                    y.append(t)
+                    z.append(k)
+                    a='--'+'\t'+str(it.rstrip())+'\t'+str(results.postal_code)+'\t'+str(results.coordinates[0])+'\t'+str(results.coordinates[1])
+                    s+=a+'\r'
+                    if print_gps==True: print a
+
+            except:
+                pass
+
+            pt+=1
+            if pt==5:
+                delay(2.6)
+                pt=0
+
+        d = pd.DataFrame(y)
+        d['iter_keys'] = z
+        d['lat'],d['lon'] = zip(*d.geometry.map(lambda s: (s['location']['lat'],s['location']['lng'])))
+        tbl_dict = dict(zip(df.chk_addr.tolist(),df.id.tolist()))
+        d['%s_id'%tbl] = d.orig_addr.map(tbl_dict)
+
+        # push orig_df to pgSQL
+        d['geometry'] = d.geometry.map(str)
+        d['res_data'] = d.res_data.map(str)
+        conn.set_isolation_level(0)
+        cur.execute( """drop table if exists tmp;""")
+        d.to_sql('tmp',self.routing_eng)
+        conn.set_isolation_level(0)
+        cur.execute("""
+            alter table tmp add column gid serial primary key;
+            update tmp set gid = nextval(pg_get_serial_sequence('tmp','gid'));
+        """)
+        # update 'geocoded' and $tbl
+        cmd="""
+        with upd as (
+                    update geocoded g
+                    set
+                        addr_valid = t.addr_valid,
+                        form_addr = t.form_addr,
+                        geometry = t.geometry,
+                        orig_addr = t.orig_addr,
+                        partial_match = t.partial_match,
+                        res_data = t.res_data,
+                        res_i = t.res_i,
+                        lat = t.lat,
+                        lon = t.lon,
+                        %(db_tbl)s_id = t.%(db_tbl)s_id
+                    from tmp t
+                    where g.orig_addr = t.orig_addr
+                    returning t.orig_addr orig_addr
+                )
+        insert into geocoded (
+                                addr_valid,
+                                form_addr,
+                                geometry,
+                                orig_addr,
+                                partial_match,
+                                res_data,
+                                res_i,
+                                lat,
+                                lon,
+                                %(db_tbl)s_id
+                            )
+        select
+                t.addr_valid,
+                t.form_addr,
+                t.geometry,
+                t.orig_addr,
+                t.partial_match,
+                t.res_data,
+                t.res_i,
+                t.lat,
+                t.lon,
+                t.%(db_tbl)s_id
+        from
+            tmp t,
+            (select array_agg(f.orig_addr) upd_addrs from upd f) as f1
+            where (not upd_addrs && array[t.orig_addr]
+                    or upd_addrs is null);
+
+        UPDATE %(db_tbl)s t set geom = st_setsrid(st_makepoint(g.lon,g.lat),4326)
+            FROM geocoded g
+            WHERE g.addr_valid is true
+            and g.%(db_tbl)s_id = t.%(id_col)s
+            and t.geom is null;
+
+        """%T
+        conn.set_isolation_level(0)
+        cur.execute(cmd)
+
+        # provide result info
+        uniq_search_queries = len(d['%s_id'%tbl].unique().tolist())
+        search_query_res_cnt = len(d)
+        single_res_cnt = len(d[d.res_i==-1])
+        remaining_no_addr = pd.read_sql('select count(*) c from %s where geom is null'%tbl,self.routing_eng).c[0]
+
+        print '\tTABLE:',tbl
+        print addr_start_cnt,'\t total addresses in %s'%tbl
+        print uniq_addr_start_cnt,'\t unique addresses in %s'%tbl
+        print uniq_search_queries,'\t # of unique Search Queries'
+        print search_query_res_cnt,'\t # of Search Query Results'
+        print single_res_cnt,'\t # of Query Results with a Single Result'
+        print remaining_no_addr,'\t # of Vendors in %s still without geom'%tbl

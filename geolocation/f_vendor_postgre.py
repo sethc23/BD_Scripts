@@ -177,6 +177,7 @@ def pagc_normalize_address(r,from_label='full_address',to_label='norm_addr'):
         select r,lower(pprint_addy(pagc_normalize_address(r))) %(to_label)s
         from unnest(array[%(arr)s]) r
         """.replace('\n','') % T
+
     n = pd.read_sql_query(cmd,routing_eng)
     n_map = dict(zip(n.r.tolist(),n[to_label].tolist()))
     r[to_label+'_num'] = r[from_label].map(lambda s: n_map[s].split(',')[0].split(' ')[0])
@@ -184,7 +185,6 @@ def pagc_normalize_address(r,from_label='full_address',to_label='norm_addr'):
     return r
 
 def get_bldg_street_idx(df,addr_set_col='addr_set',addr_num_col='addr_num',addr_street_col='addr_street',zipcode_col='zipcode',show_info=False):
-    
     # cols = [u'seam_id', u'addr_num', u'addr_street', u'zipcode']
 
     #df.rename(columns={addr_num_col:'addr_num',addr_street_col:'addr_street'},inplace=True)

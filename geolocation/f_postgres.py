@@ -1285,8 +1285,6 @@ def combine_east_west():
     engine.execute('INSERT INTO address_idx (street, nid, geom) select street, nid, st_geomfromtext(geom,4326) from temp')
     engine.execute('drop table if exists temp')
 
-
-
 def compare_lion_ways_content():
     ### Read Lion Ways from DB/File
     current_db,new_db = 'lion_ways','lion_ways2'
@@ -1359,6 +1357,12 @@ def compare_lion_ways_content():
 
 
 class pgSQL_Functions:
+    """
+
+    NOTE: USE plpythonu and plluau for WRITE ACESS
+
+    """
+
 
     def __init__(self):
         self.Make                       =   self.Make()
@@ -1540,7 +1544,7 @@ class pgSQL_Functions:
                                 (_parsed).house_num num,
                                 (_parsed).pretype,
                                 (_parsed).predir,
-                                regexp_replace( (_parsed).name,'(.*)([Q]{4})(.*)','\\\\1 \\\\3','g') as name,
+                                regexp_replace( (_parsed).name,'(.*)([Q]{4})(.*)','\\1 \\3','g') as name,
                                 (_parsed).suftype,
                                 (_parsed).sufdir,
                                 (_parsed).city,
@@ -1554,18 +1558,7 @@ class pgSQL_Functions:
                                 from
                                     (
                                     select
-                                        z_custom_addr_pre_filter(
-
-                                            CASE count( (select * from regexp_matches(f1.address,
-                                                                        '^([0-9]+)([a-zA-Z]*)[\-]?([a-zA-Z0-9]*)',
-                                                                        'g')) )
-                                            WHEN 0 THEN concat(0,'|',f1.address)
-                                            WHEN 1 THEN regexp_replace(f1.address,
-                                                            '^([0-9]+)([\-]?)([a-zA-Z0-9]*)\s(.*)',
-                                                            '\\\\1\\\\2\\\\3|\\\\4')
-                                            END
-
-                                                                ) address,
+                                        z_custom_addr_pre_filter( f1.address ) address,
                                         f1.zipcode zipcode,
                                         f1.address orig_addr
                                     from
@@ -1596,55 +1589,32 @@ class pgSQL_Functions:
 
             """
             cmd="""
-
-                CREATE OR REPLACE FUNCTION public.z_custom_addr_pre_filter(IN addr text,OUT new_addr text)
+                CREATE OR REPLACE FUNCTION public.z_custom_addr_pre_filter(addr text)
                 RETURNS text AS $$
 
-                    begin
+                    if addr==nil then
+                        return
+                    end
 
-                        select upper(rtrim(addr)) into new_addr;
+                    local cnt = addr:find( "^([0-9]+)([%-]?)([a-zA-Z0-9]*)%s([a-zA-Z0-9]*)%s(.*)" )
 
-                        select regexp_replace(new_addr,
-                                                '([0-9]+)\|(AVE|AVENUE|AV)[\s]?([a-zA-Z]*)$',
-                                                '0|\\1 \\2 \\3') into new_addr;
+                    if ( cnt == 0 or cnt == nil ) then
+                        addr = "0|"..addr
+                    else
+                        addr = addr:gsub("^([0-9]+)([%-]?)([a-zA-Z0-9]*)%s([a-zA-Z0-9]*)%s(.*)","%1%2%3|%4 %5")
+                    end
 
-                        select regexp_replace(new_addr,
-                                                '([0-9]+)\|(WEST|EAST)\s(END|RIVER)\s(AVE|AVENUE|AV|DRIVE|DR|DRV)[\s]?([a-zA-Z]*)$',
-                                                '\\1|\\2QQQQ\\3 \\4 \\5') into new_addr;
+                    local cmd = [[select repl_from,repl_to
+                            from regex_repl
+                            where tag = 'custom_addr_pre_filter'
+                            and is_active is true
+                            order by run_order ASC]]
 
-                        select regexp_replace(new_addr,
-                                                '(.*)\|(.*)?(\s)(TERRACE)[\s]?([a-zA-Z]*)$',
-                                                '\\1|\\2 TERR \\5') into new_addr;
-
-                        select regexp_replace(new_addr,
-                                                '(.*)\|(LA)(\s)(.*)?',
-                                                '\\1|\\2QQQQ\\4 ') into new_addr;
-                        select regexp_replace(new_addr,
-                                                '([0-9]+)[\-]([a-zA-Z0-9]+)\|(.*)',
-                                                '\\1|\\3, Bldg. \\2') into new_addr;
-                        select regexp_replace(new_addr,
-                                                '([0-9]+)([a-zA-Z]+)\|(.*)',
-                                                '\\1|\\3, Bldg. \\2') into new_addr;
-
-
-                        -- PUT PIECES BACK TOGETHER
-                        --   1. Put 'Bldg. #' in the front.
-                        --   2. Replace '|' with ' '.
-
-                        select regexp_replace(new_addr,
-                                                '([0-9]+)\|(.*)(,\s)(Bldg\.)\s([a-zA-Z0-9]+)$',
-                                                'Bldg. \\5, \\1|\\2',
-                                                'g') into new_addr;
-
-                        select regexp_replace(new_addr,
-                                                '(.*)?\|(.*)?',
-                                                '\\1 \\2','g') into new_addr;
-
-
-                    end;
-
-                $$ LANGUAGE plpgsql;
-
+                    for row in server.rows(cmd) do
+                        addr = string.gsub(addr,row.repl_from,row.repl_to)
+                    end
+                    return addr
+                $$ LANGUAGE plluau;
             """
             conn.set_isolation_level(       0)
             cur.execute(                    cmd)
@@ -1782,7 +1752,7 @@ class Tables:
     """
 
     def __init__(self):
-        pass
+        self.Make                       =   self.Make()
 
     class Make:
 
@@ -2110,3 +2080,47 @@ class Tables:
         def nyc_snd(self):
             from f_nyc_data import load_parsed_snd_datafile_into_db
             load_parsed_snd_datafile_into_db(table_name='nyc_snd',drop_prev=True)
+
+        def regex_repl(self):
+            a="""
+
+                create table regex_repl (
+                    tag text,
+                    repl_from text,
+                    repl_to text,
+                    repl_flag text,
+                    run_order integer,
+                    comment text,
+                    is_active boolean default true
+                );
+
+                insert into regex_repl (tag,
+                                        repl_from,
+                                        repl_to,
+                                        repl_flag,
+                                        run_order)
+                values
+
+                    ('custom_addr_pre_filter',
+                        '([0-9]+)%|(AVE|AVENUE|AV)[%s]?([a-zA-Z]*)$','0|%1 %2 %3','','0'),
+                    ('custom_addr_pre_filter',
+                        '([0-9]+)%|(WEST|EAST)%s(END|RIVER)%s(AVE|AVENUE|AV|DRIVE|DR|DRV)[%s]?([a-zA-Z]*)$',
+                        '%1|%2QQQQ%3 %4 %5','','1'),
+                    ('custom_addr_pre_filter',
+                        '(.*)%|(.*)?(%s)(TERRACE)[%s]?([a-zA-Z]*)$','%1|%2 TERR %5','','2'),
+                    ('custom_addr_pre_filter',
+                        '(.*)%|(LA)(%s)(.*)?','%1|%2QQQQ%4 ','','3'),
+                    ('custom_addr_pre_filter',
+                        '([0-9]+)[%-]([a-zA-Z0-9]+)%|(.*)','%1|%3, Bldg. %2','','4'),
+                    ('custom_addr_pre_filter',
+                        '([0-9]+)([a-zA-Z]+)%|(.*)','%1|%3, Bldg. %2','','5'),
+                    ('custom_addr_pre_filter',
+                        '([0-9]+)%|(.*)(,%s)(Bldg%.)%s([a-zA-Z0-9]+)$','Bldg. %5, %1|%2','g','6'),
+                    ('custom_addr_pre_filter',
+                        '([^%|]*)%|(.*)','%1 %2','g','7')
+
+
+                ;
+            """
+            conn.set_isolation_level(               0)
+            cur.execute(                            a)
