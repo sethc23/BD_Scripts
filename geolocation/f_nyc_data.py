@@ -5,6 +5,7 @@ from os                             import path             as os_path
 from sys                            import path             as py_path
 
 import                                  pandas              as pd
+np                                  =   pd.np
 from re                             import sub              as re_sub  # re_sub('pattern','repl','string','count')
 from re                             import search           as re_search # re_search('pattern','string')
 
@@ -252,7 +253,7 @@ def parse_NYC_snd_datafile(fpath=''):
 
 def load_parsed_snd_datafile_into_db(table_name='nyc_snd',drop_prev=True):
     py_path.append(os_path.join(os_environ['BD'],'html'))
-    from scrape_vendors             import Scrape_Vendors
+    from scrape_vendors             import Scrape_Vendors,conn,cur,routing_eng
     SV                              =   Scrape_Vendors()
     T                               =   SV.T
 
@@ -362,30 +363,19 @@ def load_parsed_snd_datafile_into_db(table_name='nyc_snd',drop_prev=True):
     ##
 
     push_first_part_to_sql(streets,table_name,drop_prev)
-    ndf.to_sql(table_name+'_tmp',routing_eng,index=False)
+    if drop_prev:
+        conn.set_isolation_level(       0)
+        cur.execute(                    'drop table if exists %(tmp_tbl)s;' % {'tmp_tbl' :   table_name+'_tmp'})
+        ndf.to_sql(                     table_name+'_tmp',routing_eng,index=False)
 
     # PG SQL CMDS...
     cmd =   """
 
             alter table nyc_snd
-                add column t_uid integer,
-                add column progen_word_1 text,
-                add column progen_word_2 text,
-                add column numeric_ind text,
-                add column sc5_1 bigint,
+                add column west boolean default false,
+                add column east boolean default false,
                 add column sc5_2 bigint,
                 add column stname_grp text[];
-
-
-            update nyc_snd n set
-                t_uid=t.uid,
-                progen_word_1=t.progen_word_1,
-                progen_word_2=t.progen_word_2,
-                numeric_ind=t.numeric_ind,
-                sc5_1=t.sc5_1,
-                sc5_2=t.sc5_2
-            from nyc_snd_tmp t
-            where n.sc5=t.sc5_1;
 
             -- 276 distinct sc5_1 in _tmp
             -- 221 rows for below (276 without regex exclusions)
@@ -408,4 +398,83 @@ def load_parsed_snd_datafile_into_db(table_name='nyc_snd',drop_prev=True):
 
             -- 454 rows in nyc_snd with non-null stname_grp
 
+            insert into nyc_snd (variation,primary_name,sc5)
+            select variation,primary_name,sc5
+            from
+                (select distinct unnest(n.stname_grp) variation,n.primary_name primary_name,n.sc5 sc5 from nyc_snd n) as f1,
+                (select array_agg(full_variation) all_full_varies,array_agg(variation) all_varies,array_agg(primary_name) all_primaries from nyc_snd t) as f2
+            where not (all_full_varies && array[variation] OR all_varies && array[variation] OR all_primaries && array[variation]);
+
+
+            -- ASSERT -- res==True
+            --select all_vars=uniq_vars res
+            --from
+            --    (select count(n1.variation) all_vars from nyc_snd n1 where n1.variation is not null or n1.variation !='') as f1,
+            --    (select count(distinct n2.variation) uniq_vars from nyc_snd n2 where n2.variation is not null or n2.variation !='') as f2;
+
+
+            update nyc_snd n set east = true
+            from
+                (select t.progen_word_1 t_progen_word_1,
+                    t.progen_word_2 t_progen_word_2,
+                    t.sc5_1 t_sc5_1,
+                    t.sc5_2 t_sc5_2
+                from nyc_snd_tmp t) as f1
+            where ( (n.sc5 = t_sc5_1 or n.sc5 = t_sc5_2) OR  (n.sc5_2 = t_sc5_1 or n.sc5_2 = t_sc5_2) )
+            and (t_progen_word_1 = 'E' or t_progen_word_2 = 'E');
+
+
+            update nyc_snd n set west = true
+            from
+                (select t.progen_word_1 t_progen_word_1,
+                    t.progen_word_2 t_progen_word_2,
+                    t.sc5_1 t_sc5_1,
+                    t.sc5_2 t_sc5_2
+                from nyc_snd_tmp t) as f1
+            where ( (n.sc5 = t_sc5_1 or n.sc5 = t_sc5_2) OR  (n.sc5_2 = t_sc5_1 or n.sc5_2 = t_sc5_2) )
+            and (t_progen_word_1 = 'W' or t_progen_word_2 = 'W');
+
+
+            -- ASSERT -- len({below}) == 0
+            --select progen_word_1 from nyc_snd_tmp where progen_word_1 ilike 'w';
+
+            -- ASSERT -- len({below}) == 0
+            --select progen_word_2 from nyc_snd_tmp where progen_word_2 ilike 'e';
+
+
+            update nyc_snd set primary_name = regexp_replace(primary_name,
+                '^(EAST|WEST)([\s]+)([0-9]+)\s(.*)$','\\1 \\3 \\4','g');
+            update nyc_snd set full_variation = regexp_replace(full_variation,
+                '^(EAST|WEST)([\s]+)([0-9]+)\s(.*)$','\\1 \\3 \\4','g');
+            update nyc_snd set variation = regexp_replace(variation,
+                '^(EAST|WEST)([\s]+)([0-9]+)\s(.*)$','\\1 \\3 \\4','g');
+            update nyc_snd set full_variation = regexp_replace(full_variation,
+                '^(TRANSVRS|CPE|CPW|DOUGLASS|RIIS|RISS|NY|PATH|VLADECK|NEW)([\s]+)([0-9]+)\s(.*)$','\\1 \\3 \\4','g');
+            update nyc_snd set variation = regexp_replace(variation,
+                '^(TRANSVRS|CPE|CPW|DOUGLASS|RIIS|RISS|NY|PATH|VLADECK|NEW)([\s]+)([0-9]+)\s(.*)$','\\1 \\3 \\4','g');
+
+            update nyc_snd set primary_name = 'FDR DRIVE' where primary_name = 'F D R DRIVE';
+
+            -- ASSERT -- len({below}) == 0
+            --select count(*)=0 res from nyc_snd where variation!=full_variation;
+
+            alter table nyc_snd drop column full_variation;
+
+            --PROVE ALL STREETNAMES AND STREET IDS ARE FOUND IN 'nyc_snd'
+            -- ASSERT -- res==True
+            --select count(*)=0 res from
+            --    nyc_snd_tmp t,
+            --    (select array_agg(n.sc5) all_sc5 from nyc_snd n) as f1,
+            --    (select array_agg(n2.sc5_2) all_sc5_2 from nyc_snd n2) as f2,
+            --    (select array_agg(n3.variation) all_names from nyc_snd n3) as f3
+            --where NOT ( t.sc5_1::bigint = ANY (all_sc5) OR t.sc5_1::bigint = ANY (all_sc5_2) )
+            --and NOT ( t.sc5_2::bigint = ANY (all_sc5) OR t.sc5_2::bigint = ANY (all_sc5_2) )
+            --and NOT ( t.stname = ANY (all_names) );
+
+            drop table nyc_snd_tmp;
+            update nyc_snd set last_updated = 'now'::timestamp with time zone;
+
+
             """
+    conn.set_isolation_level(           0)
+    cur.execute(                        cmd)
