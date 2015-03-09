@@ -57,94 +57,6 @@ INSTANCE_GUID                           =   'tmp_'+str(get_guid().hex)[:7]
 
 
 
-
-class ST_Parts:
-
-    def __init__(self):
-
-
-        ST_STRIP_BEFORE_DICT    =   {
-                                    r'(,|"|'+r"')"                  :r'',
-                                    r'(\s){2,}'                     :r' ',
-                                    r'(?P<num>[0-9])(\s)(th)'       :r'\g<num>th',
-                                    }
-
-        ST_PREFIX_DICT = {  r'east'         :r'e',
-                            r'north'        :r'n',
-                            r'south'        :r's',
-                            r'west'         :r'w',
-                            }
-
-        ST_SUFFIX_DICT = {  'alley'         :r'aly',
-                            'avenue'        :r'ave',
-                            'boulevard'     :r'blvd',
-                            'circle'        :r'cir',
-                            'court'         :r'ct',
-                            'drive'         :r'dr',
-                            'east'          :r'e',
-                            'highway'       :r'hwy',
-                            'island'        :r'isle',
-                            'lane'          :r'ln',
-                            'market'        :r'mkt',
-                            'north'         :r'n',
-                            'parkway'       :r'pkwy',
-                            'place'         :r'pl',
-                            'plaza'         :r'plz',
-                            'road'          :r'rd',
-                            'south'         :r's',
-                            'square'        :r'sq',
-                            'street'        :r'st',
-                            'terrace'       :r'ter',
-                            'west'          :r'w',
-                            }
-
-        ST_BODY_DICT = {    r'\s(north)\s'          :r' n ',
-                            r'\s(south)\s'          :r' s ',
-                            r'\s(west)\s'           :r' w ',
-                            r'\s(east)\s'           :r' e ',
-                            r'\s(avenue)\s'         :r' ave ',
-                            r'\s(place)\s'          :r' pl ',
-                            r'\s(square)\s'         :r' sq ',
-                            r'\s(terrace)\s'        :r' ter ',
-
-                            r'(1st|first)'          :r'1',
-                            r'(2nd|second)'         :r'2',
-                            r'(3rd|third)'          :r'3',
-                            r'(4th|fourth)'         :r'4',
-                            r'(5th|fifth)'          :r'5',
-                            r'(6th|sixth)'          :r'6',
-                            r'(7th|seventh)'        :r'7',
-                            r'(8th|eigth)'          :r'8',
-                            r'(9th|nineth|ninth)'   :r'9',
-                            r'(0th)'                :r'0',
-                            r'(1th)'                :r'1',
-                            r'(2th)'                :r'2',
-                            r'(3th)'                :r'3',
-
-                            r'(tenth)'              :r'10',
-                            r'(eleventh)'           :r'11',
-                            r'(twelth|twelfth)'     :r'12',
-
-                            r'(ave[nues]*)\s(of)(\s(the))?\s(amer[icas]*)$'       :r'6 ave',
-
-                            r'^(st.|st)\s'           :r'saint ',
-                            r'^fort\s'               :r'ft ',
-                            r'^f\sd\sr\s'            :r'fdr ',
-
-                            }
-
-        ST_STRIP_AFTER_DICT =   {
-                                r'(\.|,|\-)'         :r'',
-                                }
-        self.ST_STRIP_BEFORE_DICT       =   ST_STRIP_BEFORE_DICT
-        self.ST_PREFIX_DICT             =   ST_PREFIX_DICT
-        self.ST_SUFFIX_DICT             =   ST_SUFFIX_DICT
-        self.ST_BODY_DICT               =   ST_BODY_DICT
-        self.ST_STRIP_AFTER_DICT        =   ST_STRIP_AFTER_DICT
-
-
-
-
 def get_tables_headers(filePath=''):
     df_t = pd.read_sql_query("select * from information_schema.tables",engine)
     all_t = df_t[(df_t.table_schema=='public') & (df_t.table_catalog=='routing')].table_name.tolist()
@@ -1356,6 +1268,97 @@ def compare_lion_ways_content():
         print '\n',len(t),'rows had geoms stripped\n'
 
 
+
+
+
+class ST_Parts:
+
+    def __init__(self):
+
+
+        ST_STRIP_BEFORE_DICT    =   {
+                                    r'(,|"|'+r"')"                  :r'',
+                                    r'(\s){2,}'                     :r' ',
+                                    r'(?P<num>[0-9])(\s)(th)'       :r'\g<num>th',
+                                    }
+
+        ST_PREFIX_DICT = {  r'east'         :r'e',
+                            r'north'        :r'n',
+                            r'south'        :r's',
+                            r'west'         :r'w',
+                            }
+
+        ST_SUFFIX_DICT = {  'alley'         :r'aly',
+                            'avenue'        :r'ave',
+                            'boulevard'     :r'blvd',
+                            'circle'        :r'cir',
+                            'court'         :r'ct',
+                            'drive'         :r'dr',
+                            'east'          :r'e',
+                            'highway'       :r'hwy',
+                            'island'        :r'isle',
+                            'lane'          :r'ln',
+                            'market'        :r'mkt',
+                            'north'         :r'n',
+                            'parkway'       :r'pkwy',
+                            'place'         :r'pl',
+                            'plaza'         :r'plz',
+                            'road'          :r'rd',
+                            'south'         :r's',
+                            'square'        :r'sq',
+                            'street'        :r'st',
+                            'terrace'       :r'ter',
+                            'west'          :r'w',
+                            }
+
+        ST_BODY_DICT = {    r'\s(north)\s'          :r' n ',
+                            r'\s(south)\s'          :r' s ',
+                            r'\s(west)\s'           :r' w ',
+                            r'\s(east)\s'           :r' e ',
+                            r'\s(avenue)\s'         :r' ave ',
+                            r'\s(place)\s'          :r' pl ',
+                            r'\s(square)\s'         :r' sq ',
+                            r'\s(terrace)\s'        :r' ter ',
+
+                            r'(1st|first)'          :r'1',
+                            r'(2nd|second)'         :r'2',
+                            r'(3rd|third)'          :r'3',
+                            r'(4th|fourth)'         :r'4',
+                            r'(5th|fifth)'          :r'5',
+                            r'(6th|sixth)'          :r'6',
+                            r'(7th|seventh)'        :r'7',
+                            r'(8th|eigth)'          :r'8',
+                            r'(9th|nineth|ninth)'   :r'9',
+                            r'(0th)'                :r'0',
+                            r'(1th)'                :r'1',
+                            r'(2th)'                :r'2',
+                            r'(3th)'                :r'3',
+
+                            r'(tenth)'              :r'10',
+                            r'(eleventh)'           :r'11',
+                            r'(twelth|twelfth)'     :r'12',
+
+                            r'(ave[nues]*)\s(of)(\s(the))?\s(amer[icas]*)$'       :r'6 ave',
+
+                            r'^(st.|st)\s'           :r'saint ',
+                            r'^fort\s'               :r'ft ',
+                            r'^f\sd\sr\s'            :r'fdr ',
+
+                            }
+
+        ST_STRIP_AFTER_DICT =   {
+                                r'(\.|,|\-)'         :r'',
+                                }
+        self.ST_STRIP_BEFORE_DICT       =   ST_STRIP_BEFORE_DICT
+        self.ST_PREFIX_DICT             =   ST_PREFIX_DICT
+        self.ST_SUFFIX_DICT             =   ST_SUFFIX_DICT
+        self.ST_BODY_DICT               =   ST_BODY_DICT
+        self.ST_STRIP_AFTER_DICT        =   ST_STRIP_AFTER_DICT
+
+
+
+
+
 class pgSQL_Functions:
     """
 
@@ -1519,6 +1522,7 @@ class pgSQL_Functions:
                 DROP FUNCTION IF EXISTS %(fct_name)s( %(fct_types)s );
 
                 CREATE TYPE parsed_addr AS (
+                    src_gid integer,
                     orig_addr character varying,
                     bldg text,
                     num text,
@@ -1539,12 +1543,13 @@ class pgSQL_Functions:
 
                     query_dict = {   '_QUERY_STR'        :   query_str.replace('####','##'), }
                     q=\"\"\"
-                        select  orig_addr,
+                        select  src_gid,
+                                orig_addr,
                                 (_parsed).building bldg,
                                 (_parsed).house_num num,
                                 (_parsed).pretype,
                                 (_parsed).predir,
-                                regexp_replace( (_parsed).name,'(.*)([Q]{4})(.*)','\\1 \\3','g') as name,
+                                regexp_replace( (_parsed).name,'(.*)(QQQQ)(.*)','\\1 \\3','g') as name,
                                 (_parsed).suftype,
                                 (_parsed).sufdir,
                                 (_parsed).city,
@@ -1552,20 +1557,23 @@ class pgSQL_Functions:
                                 (_parsed).postcode zip
                         from
                             (
-                            select standardize_address('tiger.pagc_lex','tiger.pagc_gaz', 'tiger.pagc_rules',
-                                concat(f2.address,', New York, NY, ',f2.zipcode) ) _parsed,f2.orig_addr orig_addr
+                            select  standardize_address('tiger.pagc_lex','tiger.pagc_gaz', 'tiger.pagc_rules',
+                                        concat(f2.address,', New York, NY, ',f2.zipcode) ) _parsed,
+                                    f2.orig_addr orig_addr,
+                                    f2.src_gid src_gid
 
                                 from
                                     (
                                     select
                                         z_custom_addr_pre_filter( f1.address ) address,
                                         f1.zipcode zipcode,
-                                        f1.address orig_addr
+                                        f1.address orig_addr,
+                                        f1.gid src_gid
                                     from
                                         (
                                         ##(_QUERY_STR)s
                                         ) as f1
-                                    group by f1.address,f1.zipcode
+                                    group by f1.address,f1.zipcode,f1.gid
                                     ) as f2
                             ) as f3;
                     \"\"\" ## query_dict
@@ -1594,14 +1602,21 @@ class pgSQL_Functions:
 
                     if addr==nil then
                         return
+                    else
+                        addr = addr:upper()
                     end
 
-                    local cnt = addr:find( "^([0-9]+)([%-]?)([a-zA-Z0-9]*)%s([a-zA-Z0-9]*)%s(.*)" )
+                    local cnt = addr:find( "^([0-9]*)([%-]*)([a-zA-Z0-9]*)%s([a-zA-Z0-9]*)(.*)" )
+                    local no_num_cnt = addr:find("^([0-9]+)(.*)")
+                    -- when first character not digit, EAST 76 STREET --> num=E 76,NAME=NEW YORK
+                    -- when first character not digit, MARGINAL STREET --> NAME=ST NEW YORK
+                    --
 
-                    if ( cnt == 0 or cnt == nil ) then
+
+                    if ( cnt == 0 or cnt == nil or no_num_cnt == nil ) then
                         addr = "0|"..addr
                     else
-                        addr = addr:gsub("^([0-9]+)([%-]?)([a-zA-Z0-9]*)%s([a-zA-Z0-9]*)%s(.*)","%1%2%3|%4 %5")
+                        addr = addr:gsub("^([0-9]*)([%-]*)([a-zA-Z0-9]*)%s([a-zA-Z0-9]*)(.*)","%1%2%3|%4 %5")
                     end
 
                     local cmd = [[select repl_from,repl_to
@@ -2082,7 +2097,32 @@ class Tables:
             load_parsed_snd_datafile_into_db(table_name='nyc_snd',drop_prev=True)
 
         def regex_repl(self):
+            """
+
+            From lua-users.org:
+
+            Limitations of Lua patterns
+
+            Especially if you're used to other languages with regular expressions,
+            you might expect to be able to do stuff like this:
+
+                '(foo)+' -- match the string "foo" repeated one or more times
+                '(foo|bar)' -- match either the string "foo" or the string "bar"
+
+            Unfortunately Lua patterns do not support this, only single characters
+            can be repeated or chosen between, not sub-patterns or strings. The
+            solution is to either use multiple patterns and write some custom logic,
+            use a regular expression library like lrexlib or Lua PCRE, or use LPeg.
+            LPeg is a powerful text parsing library for Lua based on
+            Parsing Expression Grammar. It offers functions to create and combine
+            patterns in Lua code, and also a language somewhat like Lua patterns or
+            regular expressions to conveniently create small parsers.
+
+
+            """
             a="""
+
+                drop table if exists regex_repl;
 
                 create table regex_repl (
                     tag text,
@@ -2102,12 +2142,45 @@ class Tables:
                 values
 
                     ('custom_addr_pre_filter',
-                        '([0-9]+)%|(AVE|AVENUE|AV)[%s]?([a-zA-Z]*)$','0|%1 %2 %3','','0'),
+                        '([0-9]+)%|(AVENUE)([%s]+)([A-F])([%s]*)(.*)','%1|%4 %2 %3 %5','','0'),
+
                     ('custom_addr_pre_filter',
-                        '([0-9]+)%|(WEST|EAST)%s(END|RIVER)%s(AVE|AVENUE|AV|DRIVE|DR|DRV)[%s]?([a-zA-Z]*)$',
+                        '([0-9]+)%|(AVE[NUE]*[%s]*[OF]*[%s]*[THE]*[%s]*[AME]*[R]?[ICA]*[S]?[%s]*)(.*)','%1|6 AVENUE %3','','0'),
+
+                    ('custom_addr_pre_filter',
+                        '([0-9]+)%|(AVENUE)[%s]?([a-zA-Z]*)$','0|%1 %2 %3','','0'),
+                    ('custom_addr_pre_filter',
+                        '([0-9]+)%|(AVE)[%s]?([a-zA-Z]*)$','0|%1 %2 %3','','0'),
+                    ('custom_addr_pre_filter',
+                        '([0-9]+)%|(AV)[%s]?([a-zA-Z]*)$','0|%1 %2 %3','','0'),
+
+
+                    ('custom_addr_pre_filter',
+                        '([0-9]+)%|(WEST)%s(END)%s(AVE)[%s]?([a-zA-Z]*)$',
                         '%1|%2QQQQ%3 %4 %5','','1'),
                     ('custom_addr_pre_filter',
-                        '(.*)%|(.*)?(%s)(TERRACE)[%s]?([a-zA-Z]*)$','%1|%2 TERR %5','','2'),
+                        '([0-9]+)%|(WEST)%s(END)%s(AVENUE)[%s]?([a-zA-Z]*)$',
+                        '%1|%2QQQQ%3 %4 %5','','1'),
+                    ('custom_addr_pre_filter',
+                        '([0-9]+)%|(WEST)%s(END)%s(AV)[%s]?([a-zA-Z]*)$',
+                        '%1|%2QQQQ%3 %4 %5','','1'),
+
+                    ('custom_addr_pre_filter',
+                        '([0-9]+)%|(EAST)%s(RIVER)%s(DRIVE)[%s]?([a-zA-Z]*)$',
+                        '%1|%2QQQQ%3 %4 %5','','1'),
+                    ('custom_addr_pre_filter',
+                        '([0-9]+)%|(EAST)%s(RIVER)%s(DR)[%s]?([a-zA-Z]*)$',
+                        '%1|%2QQQQ%3 %4 %5','','1'),
+                    ('custom_addr_pre_filter',
+                        '([0-9]+)%|(EAST)%s(RIVER)%s(DRV)[%s]?([a-zA-Z]*)$',
+                        '%1|%2QQQQ%3 %4 %5','','1'),
+
+                    ('custom_addr_pre_filter',
+                        '([0-9]+)%|(PI)(KE)([%s]+)(SLIP)(.*)$',
+                        '%1|%2QQQQ%3 %5','','1'),
+
+                    ('custom_addr_pre_filter',
+                        '([^|]*)|(.*)(%s)(TERRACE)([%s]*)([a-zA-Z]*)$','%1|%2 TERR %5','','2'),
                     ('custom_addr_pre_filter',
                         '(.*)%|(LA)(%s)(.*)?','%1|%2QQQQ%4 ','','3'),
                     ('custom_addr_pre_filter',

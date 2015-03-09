@@ -260,6 +260,34 @@ def load_parsed_snd_datafile_into_db(table_name='snd',drop_prev=True):
     T                               =   SV.T
 
     def push_first_part_to_sql(streets,table_name,drop_prev):
+        """
+
+            SOME OF THE ADJUSTMENT MADE WERE IN REGARD TO:
+                --WEST 49 STREET
+                --avenue b vs. b avenue
+                --WEST 160 STREET
+                --BENNETT AVENUE
+                --WADSWORTH TERRACE
+                --75 PARK TERRACE EAST
+                --MARGINAL STREET
+                --AVENUE OF THE AMER
+                --8 LITTLE WEST 12 ST
+                --74 PIKE SLIP
+
+            Do anything about?
+                CENTRAL PARK WEST -- Central Park W or Central Pk W
+                NORTH END AVE -- N End Ave. or North End Ave.
+
+
+            NEED 'cust_snd' FOR THE FOLLOWING
+
+                PLCE --> PLACE		"WASHINGTON PLCE"
+                S --> SOUTH ST
+                W --> WEST ST
+                FREDERICK DOUGLASS B --> F.D. BLVD
+
+        """
+
 
         if drop_prev:
             conn.set_isolation_level(   0)
@@ -284,235 +312,281 @@ def load_parsed_snd_datafile_into_db(table_name='snd',drop_prev=True):
         return True
 
 
-    # I.  NON S-TYPE RECORDS
-    d = pd.read_csv(SND_NON_S_PATH,index_col=0)
-    drop_idx = d[d.boro!=1].index.tolist()
-    d = d.drop(drop_idx,axis=0)
+        # I.  NON S-TYPE RECORDS
+        d = pd.read_csv(SND_NON_S_PATH,index_col=0)
+        drop_idx = d[d.boro!=1].index.tolist()
+        d = d.drop(drop_idx,axis=0)
 
-    #   1. PROVE ONLY MN STREETS ARE CONSIDERED
-    assert len(d.boro.unique().tolist())==1
-    assert d.boro.unique().tolist()[0]==1
-    #   2. Remove non-essential Geographic Feature Types (GFT)
-    remove_gft_features = ['B','C','J','O','R']
-    rem_idx = d[d.GFT.isin(remove_gft_features)].index.tolist()
-    d = d.drop(rem_idx,axis=0)
-    assert len(d[d.GFT.isin(remove_gft_features)])==0
-    #   3. PROVE ALL STREET NAMES ARE UPPER CASE
-    d['stname'] = d['stname'].map(lambda s: s.upper())
-    assert len(d[d.stname.str.match('[a-z]+')])==0
-    #   4. Remove Roadbeds (Horizontal Typology Type Code (ht_name_type_code='R')
-    rem_idx = d[d.ht_name_type_code=='R'].index.tolist()
-    d = d.drop(rem_idx,axis=0)
-    assert len(d[d.ht_name_type_code=='R'])==0
-
-
-
-    # II. S-TYPE RECORDS
-    dd = pd.read_csv(SND_S_PATH,index_col=0)
-    drop_idx = dd[dd.boro!=1].index.tolist()
-    dd = dd.drop(drop_idx,axis=0)
+        #   1. PROVE ONLY MN STREETS ARE CONSIDERED
+        assert len(d.boro.unique().tolist())==1
+        assert d.boro.unique().tolist()[0]==1
+        #   2. Remove non-essential Geographic Feature Types (GFT)
+        remove_gft_features = ['B','C','J','O','R']
+        rem_idx = d[d.GFT.isin(remove_gft_features)].index.tolist()
+        d = d.drop(rem_idx,axis=0)
+        assert len(d[d.GFT.isin(remove_gft_features)])==0
+        #   3. PROVE ALL STREET NAMES ARE UPPER CASE
+        d['stname'] = d['stname'].map(lambda s: s.upper())
+        assert len(d[d.stname.str.match('[a-z]+')])==0
+        #   4. Remove Roadbeds (Horizontal Typology Type Code (ht_name_type_code='R')
+        rem_idx = d[d.ht_name_type_code=='R'].index.tolist()
+        d = d.drop(rem_idx,axis=0)
+        assert len(d[d.ht_name_type_code=='R'])==0
 
 
-    #   1. PROVE ONLY MN STREETS ARE CONSIDERED
-    assert len(dd.boro.unique().tolist())==1
-    assert dd.boro.unique().tolist()[0]==1
-    #   2. Remove non-essential Geographic Feature Types (GFT)
-    remove_features = ['B','C','J','O','R']
-    rem_idx = dd[dd.GFT.isin(['B','C','J','O','R'])].index.tolist()
-    dd = dd.drop(rem_idx,axis=0)
-    assert len(dd[dd.GFT.isin(['B','C','J','O','R'])])==0
-    #   3. PROVE ALL STREET NAMES ARE UPPER CASE
-    dd['stname'] = dd['stname'].map(lambda s: s.upper())
-    assert len(dd[dd.stname.str.match('[a-z]+')])==0
-    #   4. Remove non-essential Geographic Feature Types (GFT) from progenitors [progen_gft_1=='Z']
-    remove_gft_features = ['Z']
-    rem_idx = dd[dd.progen_gft_1=='Z'].index.tolist()
-    dd = dd.drop(rem_idx,axis=0)
-    assert len(dd[dd.progen_gft_1=='Z'])==0
 
-    ##
-    # START STREET DATAFRAME
-    ##
-
-    # 1. Take First Part of Data from non-type-S records
-    streets = d.copy()
-    # PROVE ALL NAP'S WERE REMOVED
-    rem_idx = streets[streets.GFT.isin(['N','X'])].index.tolist()
-    streets = streets.drop(rem_idx,axis=0)
-    assert len(streets[streets.GFT.isin(['N','X'])])==0
-
-    # print len(dd),'initial rows from S-Type records'
-    # 2. Supplement with Data from type-S records
-    uniq_street_sc5 = streets.sc5.unique().tolist()
-    nd = dd[(dd.sc5_1.isin(uniq_street_sc5))|(dd.sc5_1.isin(uniq_street_sc5))].index.tolist()
-    ndf = dd.ix[nd,:].copy()
-    # print len(ndf),'remaining rows from S-Type records after taking only matching sc5'
+        # II. S-TYPE RECORDS
+        dd = pd.read_csv(SND_S_PATH,index_col=0)
+        drop_idx = dd[dd.boro!=1].index.tolist()
+        dd = dd.drop(drop_idx,axis=0)
 
 
-    # -  Remove Blank Columns from Supplemental Data
-    remove_cols = []
-    # ---- PROVE THAT OK TO REMOVE 'progen_gft_1' b/c NO VALUES EXIST
-    test_col='progen_gft_1'
-    t=ndf[test_col].unique().tolist()
-    assert True == (len(t)==1) == (np.float(t[0]).is_integer()==False)
-    remove_cols.append(test_col)
-    # --
-    ndf = ndf.drop(remove_cols,axis=1)
+        #   1. PROVE ONLY MN STREETS ARE CONSIDERED
+        assert len(dd.boro.unique().tolist())==1
+        assert dd.boro.unique().tolist()[0]==1
+        #   2. Remove non-essential Geographic Feature Types (GFT)
+        remove_features = ['B','C','J','O','R']
+        rem_idx = dd[dd.GFT.isin(['B','C','J','O','R'])].index.tolist()
+        dd = dd.drop(rem_idx,axis=0)
+        assert len(dd[dd.GFT.isin(['B','C','J','O','R'])])==0
+        #   3. PROVE ALL STREET NAMES ARE UPPER CASE
+        dd['stname'] = dd['stname'].map(lambda s: s.upper())
+        assert len(dd[dd.stname.str.match('[a-z]+')])==0
+        #   4. Remove non-essential Geographic Feature Types (GFT) from progenitors [progen_gft_1=='Z']
+        remove_gft_features = ['Z']
+        rem_idx = dd[dd.progen_gft_1=='Z'].index.tolist()
+        dd = dd.drop(rem_idx,axis=0)
+        assert len(dd[dd.progen_gft_1=='Z'])==0
 
-    # print len(ndf),'remaining rows before push'
-    ##
-    # PUSH TO SQL
-    ##
+        ##
+        # START STREET DATAFRAME
+        ##
 
-    push_first_part_to_sql(streets,table_name,drop_prev)
-    if drop_prev:
-        conn.set_isolation_level(       0)
-        cur.execute(                    'drop table if exists %(tmp_tbl)s;' % {'tmp_tbl' :   table_name+'_tmp'})
-        ndf.to_sql(                     table_name+'_tmp',routing_eng,index=False)
+        # 1. Take First Part of Data from non-type-S records
+        streets = d.copy()
+        # PROVE ALL NAP'S WERE REMOVED
+        rem_idx = streets[streets.GFT.isin(['N','X'])].index.tolist()
+        streets = streets.drop(rem_idx,axis=0)
+        assert len(streets[streets.GFT.isin(['N','X'])])==0
 
-    # PG SQL CMDS...
-    cmd =   """
+        # print len(dd),'initial rows from S-Type records'
+        # 2. Supplement with Data from type-S records
+        uniq_street_sc5 = streets.sc5.unique().tolist()
+        nd = dd[(dd.sc5_1.isin(uniq_street_sc5))|(dd.sc5_1.isin(uniq_street_sc5))].index.tolist()
+        ndf = dd.ix[nd,:].copy()
+        # print len(ndf),'remaining rows from S-Type records after taking only matching sc5'
 
-            alter table snd
-                add column west boolean default false,
-                add column east boolean default false,
-                add column sc5_2 bigint,
-                add column stname_grp text[];
 
-            -- 276 distinct sc5_1 in _tmp
-            -- 221 rows for below (276 without regex exclusions)
+        # -  Remove Blank Columns from Supplemental Data
+        remove_cols = []
+        # ---- PROVE THAT OK TO REMOVE 'progen_gft_1' b/c NO VALUES EXIST
+        test_col='progen_gft_1'
+        t=ndf[test_col].unique().tolist()
+        assert True == (len(t)==1) == (np.float(t[0]).is_integer()==False)
+        remove_cols.append(test_col)
+        # --
+        ndf = ndf.drop(remove_cols,axis=1)
 
-            update snd _orig set stname_grp = name_grp
-            from
+        # print len(ndf),'remaining rows before push'
+        ##
+        # PUSH TO SQL
+        ##
 
-            (select array_agg(t.stname) name_grp,f2.s_sc5 s_sc5
+        push_first_part_to_sql(streets,table_name,drop_prev)
+        if drop_prev:
+            conn.set_isolation_level(       0)
+            cur.execute(                    'drop table if exists %(tmp_tbl)s;' % {'tmp_tbl' :   table_name+'_tmp'})
+            ndf.to_sql(                     table_name+'_tmp',routing_eng,index=False)
+
+        # PG SQL CMDS...
+        cmd =   """
+
+                alter table snd
+                    add column west boolean default false,
+                    add column east boolean default false,
+                    add column sc5_2 bigint,
+                    add column stname_grp text[];
+
+                -- 276 distinct sc5_1 in _tmp
+                -- 221 rows for below (276 without regex exclusions)
+
+                update snd _orig set stname_grp = name_grp
                 from
-                    (select array_agg(distinct a.variation) orig_variations from snd a) as f3,
-                    snd_tmp t,
-                    (select distinct s.sc5_1 s_sc5 from snd_tmp s) as f2
-                where t.sc5_1 = f2.s_sc5
-                and not (orig_variations && array[t.stname] )
-                and not (t.stname ilike '%roadbed%' or t.stname ilike '%EXTENSION%'
-                    or t.stname ilike '%PEDESTRIAN%' or t.stname ilike '%SIDE HW%' )
 
-                group by f2.s_sc5) as f1
-            where s_sc5 = _orig.sc5::bigint;
+                (select array_agg(t.stname) name_grp,f2.s_sc5 s_sc5
+                    from
+                        (select array_agg(distinct a.variation) orig_variations from snd a) as f3,
+                        snd_tmp t,
+                        (select distinct s.sc5_1 s_sc5 from snd_tmp s) as f2
+                    where t.sc5_1 = f2.s_sc5
+                    and not (orig_variations && array[t.stname] )
+                    and not (t.stname ilike '%roadbed%' or t.stname ilike '%EXTENSION%'
+                        or t.stname ilike '%PEDESTRIAN%' or t.stname ilike '%SIDE HW%' )
 
-            -- 454 rows in snd with non-null stname_grp
+                    group by f2.s_sc5) as f1
+                where s_sc5 = _orig.sc5::bigint;
 
-            insert into snd (variation,primary_name,sc5)
-            select variation,primary_name,sc5
+                -- 454 rows in snd with non-null stname_grp
+
+                insert into snd (variation,primary_name,sc5)
+                select variation,primary_name,sc5
+                from
+                    (select distinct unnest(n.stname_grp) variation,
+                        n.primary_name primary_name,
+                        n.sc5 sc5 from snd n) as f1,
+
+                    (select array_agg(full_variation) all_full_varies,
+                        array_agg(variation) all_varies,
+                        array_agg(primary_name) all_primaries from snd t) as f2
+                where not (all_full_varies && array[variation] OR all_varies && array[variation] OR all_primaries && array[variation]);
+
+                -- ASSERT -- res==True
+                --select all_vars=uniq_vars res
+                --from
+                --    (select count(n1.variation) all_vars from snd n1 where n1.variation is not null or n1.variation !='') as f1,
+                --    (select count(distinct n2.variation) uniq_vars from snd n2 where n2.variation is not null or n2.variation !='') as f2;
+
+                update snd n set east = true
+                from
+                    (select t.progen_word_1 t_progen_word_1,
+                        t.progen_word_2 t_progen_word_2,
+                        t.sc5_1 t_sc5_1,
+                        t.sc5_2 t_sc5_2
+                    from snd_tmp t) as f1
+                where ( (n.sc5 = t_sc5_1 or n.sc5 = t_sc5_2) OR  (n.sc5_2 = t_sc5_1 or n.sc5_2 = t_sc5_2) )
+                and (t_progen_word_1 = 'E' or t_progen_word_2 = 'E');
+
+
+                update snd n set west = true
+                from
+                    (select t.progen_word_1 t_progen_word_1,
+                        t.progen_word_2 t_progen_word_2,
+                        t.sc5_1 t_sc5_1,
+                        t.sc5_2 t_sc5_2
+                    from snd_tmp t) as f1
+                where ( (n.sc5 = t_sc5_1 or n.sc5 = t_sc5_2) OR  (n.sc5_2 = t_sc5_1 or n.sc5_2 = t_sc5_2) )
+                and (t_progen_word_1 = 'W' or t_progen_word_2 = 'W');
+
+                -- ASSERT -- len({below}) == 0
+                --select progen_word_1 from snd_tmp where progen_word_1 ilike 'w';
+
+                -- ASSERT -- len({below}) == 0
+                --select progen_word_2 from snd_tmp where progen_word_2 ilike 'e';
+
+
+                update snd set primary_name = regexp_replace(primary_name,
+                    '^(EAST|WEST)([\s]+)([0-9]+)\s(.*)$','\\1 \\3 \\4','g');
+                update snd set full_variation = regexp_replace(full_variation,
+                    '^(EAST|WEST)([\s]+)([0-9]+)\s(.*)$','\\1 \\3 \\4','g');
+                update snd set variation = regexp_replace(variation,
+                    '^(EAST|WEST)([\s]+)([0-9]+)\s(.*)$','\\1 \\3 \\4','g');
+                update snd set full_variation = regexp_replace(full_variation,
+                    '^(TRANSVRS|CPE|CPW|DOUGLASS|RIIS|RISS|NY|PATH|VLADECK|NEW)([\s]+)([0-9]+)\s(.*)$','\\1 \\3 \\4','g');
+                update snd set variation = regexp_replace(variation,
+                    '^(TRANSVRS|CPE|CPW|DOUGLASS|RIIS|RISS|NY|PATH|VLADECK|NEW)([\s]+)([0-9]+)\s(.*)$','\\1 \\3 \\4','g');
+
+                update snd set primary_name = 'FDR DRIVE' where primary_name = 'F D R DRIVE';
+
+                -- ASSERT -- len({below}) == 0
+                --select count(*)=0 res from snd where variation!=full_variation;
+                alter table snd drop column if exists full_variation;
+
+                --PROVE ALL STREETNAMES AND STREET IDS ARE FOUND IN 'snd'
+                -- ASSERT -- res==True
+                --select count(*)=0 res from
+                --    snd_tmp t,
+                --    (select array_agg(n.sc5) all_sc5 from snd n) as f1,
+                --    (select array_agg(n2.sc5_2) all_sc5_2 from snd n2) as f2,
+                --    (select array_agg(n3.variation) all_names from snd n3) as f3
+                --where NOT ( t.sc5_1::bigint = ANY (all_sc5) OR t.sc5_1::bigint = ANY (all_sc5_2) )
+                --and NOT ( t.sc5_2::bigint = ANY (all_sc5) OR t.sc5_2::bigint = ANY (all_sc5_2) )
+                --and NOT ( t.stname = ANY (all_names) );
+                drop table if exists snd_tmp;
+
+                -- ASSERT
+                --select count(distinct sc5_2)=0 res from snd
+                alter table snd drop column sc5_2;
+
+
+                update snd set last_updated = 'now'::timestamp with time zone;
+
+                update snd s set primary_name = regexp_replace(s.primary_name,
+                    '([a-zA-Z0-9])[\s\s]+([a-zA-Z0-9]*)','\\1 \\2','g')
+
+                drop table if exists tmp_snd;
+
+                insert into snd (variation,sc5,west,east)
+                select distinct on (s1.primary_name) s1.primary_name variation,s1.sc5 sc5,s1.west west,s1.east east
+                from
+                    snd s1,
+                    (select array_agg(s2.variation) all_variations from snd s2) as f1
+                where not s1.primary_name = ANY (all_variations);
+
+                --PROVE THAT ALL stname_grp NAMES ARE IN VARIATION COLUMN
+                --select count(*)=0 res from
+                --    (select unnest(s.stname_grp) all_grp_names from snd s where s.stname_grp is not null) as f1,
+                --    (select array_agg(n3.variation) all_names from snd n3) as f3
+                --where NOT ( all_grp_names = ANY (all_names) );
+                alter table snd drop column stname_grp;
+
+                alter table snd add column tmp bigint;
+                update snd set tmp = sc5::bigint;
+                alter table snd drop column sc5;
+                alter table snd rename column tmp to sc5;
+
+                -- ASSERT
+
+
+                """
+        conn.set_isolation_level(           0)
+        cur.execute(                        cmd)
+
+        d = pd.read_sql("select * from snd",routing_eng)
+        d = d.sort('primary_name').reset_index(drop=True)
+        l_funct = lambda s: 0 if len(str(s).strip())==0 else int(s)
+        d['sc5']=d.sc5.map(l_funct)
+
+
+        cols = ['pattern','repl','_flags']
+        ndf = pd.DataFrame(columns=cols)
+        grp = d.groupby('primary_name')
+        for k,v in grp.groups.iteritems():
+            patt = '('+' | '.join(d.ix[v,'variation'].tolist()) + ')'
+            ndf = ndf.append(dict(zip(cols,[patt,k,'g'])),ignore_index=True)
+
+        ndf['repl'] = ndf.repl.str.replace(r'([a-zA-Z0-9]*)([\s\s]+)([a-zA-Z0-9]*)',r'\g<1> \g<3>')
+        ndf.to_sql('tmp_snd',routing_eng,index=False)
+
+        a="""
+
+            select s.variation,s.primary_name
+            from snd s,(select array_agg(t.address) all_addr from pluto p where p.geom is null) as f1
+            where s.variation = ANY (all_addr);
+
+            select sl_addr
             from
-                (select distinct unnest(n.stname_grp) variation,n.primary_name primary_name,n.sc5 sc5 from snd n) as f1,
-                (select array_agg(full_variation) all_full_varies,array_agg(variation) all_varies,array_agg(primary_name) all_primaries from snd t) as f2
-            where not (all_full_varies && array[variation] OR all_varies && array[variation] OR all_primaries && array[variation]);
+            (select array_agg(s.variation) all_variations from snd s) as f1,
+            (select sl.address sl_addr from seamless sl where geom is null) as f2
+            where sl_addr = ANY (all_variations);
 
+        """
 
-            -- ASSERT -- res==True
-            --select all_vars=uniq_vars res
-            --from
-            --    (select count(n1.variation) all_vars from snd n1 where n1.variation is not null or n1.variation !='') as f1,
-            --    (select count(distinct n2.variation) uniq_vars from snd n2 where n2.variation is not null or n2.variation !='') as f2;
+        # LOTS OF COMMANDS SHOULD BE HERE (FROM TAIL PART OF LONGSTRING ABOVE)
+        # PROVE THAT TABLE IS IN ORIGINAL CONDITION
+        saved_col_type_d_snd = {u'east': u'boolean',
+                                 u'last_updated': u'timestamp with time zone',
+                                 u'primary_name': u'text',
+                                 u'sc5': u'bigint',
+                                 u'uid': u'integer',
+                                 u'variation': u'text',
+                                 u'west': u'boolean'}
+        x=pd.read_sql("""   select column_name, data_type
+                            from INFORMATION_SCHEMA.COLUMNS
+                            where table_name = 'snd'""",routing_eng)
+        col_type_d = dict(zip(x.column_name.tolist(),x.data_type.tolist()))
+        assert col_type_d==saved_col_type_d_snd
 
-
-            update snd n set east = true
-            from
-                (select t.progen_word_1 t_progen_word_1,
-                    t.progen_word_2 t_progen_word_2,
-                    t.sc5_1 t_sc5_1,
-                    t.sc5_2 t_sc5_2
-                from snd_tmp t) as f1
-            where ( (n.sc5 = t_sc5_1 or n.sc5 = t_sc5_2) OR  (n.sc5_2 = t_sc5_1 or n.sc5_2 = t_sc5_2) )
-            and (t_progen_word_1 = 'E' or t_progen_word_2 = 'E');
-
-
-            update snd n set west = true
-            from
-                (select t.progen_word_1 t_progen_word_1,
-                    t.progen_word_2 t_progen_word_2,
-                    t.sc5_1 t_sc5_1,
-                    t.sc5_2 t_sc5_2
-                from snd_tmp t) as f1
-            where ( (n.sc5 = t_sc5_1 or n.sc5 = t_sc5_2) OR  (n.sc5_2 = t_sc5_1 or n.sc5_2 = t_sc5_2) )
-            and (t_progen_word_1 = 'W' or t_progen_word_2 = 'W');
-
-            -- ASSERT -- len({below}) == 0
-            --select progen_word_1 from snd_tmp where progen_word_1 ilike 'w';
-
-            -- ASSERT -- len({below}) == 0
-            --select progen_word_2 from snd_tmp where progen_word_2 ilike 'e';
-
-
-            update snd set primary_name = regexp_replace(primary_name,
-                '^(EAST|WEST)([\s]+)([0-9]+)\s(.*)$','\\1 \\3 \\4','g');
-            update snd set full_variation = regexp_replace(full_variation,
-                '^(EAST|WEST)([\s]+)([0-9]+)\s(.*)$','\\1 \\3 \\4','g');
-            update snd set variation = regexp_replace(variation,
-                '^(EAST|WEST)([\s]+)([0-9]+)\s(.*)$','\\1 \\3 \\4','g');
-            update snd set full_variation = regexp_replace(full_variation,
-                '^(TRANSVRS|CPE|CPW|DOUGLASS|RIIS|RISS|NY|PATH|VLADECK|NEW)([\s]+)([0-9]+)\s(.*)$','\\1 \\3 \\4','g');
-            update snd set variation = regexp_replace(variation,
-                '^(TRANSVRS|CPE|CPW|DOUGLASS|RIIS|RISS|NY|PATH|VLADECK|NEW)([\s]+)([0-9]+)\s(.*)$','\\1 \\3 \\4','g');
-
-            update snd set primary_name = 'FDR DRIVE' where primary_name = 'F D R DRIVE';
-
-            -- ASSERT -- len({below}) == 0
-            --select count(*)=0 res from snd where variation!=full_variation;
-
-            alter table snd drop column if exists full_variation;
-
-            --PROVE ALL STREETNAMES AND STREET IDS ARE FOUND IN 'snd'
-            -- ASSERT -- res==True
-            --select count(*)=0 res from
-            --    snd_tmp t,
-            --    (select array_agg(n.sc5) all_sc5 from snd n) as f1,
-            --    (select array_agg(n2.sc5_2) all_sc5_2 from snd n2) as f2,
-            --    (select array_agg(n3.variation) all_names from snd n3) as f3
-            --where NOT ( t.sc5_1::bigint = ANY (all_sc5) OR t.sc5_1::bigint = ANY (all_sc5_2) )
-            --and NOT ( t.sc5_2::bigint = ANY (all_sc5) OR t.sc5_2::bigint = ANY (all_sc5_2) )
-            --and NOT ( t.stname = ANY (all_names) );
-
-            drop table if exists snd_tmp;
-            update snd set last_updated = 'now'::timestamp with time zone;
-
-            update snd s set primary_name = regexp_replace(s.primary_name,
-                '([a-zA-Z0-9])[\s\s]+([a-zA-Z0-9]*)','\\1 \\2','g')
-
-            drop table if exists tmp_snd;
-            """
-    conn.set_isolation_level(           0)
-    cur.execute(                        cmd)
-
-    d = pd.read_sql("select * from snd",routing_eng)
-    d = d.sort('primary_name').reset_index(drop=True)
-    l_funct = lambda s: 0 if len(str(s).strip())==0 else int(s)
-    d['sc5']=d.sc5.map(l_funct)
-
-
-    cols = ['pattern','repl','_flags']
-    ndf = pd.DataFrame(columns=cols)
-    grp = d.groupby('primary_name')
-    for k,v in grp.groups.iteritems():
-        patt = '('+' | '.join(d.ix[v,'variation'].tolist()) + ')'
-        ndf = ndf.append(dict(zip(cols,[patt,k,'g'])),ignore_index=True)
-
-    ndf['repl'] = ndf.repl.str.replace(r'([a-zA-Z0-9]*)([\s\s]+)([a-zA-Z0-9]*)',r'\g<1> \g<3>')
-    ndf.to_sql('tmp_snd',routing_eng,index=False)
-
-    a="""
-
-        select s.variation,s.primary_name
-        from snd s,(select array_agg(t.address) all_addr from pluto p where p.geom is null) as f1
-        where s.variation = ANY (all_addr);
-
-        select sl_addr
-        from
-        (select array_agg(s.variation) all_variations from snd s) as f1,
-        (select sl.address sl_addr from seamless sl where geom is null) as f2
-        where sl_addr = ANY (all_variations);
-
-    """
-    return
+        return
 
 class NYC_Tables:
     def __init__(self):
