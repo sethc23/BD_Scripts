@@ -1395,7 +1395,6 @@ class pgSQL_Functions:
         def __init__(self):
             pass
 
-
         def z_make_column_primary_serial_key(self):
             """
 
@@ -1523,10 +1522,13 @@ class pgSQL_Functions:
 
                 CREATE TYPE parsed_addr AS (
                     src_gid integer,
-                    orig_addr character varying,
+                    orig_addr text,
                     bldg text,
+                    box text,
+                    unit text,
                     num text,
                     pretype text,
+                    qual text,
                     predir text,
                     name text,
                     suftype text,
@@ -1543,39 +1545,33 @@ class pgSQL_Functions:
 
                     query_dict = {   '_QUERY_STR'        :   query_str.replace('####','##'), }
                     q=\"\"\"
-                        select  src_gid,
-                                orig_addr,
-                                (_parsed).building bldg,
-                                (_parsed).house_num num,
-                                (_parsed).pretype,
-                                (_parsed).predir,
-                                regexp_replace( (_parsed).name,'(.*)(QQQQ)(.*)','\\1 \\3','g') as name,
-                                (_parsed).suftype,
-                                (_parsed).sufdir,
-                                (_parsed).city,
-                                (_parsed).state,
-                                (_parsed).postcode zip
+                        select (res).*
                         from
                             (
-                            select  standardize_address('tiger.pagc_lex','tiger.pagc_gaz', 'tiger.pagc_rules',
-                                        concat(f2.address,', New York, NY, ',f2.zipcode) ) _parsed,
-                                    f2.orig_addr orig_addr,
-                                    f2.src_gid src_gid
-
+                            select  z_custom_addr_post_filter( f3.res,f3.orig_addr,f3.src_gid ) res
+                            from
+                                (
+                                select  array_agg(
+                                            standardize_address(
+                                                'tiger.pagc_lex','tiger.pagc_gaz','tiger.pagc_rules',
+                                                concat(f2.address,', New York, NY, ',f2.zipcode) )
+                                            ) res,
+                                        array_agg(f2.orig_addr) orig_addr,
+                                        array_agg(f2.src_gid) src_gid
                                 from
                                     (
                                     select
                                         z_custom_addr_pre_filter( f1.address ) address,
                                         f1.zipcode zipcode,
-                                        f1.address orig_addr,
+                                        f1.address::text orig_addr,
                                         f1.gid src_gid
                                     from
                                         (
                                         ##(_QUERY_STR)s
                                         ) as f1
-                                    group by f1.address,f1.zipcode,f1.gid
                                     ) as f2
-                            ) as f3;
+                                ) as f3
+                            ) as f4;
                     \"\"\" ## query_dict
 
                     return plpy.execute(q)
@@ -1586,7 +1582,116 @@ class pgSQL_Functions:
             """ % T
             cmd                         =   a.replace('##','%')
             conn.set_isolation_level(       0)
-            self.z_custom_addr_pre_filter()
+            self.z_custom_addr_pre_filter(  )
+            self.z_custom_addr_post_filter( )
+            cur.execute(                    cmd)
+        def z_custom_addr_post_filter(self):
+            cmd="""
+
+                DROP FUNCTION IF EXISTS z_custom_addr_post_filter(integer,text,text,integer);
+                DROP FUNCTION IF EXISTS z_custom_addr_post_filter(stdaddr[],text[],integer[]);
+                CREATE OR REPLACE FUNCTION public.z_custom_addr_post_filter(res stdaddr[],
+                                                                            orig_addr text[],
+                                                                            src_gid integer[])
+                RETURNS SETOF parsed_addr AS $$
+
+                    --ret_res = {}
+                    local tmp,tmp_pt = {},{}
+
+                    local some_src_cols = {"building","house_num","predir","qual","pretype","name","suftype","sufdir",
+                                            "city","state","postcode","box","unit",}
+
+                    local some_dest_cols = {"bldg","num","predir","qual","pretype","name","suftype","sufdir",
+                                            "city","state","zip","box","unit"}
+
+                    --for k,v in pairs(res[1]) do log(k..' --- '..v) end
+                    --log("1618")
+
+                    for i=1, #res do
+
+
+                        tmp = res[i]
+                        tmp_pt = {}
+                        tmp_col = ""
+
+                        for k,v in pairs(some_dest_cols) do
+                            tmp_col = some_src_cols[k]
+                            tmp_pt[v]=tmp[tmp_col]
+                        end
+                        tmp_pt["src_gid"] = src_gid[i]
+                        tmp_pt["orig_addr"] = orig_addr[i]
+                        tmp_pt["zip"]=tmp.postcode
+
+
+                        --log("1633")
+                        if tmp_pt["name"] and tmp_pt["name"]:find("QQQQ")~=nil then
+                            tmp_pt["name"] = tmp_pt["name"]:gsub("(.*)[%s]*(QQQQ)[%s]*(.*)","%1 %3")
+                        end
+
+                        local t = ""
+                        local s1,e1,s2,e2 = 0,0,0,0
+
+                        --log(1641)
+                        -- DISCARD PRETYPES, MOVE THEM BACK TO 'NAME', UPDATE SUFTYPE
+                        if tmp_pt["pretype"] then
+                            --log(1644)
+                            s1,e1 = orig_addr[i]:find(tmp_pt["num"])
+                            s2,e2 = orig_addr[i]:find(tmp_pt["name"])
+                            t = orig_addr[i]:sub(e1+2,s2-2)
+
+                            -- if this string has a space, meaning at least two words, take only last word
+                            if t:find("[%s]")==nil then
+                                tmp_pt["name"] = t.." "..tmp_pt["name"]
+                            else
+                                t = t:gsub("(.*)%s([a-zA-Z0-9]+)$","%2")
+                                tmp_pt["name"] = t.." "..tmp_pt["name"]
+                            end
+
+                            tmp_pt["pretype"] = " "
+
+                            t = orig_addr[i]:sub(tmp_pt["name"]:len()+s2)
+
+                            cmd = string.format([[  select usps_abbr abbr
+                                                    from usps where common_use ilike '%s']],t)
+
+                            for row in server.rows(cmd) do
+                                t = row.abbr
+                                break
+                            end
+
+                            tmp_pt["suftype"] = t:upper()
+
+                        end
+
+                        -- FOR ANY PREDIR NOT 'E' OR 'W', MOVE BACK TO 'NAME'
+                        if tmp_pt["predir"] and (tmp_pt["predir"]~="E" and tmp_pt["predir"]~="W") then
+
+                            if tmp_pt["predir"]=='N' then t = "NORTH" end
+                            if tmp_pt["predir"]=='S' then t = "SOUTH" end
+
+                            tmp_pt["predir"] = ""
+                            tmp_pt["name"] = t.." "..tmp_pt["name"]
+
+                        end
+
+                        --if true then return tmp_pt end
+
+                        coroutine.yield(tmp_pt)
+
+                        --ret_res[i] = tmp_pt
+
+                        --log(1692)
+
+                    end
+
+                    --for k,v in pairs(ret_res[1]) do log(k..' --- '..v) end
+                    --log('returning '..string.format('%d',table.getn(ret_res)))
+                    --return tmp_pt --ret_res
+
+
+                $$ LANGUAGE plluau;
+            """
+            conn.set_isolation_level(       0)
             cur.execute(                    cmd)
         def z_custom_addr_pre_filter(self):
             """
@@ -1599,6 +1704,65 @@ class pgSQL_Functions:
             cmd="""
                 CREATE OR REPLACE FUNCTION public.z_custom_addr_pre_filter(addr text)
                 RETURNS text AS $$
+
+                    if addr==nil then
+                        return
+                    else
+                        addr = addr:upper()
+                    end
+
+                    local cnt = addr:find( "^([0-9]*)([%-]*)([a-zA-Z0-9]*)%s([a-zA-Z0-9]*)(.*)" )
+                    local no_num_cnt = addr:find("^([0-9]+)(.*)")
+                    -- when first character not digit, EAST 76 STREET --> num=E 76,NAME=NEW YORK
+                    -- when first character not digit, MARGINAL STREET --> NAME=ST NEW YORK
+                    --
+
+
+                    if ( cnt == 0 or cnt == nil or no_num_cnt == nil ) then
+                        addr = "0|"..addr
+                    else
+                        addr = addr:gsub("^([0-9]*)([%-]*)([a-zA-Z0-9]*)%s([a-zA-Z0-9]*)[%s]*(.*)","%1%2%3|%4 %5")
+                    end
+
+                    local cmd = [[select repl_from,repl_to
+                            from regex_repl
+                            where tag = 'custom_addr_pre_filter'
+                            and is_active is true
+                            order by run_order ASC]]
+
+                    for row in server.rows(cmd) do
+                        addr = string.gsub(addr,row.repl_from,row.repl_to)
+                    end
+                    return addr
+                $$ LANGUAGE plluau;
+            """
+            conn.set_isolation_level(       0)
+            cur.execute(                    cmd)
+        def z2_parse_NY_addrs(self):
+            cmd="""
+                CREATE OR REPLACE FUNCTION public.z2_parse_NY_addrs(query_str text)
+                RETURNS text AS $$
+
+
+                    -- GET ALL PRE-FILTERS
+                    local cmd = [[select repl_from,repl_to
+                            from regex_repl
+                            where tag = 'custom_addr_pre_filter'
+                            and is_active is true
+                            order by run_order ASC]]
+
+                    local filt_expr = {}
+                    for row in server.rows(cmd) do
+                        table.insert(filt_expr,{"repl_from":row.repl_from,"repl_to":row.repl_to})
+                    end
+
+
+
+                    cmd = cmd_top..t_addr..cmd_bot
+
+                    for row in server.rows(query_str) do
+
+                    end
 
                     if addr==nil then
                         return
@@ -2092,31 +2256,54 @@ class Tables:
             #                10277, 10278, 10279, 10280, 10281, 10282,
             #                10285, 10286, 10292]
 
-        def nyc_snd(self):
+        def nyc_snd(self,table_name='snd',drop_prev=True):
             from f_nyc_data import load_parsed_snd_datafile_into_db
-            load_parsed_snd_datafile_into_db(table_name='nyc_snd',drop_prev=True)
+            load_parsed_snd_datafile_into_db(table_name,drop_prev)
 
         def regex_repl(self):
             """
 
-            From lua-users.org:
+            NOTE:
+                Because this table is used within a lua function (z_custom_addr_pre_filter),
+                some syntax differences exist between regex_replace in pgSQL and the below regex expressions.
 
-            Limitations of Lua patterns
+                SO, USE LUA CONSOLE TO TEST!
 
-            Especially if you're used to other languages with regular expressions,
-            you might expect to be able to do stuff like this:
+                    addr = "5|LITTLE WEST 12 STREET"
+                    p = "([0-9]+)%|(LITTLE W[\.]?[E]?[S]?[T]?[%s]12)[T]?[H]?[%s]?(.*)$"
+                    r = "%1|LITTLEQQQQWESTQQQQ12 %3"
+                    print(addr:gsub(p,r))
 
-                '(foo)+' -- match the string "foo" repeated one or more times
-                '(foo|bar)' -- match either the string "foo" or the string "bar"
+                Some of the differences:
 
-            Unfortunately Lua patterns do not support this, only single characters
-            can be repeated or chosen between, not sub-patterns or strings. The
-            solution is to either use multiple patterns and write some custom logic,
-            use a regular expression library like lrexlib or Lua PCRE, or use LPeg.
-            LPeg is a powerful text parsing library for Lua based on
-            Parsing Expression Grammar. It offers functions to create and combine
-            patterns in Lua code, and also a language somewhat like Lua patterns or
-            regular expressions to conveniently create small parsers.
+                    1. escape character is percentage symbol '%' instead of backslash '\'
+                    2. no numerical quantifiers, i.e., {3} or {3,} or {3,7}
+                    3. no alternate patterns, i.e., (one|two)
+
+            ALSO NOTE:
+
+                Below expressions cannot reference replacements for captures above 9.
+
+                For example, the attempted replacement of `capture #37` would result in `capture #3` + `7`
+
+                Lua does not yet provide mechanism to name captures. From lua-users.org:
+
+                    Limitations of Lua patterns
+
+                    Especially if you're used to other languages with regular expressions,
+                    you might expect to be able to do stuff like this:
+
+                        '(foo)+' -- match the string "foo" repeated one or more times
+                        '(foo|bar)' -- match either the string "foo" or the string "bar"
+
+                    Unfortunately Lua patterns do not support this, only single characters
+                    can be repeated or chosen between, not sub-patterns or strings. The
+                    solution is to either use multiple patterns and write some custom logic,
+                    use a regular expression library like lrexlib or Lua PCRE, or use LPeg.
+                    LPeg is a powerful text parsing library for Lua based on
+                    Parsing Expression Grammar. It offers functions to create and combine
+                    patterns in Lua code, and also a language somewhat like Lua patterns or
+                    regular expressions to conveniently create small parsers.
 
 
             """
@@ -2141,12 +2328,14 @@ class Tables:
                                         run_order)
                 values
 
+                    -- AVENUE B --> B AVENUE
                     ('custom_addr_pre_filter',
                         '([0-9]+)%|(AVENUE)([%s]+)([A-F])([%s]*)(.*)','%1|%4 %2 %3 %5','','0'),
 
                     ('custom_addr_pre_filter',
                         '([0-9]+)%|(AVE[NUE]*[%s]*[OF]*[%s]*[THE]*[%s]*[AME]*[R]?[ICA]*[S]?[%s]*)(.*)','%1|6 AVENUE %3','','0'),
 
+                    -- 3 AVENUE --> 0 3 AVENUE  (b/c street num required for parsing)
                     ('custom_addr_pre_filter',
                         '([0-9]+)%|(AVENUE)[%s]?([a-zA-Z]*)$','0|%1 %2 %3','','0'),
                     ('custom_addr_pre_filter',
@@ -2154,35 +2343,29 @@ class Tables:
                     ('custom_addr_pre_filter',
                         '([0-9]+)%|(AV)[%s]?([a-zA-Z]*)$','0|%1 %2 %3','','0'),
 
+                    -- special streets where 'EAST' and 'WEST' don't refer to an end of a street
+                    ('custom_addr_pre_filter',
+                        '([0-9]+)%|(WEST)%s(END)%s(AV)(.*)$',
+                        '%1|%2QQQQ%3 %4%5','','1'),
+                    ('custom_addr_pre_filter',
+                        '([0-9]+)%|(EAST)%s(RIVER)%s(DR)(.*)$',
+                        '%1|%2QQQQ%3 %4%5','','1'),
 
+                    -- b/c PIKE in 'PIKE SLIP' does not refer to a highway
                     ('custom_addr_pre_filter',
-                        '([0-9]+)%|(WEST)%s(END)%s(AVE)[%s]?([a-zA-Z]*)$',
-                        '%1|%2QQQQ%3 %4 %5','','1'),
-                    ('custom_addr_pre_filter',
-                        '([0-9]+)%|(WEST)%s(END)%s(AVENUE)[%s]?([a-zA-Z]*)$',
-                        '%1|%2QQQQ%3 %4 %5','','1'),
-                    ('custom_addr_pre_filter',
-                        '([0-9]+)%|(WEST)%s(END)%s(AV)[%s]?([a-zA-Z]*)$',
-                        '%1|%2QQQQ%3 %4 %5','','1'),
+                        '([0-9]+)%|(PI)(KE)[%s]+(SLIP)(.*)$',
+                        '%1|%2QQQQ%3 %4%5','','1'),
 
+                    -- b/c WEST in 'LITTLE WEST 12 STREET' does not refer to the west end of Little West 12th Street
                     ('custom_addr_pre_filter',
-                        '([0-9]+)%|(EAST)%s(RIVER)%s(DRIVE)[%s]?([a-zA-Z]*)$',
-                        '%1|%2QQQQ%3 %4 %5','','1'),
-                    ('custom_addr_pre_filter',
-                        '([0-9]+)%|(EAST)%s(RIVER)%s(DR)[%s]?([a-zA-Z]*)$',
-                        '%1|%2QQQQ%3 %4 %5','','1'),
-                    ('custom_addr_pre_filter',
-                        '([0-9]+)%|(EAST)%s(RIVER)%s(DRV)[%s]?([a-zA-Z]*)$',
-                        '%1|%2QQQQ%3 %4 %5','','1'),
-
-                    ('custom_addr_pre_filter',
-                        '([0-9]+)%|(PI)(KE)([%s]+)(SLIP)(.*)$',
-                        '%1|%2QQQQ%3 %5','','1'),
+                        '([0-9]+)%|(LITTLE W[.]?[E]?[S]?[T]?[%s]12)[T]?[H]?[%s]?(.*)$',
+                        '%1|LITTLEQQQQWESTQQQQ12 %3','','1'),
 
                     ('custom_addr_pre_filter',
                         '([^|]*)|(.*)(%s)(TERRACE)([%s]*)([a-zA-Z]*)$','%1|%2 TERR %5','','2'),
                     ('custom_addr_pre_filter',
                         '(.*)%|(LA)(%s)(.*)?','%1|%2QQQQ%4 ','','3'),
+
                     ('custom_addr_pre_filter',
                         '([0-9]+)[%-]([a-zA-Z0-9]+)%|(.*)','%1|%3, Bldg. %2','','4'),
                     ('custom_addr_pre_filter',
@@ -2190,10 +2373,33 @@ class Tables:
                     ('custom_addr_pre_filter',
                         '([0-9]+)%|(.*)(,%s)(Bldg%.)%s([a-zA-Z0-9]+)$','Bldg. %5, %1|%2','g','6'),
                     ('custom_addr_pre_filter',
-                        '([^%|]*)%|(.*)','%1 %2','g','7')
-
+                        '([^%|]*)%|[%s]*(.*)[%s]*','%1 %2','g','7')
 
                 ;
             """
             conn.set_isolation_level(               0)
             cur.execute(                            a)
+
+        def addr_idx(self):
+            a                       =   """
+                create table tmp_addr_idx as
+                select (z).* from z_parse_NY_addrs('select gid,address,zipcode from pluto') z;
+
+                --assert -- city != 'NEW YORK' or state != 'NY'
+
+            """
+
+        def pluto_changes(self):
+            """
+                CHANGES MADE INITIALLY AND RECORDED HERE BUT THIS FUNCTION IS NOT YET TESTED
+            """
+            a                       =   """
+                update pluto set gid = regexp_replace(gid,'([0-9]+)([O])(.*)','\\10\\2','g')
+                    where gid = 20453
+                        or gid = 15296
+                        or gid = 40214
+                        or gid = 31800
+                        or gid = 30225
+                        or gid = 26608
+                        or gid = 36230;
+            """
