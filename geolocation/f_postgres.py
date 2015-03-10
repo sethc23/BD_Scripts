@@ -1500,13 +1500,15 @@ class pgSQL_Functions:
             cur.execute(                    cmd)
         def z_parse_NY_addrs(self):
             T = {'fct_name'                 :   'z_parse_NY_addrs',
-                 'fct_args_types'           :   [ ['','query_str','text'],],
+                 'fct_args_types'           :   [ ['IN','query_str','text'],],
                  'fct_return'               :   'SETOF parsed_addr',
                  'fct_lang'                 :   'plpythonu',
-                 'cmt'                      :   """ Example:  ''select
-                                                                    orig_addr,num,predir,name,suftype,
-                                                                    city,state,zip
-                                                                from z_parse_NY_addrs(''pluto'',''address'',''zipcode'',100);'' """}
+                 'cmt'                      :   '\n'.join([ "Example:",
+                                                            "select * from z_parse_NY_addrs(",
+                                                            "    ''select gid,address,zipcode",
+                                                            "     from pluto",
+                                                            "     where address is not null order by gid''",
+                                                            ");"])}
             T.update( {'fct_args'           :   ', '.join([' '.join(j) for j in T['fct_args_types']]),
                        'fct_types'          :   ', '.join([j[2] for j in T['fct_args_types'] if j[0].upper()!='OUT']),
                        })
@@ -1543,38 +1545,99 @@ class pgSQL_Functions:
                 RETURNS %(fct_return)s
                 AS $$
 
-                    query_dict = {   '_QUERY_STR'        :   query_str.replace('####','##'), }
-                    q=\"\"\"
-                        select (res).*
-                        from
-                            (
-                            select  z_custom_addr_post_filter( f3.res,f3.orig_addr,f3.src_gid ) res
+                    query_str = args[0]
+                    qs,res = query_str.lower().split(' '),[]
+                    drop_items = []
+
+                    if qs.count('offset')>0:
+                        q_offset = int(qs[qs.index('offset')+1])
+                        drop_items.extend(['offset',str(q_offset)])
+                    else:
+                        q_offset = 0
+
+                    if qs.count('limit')>0:
+                        q_max = int(qs[qs.index('limit')+1])
+                        drop_items.extend(['limit',str(q_max)])
+                    else:
+                        q_max = -1
+
+                    if 0<q_max<=100:
+                        q_lim = q_max
+                    else:
+                        q_lim = 100
+
+                    drop_idx = sorted([qs.index(it) for it in drop_items])
+                    drop_idx.reverse()
+                    for it in drop_idx:
+                        z=qs.pop(it)
+
+
+
+                    query_str = ' '.join(qs)
+                    stop=False
+
+                    pt=0
+                    plpy.log("START")
+                    while stop==False:
+                        pt+=1
+
+                        if q_max>0:
+                            if q_offset + q_lim > q_max:
+                                q_lim = q_max - q_offset
+
+                        q_range = 'OFFSET ##s LIMIT ##s' ## (q_offset,q_lim)
+
+                        query_dict = {   '_QUERY_STR'        :   ' '.join([query_str.replace('####','##'),
+                                                                           q_range]), }
+
+
+                        plpy.log(str(pt)+' '+query_dict['_QUERY_STR'])
+
+                        q=\"\"\"
+                            select (res).*
                             from
                                 (
-                                select  array_agg(
-                                            standardize_address(
-                                                'tiger.pagc_lex','tiger.pagc_gaz','tiger.pagc_rules',
-                                                concat(f2.address,', New York, NY, ',f2.zipcode) )
-                                            ) res,
-                                        array_agg(f2.orig_addr) orig_addr,
-                                        array_agg(f2.src_gid) src_gid
+                                select  z_custom_addr_post_filter( f3.res,f3.orig_addr,f3.src_gid ) res
                                 from
                                     (
-                                    select
-                                        z_custom_addr_pre_filter( f1.address ) address,
-                                        f1.zipcode zipcode,
-                                        f1.address::text orig_addr,
-                                        f1.gid src_gid
+                                    select  array_agg(
+                                                standardize_address(
+                                                    'tiger.pagc_lex','tiger.pagc_gaz','tiger.pagc_rules',
+                                                    concat(f2.address,', New York, NY, ',f2.zipcode) )
+                                                ) res,
+                                            array_agg(f2.orig_addr) orig_addr,
+                                            array_agg(f2.src_gid) src_gid
                                     from
                                         (
-                                        ##(_QUERY_STR)s
-                                        ) as f1
-                                    ) as f2
-                                ) as f3
-                            ) as f4;
-                    \"\"\" ## query_dict
+                                        select
+                                            z_custom_addr_pre_filter( f1.address ) address,
+                                            f1.zipcode zipcode,
+                                            f1.address::text orig_addr,
+                                            f1.gid src_gid
+                                        from
+                                            (
+                                            ##(_QUERY_STR)s
+                                            ) as f1
+                                        ) as f2
+                                    ) as f3
+                                ) as f4;
+                        \"\"\" ## query_dict
 
-                    return plpy.execute(q)
+                        q_res = plpy.execute(q)
+                        plpy.log(q)
+
+                        res.extend(q_res)
+
+                        if len(q_res)<q_lim or len(res)==q_max:
+                            plpy.log('exit 1623')
+                            stop=True
+                            break
+                        else:
+                            q_offset = q_offset + q_lim
+
+
+                    return res
+
 
                 $$ LANGUAGE %(fct_lang)s;
 
@@ -1590,13 +1653,19 @@ class pgSQL_Functions:
 
                 DROP FUNCTION IF EXISTS z_custom_addr_post_filter(integer,text,text,integer);
                 DROP FUNCTION IF EXISTS z_custom_addr_post_filter(stdaddr[],text[],integer[]);
-                CREATE OR REPLACE FUNCTION public.z_custom_addr_post_filter(res stdaddr[],
-                                                                            orig_addr text[],
-                                                                            src_gid integer[])
+                CREATE OR REPLACE FUNCTION z_custom_addr_post_filter(   res stdaddr[],
+                                                                        orig_addr text[],
+                                                                        src_gid integer[])
                 RETURNS SETOF parsed_addr AS $$
+                    _U(res,orig_addr,src_gid)
+                end
+                do
+                    _U = function(res,orig_addr,src_gid)
 
-                    --ret_res = {}
-                    local tmp,tmp_pt = {},{}
+                    --log(debug.getinfo(1).short_src)
+
+                    ret_res = {}
+                    tmp,tmp_pt = {},{}
 
                     local some_src_cols = {"building","house_num","predir","qual","pretype","name","suftype","sufdir",
                                             "city","state","postcode","box","unit",}
@@ -1604,8 +1673,6 @@ class pgSQL_Functions:
                     local some_dest_cols = {"bldg","num","predir","qual","pretype","name","suftype","sufdir",
                                             "city","state","zip","box","unit"}
 
-                    --for k,v in pairs(res[1]) do log(k..' --- '..v) end
-                    --log("1618")
 
                     for i=1, #res do
 
@@ -1623,7 +1690,6 @@ class pgSQL_Functions:
                         tmp_pt["zip"]=tmp.postcode
 
 
-                        --log("1633")
                         if tmp_pt["name"] and tmp_pt["name"]:find("QQQQ")~=nil then
                             tmp_pt["name"] = tmp_pt["name"]:gsub("(.*)[%s]*(QQQQ)[%s]*(.*)","%1 %3")
                         end
@@ -1631,7 +1697,6 @@ class pgSQL_Functions:
                         local t = ""
                         local s1,e1,s2,e2 = 0,0,0,0
 
-                        --log(1641)
                         -- DISCARD PRETYPES, MOVE THEM BACK TO 'NAME', UPDATE SUFTYPE
                         if tmp_pt["pretype"] then
                             --log(1644)
@@ -1674,20 +1739,14 @@ class pgSQL_Functions:
 
                         end
 
-                        --if true then return tmp_pt end
-
                         coroutine.yield(tmp_pt)
-
-                        --ret_res[i] = tmp_pt
-
-                        --log(1692)
 
                     end
 
                     --for k,v in pairs(ret_res[1]) do log(k..' --- '..v) end
                     --log('returning '..string.format('%d',table.getn(ret_res)))
-                    --return tmp_pt --ret_res
 
+                end
 
                 $$ LANGUAGE plluau;
             """
@@ -1722,65 +1781,6 @@ class pgSQL_Functions:
                         addr = "0|"..addr
                     else
                         addr = addr:gsub("^([0-9]*)([%-]*)([a-zA-Z0-9]*)%s([a-zA-Z0-9]*)[%s]*(.*)","%1%2%3|%4 %5")
-                    end
-
-                    local cmd = [[select repl_from,repl_to
-                            from regex_repl
-                            where tag = 'custom_addr_pre_filter'
-                            and is_active is true
-                            order by run_order ASC]]
-
-                    for row in server.rows(cmd) do
-                        addr = string.gsub(addr,row.repl_from,row.repl_to)
-                    end
-                    return addr
-                $$ LANGUAGE plluau;
-            """
-            conn.set_isolation_level(       0)
-            cur.execute(                    cmd)
-        def z2_parse_NY_addrs(self):
-            cmd="""
-                CREATE OR REPLACE FUNCTION public.z2_parse_NY_addrs(query_str text)
-                RETURNS text AS $$
-
-
-                    -- GET ALL PRE-FILTERS
-                    local cmd = [[select repl_from,repl_to
-                            from regex_repl
-                            where tag = 'custom_addr_pre_filter'
-                            and is_active is true
-                            order by run_order ASC]]
-
-                    local filt_expr = {}
-                    for row in server.rows(cmd) do
-                        table.insert(filt_expr,{"repl_from":row.repl_from,"repl_to":row.repl_to})
-                    end
-
-
-
-                    cmd = cmd_top..t_addr..cmd_bot
-
-                    for row in server.rows(query_str) do
-
-                    end
-
-                    if addr==nil then
-                        return
-                    else
-                        addr = addr:upper()
-                    end
-
-                    local cnt = addr:find( "^([0-9]*)([%-]*)([a-zA-Z0-9]*)%s([a-zA-Z0-9]*)(.*)" )
-                    local no_num_cnt = addr:find("^([0-9]+)(.*)")
-                    -- when first character not digit, EAST 76 STREET --> num=E 76,NAME=NEW YORK
-                    -- when first character not digit, MARGINAL STREET --> NAME=ST NEW YORK
-                    --
-
-
-                    if ( cnt == 0 or cnt == nil or no_num_cnt == nil ) then
-                        addr = "0|"..addr
-                    else
-                        addr = addr:gsub("^([0-9]*)([%-]*)([a-zA-Z0-9]*)%s([a-zA-Z0-9]*)(.*)","%1%2%3|%4 %5")
                     end
 
                     local cmd = [[select repl_from,repl_to
@@ -2382,10 +2382,18 @@ class Tables:
 
         def addr_idx(self):
             a                       =   """
-                create table tmp_addr_idx as
-                select (z).* from z_parse_NY_addrs('select gid,address,zipcode from pluto') z;
+                drop table if exists tmp_addr_idx;
 
-                --assert -- city != 'NEW YORK' or state != 'NY'
+                create table tmp_addr_idx as
+                select * from z_parse_NY_addrs(
+                    'select gid,address,zipcode from pluto where address is not null order by gid');
+
+                select z_make_column_primary_serial_key( 'tmp_addr_idx', 'gid', true);
+
+                -- ASSERT
+                select pluto_cnt=tmp_cnt has_matching_uniq_cnt from
+                    (select count(distinct src_gid) tmp_cnt from tmp_addr_idx) as f1,
+                    (select count(distinct gid) pluto_cnt from pluto where address is not null) as f2;
 
             """
 
