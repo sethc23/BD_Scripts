@@ -1545,6 +1545,8 @@ class pgSQL_Functions:
                 RETURNS %(fct_return)s
                 AS $$
 
+                    #plpy.log('starting parser')
+
                     query_str = args[0]
                     qs,res = query_str.lower().split(' '),[]
                     drop_items = []
@@ -1577,7 +1579,7 @@ class pgSQL_Functions:
                     stop=False
 
                     pt=0
-                    plpy.log("START")
+                    #plpy.log("START")
                     while stop==False:
                         pt+=1
 
@@ -1591,7 +1593,7 @@ class pgSQL_Functions:
                                                                            q_range]), }
 
 
-                        plpy.log(str(pt)+' '+query_dict['_QUERY_STR'])
+                        #plpy.log(str(pt)+' '+query_dict['_QUERY_STR'])
 
                         q=\"\"\"
                             select (res).*
@@ -1601,17 +1603,14 @@ class pgSQL_Functions:
                                 from
                                     (
                                     select  array_agg(
-                                                standardize_address(
-                                                    'tiger.pagc_lex','tiger.pagc_gaz','tiger.pagc_rules',
-                                                    concat(f2.address,', New York, NY, ',f2.zipcode) )
-                                                ) res,
+                                                standardize_address('tiger.pagc_lex','tiger.pagc_gaz',
+                                                                    'tiger.pagc_rules',f2.addr_zip) ) res,
                                             array_agg(f2.orig_addr) orig_addr,
                                             array_agg(f2.src_gid) src_gid
                                     from
                                         (
                                         select
-                                            z_custom_addr_pre_filter( f1.address ) address,
-                                            f1.zipcode zipcode,
+                                            z_custom_addr_pre_filter( f1.address,f1.zipcode ) addr_zip,
                                             f1.address::text orig_addr,
                                             f1.gid src_gid
                                         from
@@ -1624,12 +1623,12 @@ class pgSQL_Functions:
                         \"\"\" ## query_dict
 
                         q_res = plpy.execute(q)
-                        plpy.log(q)
+                        #plpy.log(q)
 
                         res.extend(q_res)
 
                         if len(q_res)<q_lim or len(res)==q_max:
-                            plpy.log('exit 1623')
+                            #plpy.log('exit 1623')
                             stop=True
                             break
                         else:
@@ -1662,7 +1661,7 @@ class pgSQL_Functions:
                 do
                     _U = function(res,orig_addr,src_gid)
 
-                    --log(debug.getinfo(1).short_src)
+                    --log("starting post-filter")
 
                     ret_res = {}
                     tmp,tmp_pt = {},{}
@@ -1675,7 +1674,6 @@ class pgSQL_Functions:
 
 
                     for i=1, #res do
-
 
                         tmp = res[i]
                         tmp_pt = {}
@@ -1699,8 +1697,21 @@ class pgSQL_Functions:
 
                         -- DISCARD PRETYPES, MOVE THEM BACK TO 'NAME', UPDATE SUFTYPE
                         if tmp_pt["pretype"] then
-                            --log(1644)
-                            s1,e1 = orig_addr[i]:find(tmp_pt["num"])
+                            --log("1702")
+                            if tmp_pt["num"]==0 then
+                                s1,e1=0,0
+                            else
+                                s1,e1 = orig_addr[i]:find(tmp_pt["num"])
+                            end
+
+                            if e1==nil then
+                                log(tmp_pt["num"])
+                                log(tmp_pt["name"])
+                                log(orig_addr[i])
+                                log(tmp_pt["pretype"])
+                                if true then return end
+                            end
+
                             s2,e2 = orig_addr[i]:find(tmp_pt["name"])
                             t = orig_addr[i]:sub(e1+2,s2-2)
 
@@ -1711,10 +1722,9 @@ class pgSQL_Functions:
                                 t = t:gsub("(.*)%s([a-zA-Z0-9]+)$","%2")
                                 tmp_pt["name"] = t.." "..tmp_pt["name"]
                             end
+                            tmp_pt["pretype"] = nil
 
-                            tmp_pt["pretype"] = " "
-
-                            t = orig_addr[i]:sub(tmp_pt["name"]:len()+s2)
+                            t = orig_addr[i]:sub(e2+2)
 
                             cmd = string.format([[  select usps_abbr abbr
                                                     from usps where common_use ilike '%s']],t)
@@ -1730,14 +1740,23 @@ class pgSQL_Functions:
 
                         -- FOR ANY PREDIR NOT 'E' OR 'W', MOVE BACK TO 'NAME'
                         if tmp_pt["predir"] and (tmp_pt["predir"]~="E" and tmp_pt["predir"]~="W") then
-
+                            --log("1742")
                             if tmp_pt["predir"]=='N' then t = "NORTH" end
                             if tmp_pt["predir"]=='S' then t = "SOUTH" end
 
                             tmp_pt["predir"] = ""
                             tmp_pt["name"] = t.." "..tmp_pt["name"]
-
                         end
+
+                        -- WHEN UNIT CONTAINS 'PIER', e.g., 'PIER-15 SOUTH STREET' (filtered as '0 PIER-15 SOUTH STREET')
+                        if tmp_pt["unit"] then
+                            if tmp_pt["unit"]:find('# 0 PIER') and tmp_pt["bldg"]==nil then
+                                tmp_pt["bldg"] = "PIER "..tmp_pt["num"]
+                                tmp_pt["num"] = 0
+                                tmp_pt["unit"] = nil
+                            end
+                        end
+
 
                         coroutine.yield(tmp_pt)
 
@@ -1745,6 +1764,7 @@ class pgSQL_Functions:
 
                     --for k,v in pairs(ret_res[1]) do log(k..' --- '..v) end
                     --log('returning '..string.format('%d',table.getn(ret_res)))
+                    --return {}
 
                 end
 
@@ -1761,7 +1781,8 @@ class pgSQL_Functions:
 
             """
             cmd="""
-                CREATE OR REPLACE FUNCTION public.z_custom_addr_pre_filter(addr text)
+                drop function if exists z_custom_addr_pre_filter(text);
+                CREATE OR REPLACE FUNCTION z_custom_addr_pre_filter(addr text, zipcode integer)
                 RETURNS text AS $$
 
                     if addr==nil then
@@ -1780,7 +1801,8 @@ class pgSQL_Functions:
                     if ( cnt == 0 or cnt == nil or no_num_cnt == nil ) then
                         addr = "0|"..addr
                     else
-                        addr = addr:gsub("^([0-9]*)([%-]*)([a-zA-Z0-9]*)%s([a-zA-Z0-9]*)[%s]*(.*)","%1%2%3|%4 %5")
+                        addr = addr:gsub("^([0-9]*)([%-]*)([a-zA-Z0-9]*)[%s]*([a-zA-Z0-9]*)[%s]*(.*)",
+                                         "%1%2%3|%4 %5")
                     end
 
                     local cmd = [[select repl_from,repl_to
@@ -1792,7 +1814,12 @@ class pgSQL_Functions:
                     for row in server.rows(cmd) do
                         addr = string.gsub(addr,row.repl_from,row.repl_to)
                     end
-                    return addr
+
+                    if zipcode==nil or zipcode==0 then
+                        zipcode=11111
+                    end
+
+                    return addr..", New York, NY, "..zipcode
                 $$ LANGUAGE plluau;
             """
             conn.set_isolation_level(       0)
@@ -2330,18 +2357,32 @@ class Tables:
 
                     -- AVENUE B --> B AVENUE
                     ('custom_addr_pre_filter',
-                        '([0-9]+)%|(AVENUE)([%s]+)([A-F])([%s]*)(.*)','%1|%4 %2 %3 %5','','0'),
+                        '([0-9]+)%|(AVENUE)([%s]+)([A-F])([%s]*)(.*)',
+                        '%1|%4 %2 %3 %5','','0'),
 
+                    -- AVENUE OF THE AMERICAS
                     ('custom_addr_pre_filter',
-                        '([0-9]+)%|(AVE[NUE]*[%s]*[OF]*[%s]*[THE]*[%s]*[AME]*[R]?[ICA]*[S]?[%s]*)(.*)','%1|6 AVENUE %3','','0'),
+                        '([0-9]+)%|(AVE?N?U?E?[%s]+O?F?)[%s]+[THE]*[%s]*(AMERI?C?A?S?[%s]*)(.*)',
+                        '%1|6 AVENUE %4','','0'),
+
+
+                    -- AVENUE OF THE FINEST
+                    ('custom_addr_pre_filter',
+                        '([0-9]+)%|(AVE[NUE]*[%s]+OF[%s]+)[THE]*[%s]*(FINEST?[%s]*)(.*)',
+                        '%1|AVENUEQQQQOFQQQQTHEQQQQFINEST %3','','0'),
+
 
                     -- 3 AVENUE --> 0 3 AVENUE  (b/c street num required for parsing)
                     ('custom_addr_pre_filter',
-                        '([0-9]+)%|(AVENUE)[%s]?([a-zA-Z]*)$','0|%1 %2 %3','','0'),
+                        '([0-9]+)%|(AVENUE)[%s]?([a-zA-Z]*)$',
+                        '0|%1 %2 %3','','0'),
                     ('custom_addr_pre_filter',
-                        '([0-9]+)%|(AVE)[%s]?([a-zA-Z]*)$','0|%1 %2 %3','','0'),
+                        '([0-9]+)%|(AVE)[%s]?([a-zA-Z]*)$',
+                        '0|%1 %2 %3','','0'),
                     ('custom_addr_pre_filter',
-                        '([0-9]+)%|(AV)[%s]?([a-zA-Z]*)$','0|%1 %2 %3','','0'),
+                        '([0-9]+)%|(AV)[%s]?([a-zA-Z]*)$',
+                        '0|%1 %2 %3','','0'),
+
 
                     -- special streets where 'EAST' and 'WEST' don't refer to an end of a street
                     ('custom_addr_pre_filter',
@@ -2351,29 +2392,44 @@ class Tables:
                         '([0-9]+)%|(EAST)%s(RIVER)%s(DR)(.*)$',
                         '%1|%2QQQQ%3 %4%5','','1'),
 
+
                     -- b/c PIKE in 'PIKE SLIP' does not refer to a highway
                     ('custom_addr_pre_filter',
                         '([0-9]+)%|(PI)(KE)[%s]+(SLIP)(.*)$',
                         '%1|%2QQQQ%3 %4%5','','1'),
+
 
                     -- b/c WEST in 'LITTLE WEST 12 STREET' does not refer to the west end of Little West 12th Street
                     ('custom_addr_pre_filter',
                         '([0-9]+)%|(LITTLE W[.]?[E]?[S]?[T]?[%s]12)[T]?[H]?[%s]?(.*)$',
                         '%1|LITTLEQQQQWESTQQQQ12 %3','','1'),
 
+
+                    -- STREETS WITH STREET NUMBERS HAVING '1/2'
                     ('custom_addr_pre_filter',
-                        '([^|]*)|(.*)(%s)(TERRACE)([%s]*)([a-zA-Z]*)$','%1|%2 TERR %5','','2'),
-                    ('custom_addr_pre_filter',
-                        '(.*)%|(LA)(%s)(.*)?','%1|%2QQQQ%4 ','','3'),
+                        '([0-9]+)%|(1)%s(/2)[%s]+(.*)',
+                        '%1 %2%3|%4','','1'),
+
 
                     ('custom_addr_pre_filter',
-                        '([0-9]+)[%-]([a-zA-Z0-9]+)%|(.*)','%1|%3, Bldg. %2','','4'),
+                        '([^|]*)|(.*)(%s)(TERRACE)([%s]*)([a-zA-Z]*)$',
+                        '%1|%2 TERR %5','','2'),
                     ('custom_addr_pre_filter',
-                        '([0-9]+)([a-zA-Z]+)%|(.*)','%1|%3, Bldg. %2','','5'),
+                        '(.*)%|(LA)(%s)(.*)?',
+                        '%1|%2QQQQ%4 ','','3'),
+
                     ('custom_addr_pre_filter',
-                        '([0-9]+)%|(.*)(,%s)(Bldg%.)%s([a-zA-Z0-9]+)$','Bldg. %5, %1|%2','g','6'),
+                        '([0-9]+)[%-]([a-zA-Z0-9]+)%|(.*)',
+                        '%1|%3, Bldg. %2','','4'),
                     ('custom_addr_pre_filter',
-                        '([^%|]*)%|[%s]*(.*)[%s]*','%1 %2','g','7')
+                        '([0-9]+)([a-zA-Z]+)%|(.*)',
+                        '%1|%3, Bldg. %2','','5'),
+                    ('custom_addr_pre_filter',
+                        '([0-9]+)%|(.*)(,%s)(Bldg%.)%s([a-zA-Z0-9]+)$',
+                        'Bldg. %5, %1|%2','g','6'),
+                    ('custom_addr_pre_filter',
+                        '([^%|]*)%|[%s]*(.*)[%s]*',
+                        '%1 %2','g','7')
 
                 ;
             """

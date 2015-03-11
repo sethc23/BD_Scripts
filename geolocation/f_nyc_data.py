@@ -537,8 +537,11 @@ def load_parsed_snd_datafile_into_db(table_name='snd',drop_prev=True):
             alter table snd drop column sc5;
             alter table snd rename column tmp to sc5;
 
-            -- ASSERT
 
+            update snd s set
+                primary_name = variation,
+                last_updated = 'now'::timestamp with time zone
+            where last_updated is null;
 
             """
     conn.set_isolation_level(           0)
