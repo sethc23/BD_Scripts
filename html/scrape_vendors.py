@@ -960,7 +960,34 @@ class Seamless:
         SYS_r._growl(                       msg)
         br.quit()
         return True
-
+    def quick_geom_upsert(self):
+        cmd = """
+            update seamless sl set geom = pc_geom
+            from
+                (
+                select pc.geom pc_geom,f2.sl_vend_id sl_vend_id
+                from
+                    pluto_centroids pc,
+                    (
+                    select p.src_gid p_gid,f1.src_gid sl_vend_id
+                    from
+                        (select * from z_parse_NY_addrs('
+                                            select  vend_id::integer gid,
+                                                address,
+                                                zipcode::integer
+                                            from seamless where geom is null order by vend_id
+                                            ')) as f1,
+                        (select concat(num::text,' ',predir,' ',name,' ',suftype,' ',sufdir) indexed_pts, src_gid
+                            from tmp_addr_idx_pluto) as p
+                    where concat(f1.num,' ',f1.predir,' ',f1.name,' ',f1.suftype,' ',f1.sufdir) = indexed_pts
+                    ) as f2
+                where pc.p_gid = f2.p_gid
+                ) as f3
+            where sl.vend_id = sl_vend_id
+        """
+        conn.set_isolation_level(0)
+        cur.execute( cmd)
+        return
 
 class Yelp_API:
 
