@@ -1,68 +1,7 @@
 # add encoding?
 #   see SL_previously_closed_vendors
 
-
-# import HTML and codecs
-import                                      datetime        as dt
-import                                      codecs
-from time                           import sleep
-from urllib                         import quote_plus,unquote
-from re                             import findall          as re_findall       # re_findall('patt','str','flag')
-from re                             import sub              as re_sub           # re_sub('patt','repl','str','cnt')
-from re                             import search           as re_search        # re_search('patt','str')
-from subprocess                     import Popen            as sub_popen
-from subprocess                     import PIPE             as sub_PIPE
-from traceback                      import format_exc       as tb_format_exc
-from sys                            import exc_info         as sys_exc_info
-import                                      inspect         as I
-from os                             import environ          as os_environ
-from uuid                           import uuid4            as get_guid
-from os                             import path             as os_path
-from sys                            import path             as py_path
-py_path.append(                             os_path.join(os_environ['BD'],'html'))
-from HTML_API                       import getTagsByAttr,getAllTag,getInnerElement,getTagContents
-from HTML_API                       import google,safe_url,getInnerHTML,FindAllTags,getSoup
-from webpage_scrape                 import scraper
-from selenium.webdriver.support.select import Select
-py_path.append(                             os_path.join(os_environ['BD'],'files_folders'))
-from API_system                     import get_input
-py_path.append(                             os_path.join(os_environ['HOME'],'.scripts'))
-from system_settings                import *
-from System_Control                 import System_Reporter
-SYS_r                                   =   System_Reporter()
-py_path.append(                             os_path.join(os_environ['BD'],'geolocation'))
-# from f_postgres                     import pgSQL_Functions,ST_Parts
-# PGFS                                    =   pgSQL_Functions()
-
-import                                      pandas              as pd
-pd.set_option(                              'expand_frame_repr', False)
-pd.set_option(                              'display.max_columns', None)
-pd.set_option(                              'display.max_rows', 1000)
-pd.set_option(                              'display.width', 180)
-np = pd.np
-np.set_printoptions(                        linewidth=200,threshold=np.nan)
-import                                      geopandas           as gd
-from types                          import NoneType
-from time                           import sleep                as delay
-from sqlalchemy                     import create_engine
-from logging                        import getLogger
-from logging                        import INFO                 as logging_info
-from psycopg2                       import connect              as pg_connect
-
-getLogger(                                  'sqlalchemy.dialects.postgresql').setLevel(logging_info)
-routing_eng                             =   create_engine(r'postgresql://postgres:postgres@%s:%s/%s'
-                                                        %(DB_HOST,DB_PORT,'routing'),
-                                                        encoding='utf-8',
-                                                        echo=False)
-
-conn                                    =   pg_connect( "dbname='routing' "+
-                                                        "user='postgres' "+
-                                                        "host='%s' password='' port=8800" % DB_HOST);
-cur                                     =   conn.cursor()
-
-
-# from ipdb import set_trace as i_trace; i_trace()
-
+#   from ipdb import set_trace as i_trace; i_trace()
 class Scrape_Vendors:
     """
 
@@ -94,20 +33,76 @@ class Scrape_Vendors:
     """
 
     def __init__(self):
-        T                           =   {'user'                 :   os_environ['USER'],
-                                         'guid'                 :   str(get_guid().hex)[:7],
-                                         'today'                :   dt.datetime.now(),
-                                         'oldest_comments'      :   str(9*30),                      # in days
-                                         'transcation_cnt'      :   '100',
-                                         'growl_notice'         :   True,
-                                         'debug'                :   True}
-        T.update(                       {'tmp_tbl'              :   'tmp_' + T['guid']})
-        self.T                      =   T
-        self.SL                     =   Seamless(self)
-        self.Yelp                   =   Yelp(self)
-        self.Yelp_API               =   Yelp_API()
-        self.SF                     =   Scrape_Functions(self)
-        self.SV                     =   self
+        import                                  datetime            as dt
+        from time                           import sleep
+        from urllib                         import quote_plus,unquote
+        from re                             import findall          as re_findall
+        from re                             import sub              as re_sub           # re_sub('patt','repl','str','cnt')
+        from re                             import search           as re_search        # re_search('patt','str')
+        from subprocess                     import Popen            as sub_popen
+        from subprocess                     import PIPE             as sub_PIPE
+        from traceback                      import format_exc       as tb_format_exc
+        from sys                            import exc_info         as sys_exc_info
+        from types                          import NoneType
+        from time                           import sleep            as delay
+        from os                             import environ          as os_environ
+        from uuid                           import uuid4            as get_guid
+        from sys                            import path             as py_path
+        py_path                             =   py_path
+        py_path.append(                         os_environ['HOME'] + '/.scripts')
+        from system_settings                import DB_HOST,DB_PORT
+        # from System_Control               import System_Reporter
+        # SYS_r                               =   System_Reporter()
+        import                                  pandas          as pd
+        # from pandas.io.sql                import execute              as sql_cmd
+        pd.set_option(                         'expand_frame_repr', False)
+        pd.set_option(                              'display.max_columns', None)
+        pd.set_option(                              'display.max_rows', 1000)
+        pd.set_option(                              'display.width', 180)
+        np                                  =   pd.np
+        np.set_printoptions(                    linewidth=200,threshold=np.nan)
+        import                                  geopandas       as gd
+        from sqlalchemy                         import create_engine
+        from logging                            import getLogger
+        from logging                            import INFO             as logging_info
+        getLogger(                                  'sqlalchemy.dialects.postgresql').setLevel(logging_info)
+        eng                                 =   create_engine(r'postgresql://postgres:postgres@%s:%s/%s'
+                                                          %(DB_HOST,DB_PORT,'routing'),
+                                                          encoding='utf-8',
+                                                          echo=False)
+        from psycopg2                           import connect          as pg_connect
+        pd                                  =   pd
+        gd                                  =   gd
+        conn                                =   pg_connect("dbname='routing' "+
+                                                           "user='postgres' "+
+                                                           "host='%s' password='' port=8800" % DB_HOST)
+        cur                                 =   conn.cursor()
+
+        D                                   =   {'pd'                   :   pd,
+                                                 'np'                   :   np,
+                                                 'gd'                   :   gd,
+                                                 'conn'                 :   conn,
+                                                 'cur'                  :   cur,
+                                                 'eng'                  :   eng,
+                                                 'os_environ'           :   os_environ,
+                                                 'py_path'              :   py_path,
+                                                 'guid'                 :   str(get_guid().hex)[:7],
+                                                 'user'                 :   os_environ['USER'],
+                                                 'guid'                 :   str(get_guid().hex)[:7],
+                                                 'today'                :   dt.datetime.now(),
+                                                 'oldest_comments'      :   str(9*30),                      # in days
+                                                 'transcation_cnt'      :   '100',
+                                                 'growl_notice'         :   True,
+                                                 'debug'                :   True,}
+
+        D.update(                               {'tmp_tbl'              :   'tmp_' + D['guid'] } )
+
+        self.T                              =   To_Class(D)
+        self.SL                             =   Seamless(self)
+        self.Yelp                           =   Yelp(self)
+        self.Yelp_API                       =   Yelp_API()
+        self.SF                             =   Scrape_Functions(self)
+        self.SV                             =   self
 
     def post_screenshot(self,br):
         fpath                           =   '/home/ub2/SERVER2/aprinto/static/phantom_shot'
@@ -126,13 +121,17 @@ class Scrape_Vendors:
             assert _err                ==   None
         return
 
-
 class Seamless:
 
     def __init__(self,_parent):
-        self.SV                     =   _parent
-        self.T                      =   _parent.T
-        self.SL                     =   self
+        # from scrape_vendors                 import *
+        from codecs                         import encode           as codecs_enc
+        from re                             import findall          as re_findall
+        from re                             import sub              as re_sub
+        self.SV                         =   _parent
+        self.T                          =   _parent.T
+        self.SL                         =   self
+        SV                              =   self
 
     # SEAMLESS FUNCTIONS
     #   seamless: [ base f(x) ]
@@ -259,11 +258,16 @@ class Seamless:
         assert time_element.get_attribute("value")==time_str
 
         return br.wait_for_page(       timeout_seconds=120)
-    def update_pgsql_with_sl_page_content(self,br):
+    def update_pgsql_with_sl_page_content(self,br,url=''):
+        from codecs                         import encode           as codecs_enc
+        from re                             import findall          as re_findall
+        from re                             import sub              as re_sub
+        from ipdb import set_trace as i_trace; i_trace()
+        br = self.SV.SF.browser()
+        if url:
+            br.open_page(url)
 
-
-
-        html                            =   codecs.encode(br.source(),'utf8','ignore')
+        html                            =   codecs_enc(br.source(),'utf8','ignore')
         seamless_link                   =   br.get_url()
 
         if seamless_link.find('http')!=0:   seamless_link='http://www.seamless.com/food-delivery/'+seamless_link
@@ -306,7 +310,7 @@ class Seamless:
         addr                            =   getTagsByAttr(html, 'span',
                                                       {'itemprop':'streetAddress'},
                                                       contents=False)[0].contents[0]
-        addr                            =   addr[:addr.find('(')].strip()
+        addr                            =   re_sub('(^[\(])[\(]?(.*)$','$1',addr)
         z                               =   getTagsByAttr(html, 'span',
                                                       {'itemprop':'postalCode'},
                                                       contents=False)[0].contents[0]
@@ -372,6 +376,10 @@ class Seamless:
                                                          'rating,rating_total,rating_perc,description,reviews',
                                                          'deliv_est,deliv_min,pickup_est,cuisine,estimates_blob',
                                                          'upd_vend_content'] ).split(',')
+
+
+
+
         conn.set_isolation_level(           0)
         cur.execute(                        'drop table if exists %(tmp_tbl)s' % self.T)
         pd.DataFrame(                       [page_vars],columns=var_names).to_sql(self.T['tmp_tbl'],routing_eng)
@@ -1783,66 +1791,69 @@ class Scrape_Functions:
         a,b,c                           =   pd.read_sql(cmd,routing_eng).iloc[0,:]
         assert True == a == b == c == True
 
-
+    def browser(self):
+        from html.HTML_API                  import getTagsByAttr,getAllTag,getInnerElement,getTagContents
+        from html.HTML_API                  import google,safe_url,getInnerHTML,FindAllTags,getSoup
+        from html.webpage_scrape            import scraper
+        # self.br                        =   scraper('phantom').browser
+        return                              scraper('phantom').browser
 
     def match_vend_info_by_uniq_vars(self):
-        match_var = 'vend_name'
+        match_var                       =   'vend_name'
 
-        sl = pd.read_sql("""select vend_id,%(match_var)s,y_vend_id
-                            from seamless where %(match_var)s is not null
-                            and y_vend_id is null""" % {'match_var':match_var} ,engine)
-        y = pd.read_sql(""" select id,%(match_var)s,sl_vend_id
-                            from yelp where %(match_var)s is not null
-                            and sl_vend_id is null""" % {'match_var':match_var} ,engine)
+        sl                              =   pd.read_sql("""select vend_id,%(match_var)s,y_vend_id
+                                                           from seamless where %(match_var)s is not null
+                                                           and y_vend_id is null""" % {'match_var':match_var} ,engine)
+        y                               =   pd.read_sql("""select id,%(match_var)s,sl_vend_id
+                                                         from yelp where %(match_var)s is not null
+                                                         and sl_vend_id is null""" % {'match_var':match_var} ,engine)
 
-        all_y_match_var = y[match_var].tolist()
-        all_sl_match_var = sl[match_var].tolist()
-        match_cnt_col = '%(match_var)s_cnt' % {'match_var':match_var}
-        y[match_cnt_col] = y[match_var].map(lambda s: all_y_match_var.count(s))
-        sl[match_cnt_col] = sl[match_var].map(lambda s: all_sl_match_var.count(s))
+        all_y_match_var                 =   y[match_var].tolist()
+        all_sl_match_var                =   sl[match_var].tolist()
+        match_cnt_col                   =   '%(match_var)s_cnt' % {'match_var':match_var}
+        y[match_cnt_col]                =   y[match_var].map(lambda s: all_y_match_var.count(s))
+        sl[match_cnt_col]               =   sl[match_var].map(lambda s: all_sl_match_var.count(s))
 
-        y_uniq = y[ y[match_cnt_col]==1].copy()
-        sl_uniq = sl[ sl[match_cnt_col]==1 ].copy()
-        y_match_D = dict(zip(y_uniq[match_var].tolist(),y_uniq.index.tolist()))
-        sl_match_D = dict(zip(sl_uniq[match_var].tolist(),sl_uniq.index.tolist()))
+        y_uniq                          =   y[ y[match_cnt_col]==1].copy()
+        sl_uniq                         =   sl[ sl[match_cnt_col]==1 ].copy()
+        y_match_D                       =   dict(zip(y_uniq[match_var].tolist(),y_uniq.index.tolist()))
+        sl_match_D                      =   dict(zip(sl_uniq[match_var].tolist(),sl_uniq.index.tolist()))
 
-        y_f = lambda s: '' if sl_match_D.has_key(s)==False else sl_uniq.ix[sl_match_D[s],'vend_id']
-        y_uniq['sl_vend_id'] = y_uniq[match_var].map(y_f)
+        y_f                             = lambda s: '' if sl_match_D.has_key(s)==False else sl_uniq.ix[sl_match_D[s],'vend_id']
+        y_uniq['sl_vend_id']            = y_uniq[match_var].map(y_f)
 
-        sl_f = lambda s: '' if y_match_D.has_key(s)==False else y_uniq.ix[y_match_D[s],'id']
-        sl_uniq['y_vend_id'] = sl_uniq[match_var].map(sl_f)
+        sl_f                            = lambda s: '' if y_match_D.has_key(s)==False else y_uniq.ix[y_match_D[s],'id']
+        sl_uniq['y_vend_id']            = sl_uniq[match_var].map(sl_f)
         assert len(sl_uniq[sl_uniq.y_vend_id!=''])==len(y_uniq[y_uniq.sl_vend_id!=''])
 
-        sl_uniq.to_sql(self.T['guid'],engine,index=False)
-        conn.set_isolation_level(0)
-        cur.execute("""
-        update seamless s set y_vend_id=t.y_vend_id
-        from %(tmp)s t
-        where t.vend_id = s.vend_id
-        and not t.y_vend_id='';
+        sl_uniq.to_sql(                     self.T['guid'],engine,index=False)
+        conn.set_isolation_level(           0)
+        cur.execute(                        """
+                                                update seamless s set y_vend_id=t.y_vend_id
+                                                from %(tmp)s t
+                                                where t.vend_id = s.vend_id
+                                                and not t.y_vend_id='';
+                                                drop table %(tmp)s;
+                                            """ % {'tmp':self.T['guid']} )
 
-        drop table %(tmp)s;
+        y_uniq.to_sql(                      self.T['guid'],engine,index=False)
+        conn.set_isolation_level(           0)
+        cur.execute(                        """
+                                                update yelp y set sl_vend_id=t.sl_vend_id::bigint
+                                                from %(tmp)s t
+                                                where t.id = y.id
+                                                and not t.sl_vend_id='';
 
-        """ % {'tmp':self.T['guid']} )
+                                                drop table %(tmp)s;
 
-        y_uniq.to_sql(self.T['guid'],engine,index=False)
-        conn.set_isolation_level(0)
-        cur.execute("""
-                update yelp y set sl_vend_id=t.sl_vend_id::bigint
-                from %(tmp)s t
-                where t.id = y.id
-                and not t.sl_vend_id='';
+                                            """ % {'tmp':self.T['guid']} )
 
-                drop table %(tmp)s;
-
-                """ % {'tmp':self.T['guid']} )
-
-        chk="""
-        select sl_cnt=y_cnt chk
-        from
-            (select count(*) sl_cnt from seamless where y_vend_id is not null) as f1,
-            (select count(*) y_cnt from yelp where sl_vend_id is not null) as f2
-        """
+        chk                             =   """
+                                                select sl_cnt=y_cnt chk
+                                                from
+                                                    (select count(*) sl_cnt from seamless where y_vend_id is not null) as f1,
+                                                    (select count(*) y_cnt from yelp where sl_vend_id is not null) as f2
+                                            """
         assert pd.read_sql(chk,engine).chk[0]==True
         return
 
@@ -1877,7 +1888,7 @@ class Scrape_Functions:
         x_var_id_dict = dict(zip(x[x[match_var+'_cnt']==1][match_var].tolist(),x[x[match_var+'_cnt']==1][tbl_id].tolist()))
         x_var_id_dict_keys = x_var_id_dict.keys()
 
-        mnv  = pd.read_sql("select * from mnv where %(tbl)s_id is null"%T,engine)
+        mnv  = pd.read_sql("select * from mnv where %(tbl)s_id is null"%self.T,engine)
         mnv_var_tot = mnv[match_var].tolist()
         mnv[match_var+'_cnt'] = mnv[match_var].map(lambda i: mnv_var_tot.count(i))
         mnv_x = mnv[ (mnv[match_var].isin(x_var_id_dict_keys)==True)&(mnv[match_var+'_cnt']==1) ].copy()
@@ -1900,6 +1911,30 @@ class Scrape_Functions:
 
             drop table tmp;
         """%T)
+
+
+class To_Class:
+    def __init__(self, init=None):
+        if init is not None:
+            self.__dict__.update(init)
+
+    def __getitem__(self, key):
+        return self.__dict__[key]
+
+    def __setitem__(self, key, value):
+        self.__dict__[key] = value
+
+    def __delitem__(self, key):
+        del self.__dict__[key]
+
+    def __contains__(self, key):
+        return key in self.__dict__
+
+    def __len__(self):
+        return len(self.__dict__)
+
+    def __repr__(self):
+        return repr(self.__dict__)
 
 
 

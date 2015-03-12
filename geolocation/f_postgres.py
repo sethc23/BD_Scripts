@@ -1213,6 +1213,7 @@ def compare_lion_ways_content():
         print '\n',len(t),'rows had geoms stripped\n'
 
 
+
 class pgSQL_Functions:
     """
 
@@ -1881,6 +1882,7 @@ class pgSQL_Triggers:
                 CREATE EVENT TRIGGER missing_primary_key_trigger
                 ON ddl command end
                 WHEN TAG IN ('CREATE TABLE')
+                OR WHEN TAG IN ('CREATE TABLE AS')
                 EXECUTE PROCEDURE z_auto_add_primary_key();
 
                                                 """
@@ -1899,10 +1901,10 @@ class pgSQL_Triggers:
 
 
                 BEGIN
-                    last_table := (select relname from pg_class
-                                 where relnamespace=2200
-                                 and relkind='r'
-                                 order by oid desc limit 1);
+                    last_table := ( select relname from pg_class
+                                    where relnamespace=2200
+                                    and relkind='r'
+                                    order by oid desc limit 1);
 
                     SELECT count(*)>0 INTO has_last_updated FROM information_schema.columns
                         where table_name='||quote_ident(last_table)||'
@@ -1924,10 +1926,35 @@ class pgSQL_Triggers:
                 CREATE EVENT TRIGGER missing_last_updated_field
                 ON ddl_command_end
                 WHEN TAG IN ('CREATE TABLE')
+                OR WHEN TAG IN ('CREATE TABLE AS')
+
                 EXECUTE PROCEDURE z_auto_add_last_updated_field();
                                             """
             self.T.conn.set_isolation_level(0)
             self.T.cur.execute(c)
+        def z_auto_update_timestamp(self,tbl,col):
+            a="""
+                DROP FUNCTION if exists z_auto_update_timestamp(text) cascade;
+                DROP TRIGGER if exists update_timestamp_on_%(tbl)s_in_%(col)s ON %(tbl)s;
+
+                CREATE OR REPLACE FUNCTION z_auto_update_timestamp_on_%(tbl)s_in_%(col)s()
+                RETURNS TRIGGER AS $$
+                BEGIN
+                    NEW.last_updated := now();
+                    RETURN NEW;
+                END;
+                $$ language 'plpgsql';
+
+                CREATE TRIGGER update_timestamp_on_%(tbl)s_in_%(col)s
+                BEFORE UPDATE OR INSERT ON %(tbl)s
+                FOR EACH ROW
+                EXECUTE PROCEDURE z_auto_update_timestamp_on_%(tbl)s_in_%(col)s();
+
+            """ % {'tbl':tbl,'col':col}
+
+            self.T.conn.set_isolation_level(       0)
+            self.T.cur.execute(                    a)
+            return
 
     class Destroy:
         def __init__(self,_parent):
@@ -2025,7 +2052,7 @@ class pgSQL_Tables:
                                                     select %(id_col)s id,%(vend_name)s vend_name,
                                                         %(address_col)s address,%(zip_col)s zipcode
                                                     from %(db_tbl)s
-                                                    where address is not null
+                                                    where address is not null and geom is null
                                                     and (char_length(bbl::text)!=10 or bbl is null)
                                                 """%T
                     df                      =   self.T.pd.read_sql(cmd,self.T.eng)
@@ -2203,74 +2230,83 @@ class pgSQL_Tables:
                  add_geom_using_geocoding(self,working_tbl=('seamless' | 'yelp' | 'mnv'))
 
             """
+            from time                           import sleep            as delay
+            from pygeocoder                     import Geocoder
 
 
-            tbl                         =   working_tbl
-            print_gps                   =   False
 
+            df,T                            =   self.prep_vendor_data_for_adding_geom(
+                                                    data_type   =   'db',
+                                                    data_set    =   working_tbl,
+                                                    purpose     =   'google_geocode')
+            self.T.__init__(                    T)
+            addr_start_cnt                  =   len(df)
 
-            df,T = self.prep_vendor_data_for_adding_geom(data_type='db',
-                                                         data_set=tbl,
-                                                         purpose='google_geocode')
-            addr_start_cnt = len(df)
-            df['zipcode'] = df.zipcode.map(lambda s: '' if str(s).lower()=='nan' else str(int(s)))
-            df['chk_addr'] = df.ix[:,['address','zipcode']].apply(lambda s: str(s[0]+', New York, NY, '+str(s[1])).strip(),axis=1)
-            uniq_addr_start_cnt = len(df.chk_addr.unique().tolist())
+            from ipdb import set_trace as i_trace; i_trace()
+
+            df['zipcode']                   =   df.zipcode.map(lambda s: '' if str(s).lower()=='nan' else str(int(s)))
+            df['chk_addr']                  =   df.ix[:,['address','zipcode']].apply(lambda s:
+                                                        unicode(s[0]+', New York, NY, '+str(s[1])).strip(),axis=1)
+            uniq_addr_start_cnt             =   len(df.chk_addr.unique().tolist())
 
             # get google geocode results
-            all_chk_addr = df.chk_addr.tolist()
-            uniq_addr = self.T.pd.DataFrame({'addr':all_chk_addr}).addr.unique().tolist()
-            uniq_addr_dict = dict(zip(uniq_addr,range(len(uniq_addr))))
-            _iter = self.T.pd.Series(uniq_addr).iterkv()
+            all_chk_addr                    =   df.chk_addr.tolist()
+            uniq_addr                       =   self.T.pd.DataFrame({'addr':all_chk_addr}).addr.unique().tolist()
+            uniq_addr_dict                  =   dict(zip(uniq_addr,range(len(uniq_addr))))
+            _iter                           =   self.T.pd.Series(uniq_addr).iterkv()
 
             # if two vendors have same address: only one id will be associated with address
 
-            y,z=[],[]
-            pt,s=0,'Address\tZip\tLat.\tLong.\r'
+            y,z                             =   [],[]
+            pt,s                            =   0,'Address\tZip\tLat.\tLong.\r'
             #    print '\n"--" means only one result found.\nOtherwise, numbered results will be shown.'
             if print_gps==True: print s
             for k,it in _iter:
                 try:
-                    results = Geocoder.geocode(it)
+                    results                 =   Geocoder.geocode(it)
 
                     if results.count > 1:
                         for i in range(0,results.count):
 
-                            res=results[i]
-                            r_data = res.data[0]
-                            t = {'res_i'            : i,
-                                 'orig_addr'        : it.rstrip(),
-                                 'addr_valid'       : res.valid_address,
-                                 'partial_match'    : r_data['partial_match'] if res.valid_address != True else False,
-                                 'form_addr'        : res.formatted_address,
-                                 'geometry'         : r_data['geometry'],
-                                 'res_data'         : str(r_data),
-                                 }
+                            res             =   results[i]
+                            r_data          =   res.data[0]
+                            t               =   {'res_i'                :   i,
+                                                 'orig_addr'            :   it.rstrip(),
+                                                 'addr_valid'           :   res.valid_address,
+                                                 'partial_match'        :   r_data['partial_match']
+                                                                                if res.valid_address != True else False,
+                                                 'form_addr'            :   res.formatted_address,
+                                                 'geometry'             :   r_data['geometry'],
+                                                 'res_data'             :   str(r_data),
+                                                 }
 
-                            y.append(t)
-                            z.append(k)
-                            a=str(i)+'\t'+str(it.rstrip())+'\t'+str(res.postal_code)+'\t'+str(res.coordinates[0])+'\t'+str(res.coordinates[1])
-                            s+=a+'\r'
+                            y.append(           t)
+                            z.append(           k)
+                            a               =   '\t'.join([str(i),str(it.rstrip()),str(res.postal_code),
+                                                           str(res.coordinates[0]),str(res.coordinates[1])])
+                            s              +=   a+'\r'
                             if print_gps==True: print a
 
                     else:
 
-                        res=results
-                        r_data = res.data[0]
-                        partial_option = True if r_data.keys().count('partial_match') != 0 else False
-                        t = {'res_i'            : -1,
-                             'orig_addr'        : it.rstrip(),
-                             'addr_valid'       : res.valid_address,
-                             'partial_match'    : r_data['partial_match'] if partial_option else False,
-                             'form_addr'        : res.formatted_address,
-                             'geometry'         : r_data['geometry'],
-                             'res_data'             : str(r_data),
-                             }
+                        res                 =   results
+                        r_data              =   res.data[0]
+                        partial_option      =   True if r_data.keys().count('partial_match') != 0 else False
+                        t                   =   {'res_i'                :   -1,
+                                                 'orig_addr'            :   it.rstrip(),
+                                                 'addr_valid'           :   res.valid_address,
+                                                 'partial_match'        :   r_data['partial_match'] if partial_option else False,
+                                                 'form_addr'            :   res.formatted_address,
+                                                 'geometry'             :   r_data['geometry'],
+                                                 'res_data'             :   str(r_data),
+                                                 }
 
-                        y.append(t)
-                        z.append(k)
-                        a='--'+'\t'+str(it.rstrip())+'\t'+str(results.postal_code)+'\t'+str(results.coordinates[0])+'\t'+str(results.coordinates[1])
-                        s+=a+'\r'
+                        y.append(               t)
+                        z.append(               k)
+                        a                   =   '--'+'\t'.join([str(it.rstrip()),str(results.postal_code),
+                                                                str(results.coordinates[0]),
+                                                                str(results.coordinates[1])])
+                        s                  +=   a+'\r'
                         if print_gps==True: print a
 
                 except:
@@ -2278,97 +2314,100 @@ class pgSQL_Tables:
 
                 pt+=1
                 if pt==5:
-                    delay(2.6)
-                    pt=0
+                    delay(                      2.6)
+                    pt                      =   0
 
-            d = self.T.pd.DataFrame(y)
-            d['iter_keys'] = z
-            d['lat'],d['lon'] = zip(*d.geometry.map(lambda s: (s['location']['lat'],s['location']['lng'])))
-            tbl_dict = dict(zip(df.chk_addr.tolist(),df.id.tolist()))
-            d['%s_id'%tbl] = d.orig_addr.map(tbl_dict)
+            d                               =   self.T.pd.DataFrame(y)
+            d['iter_keys']                  =   z
+            d['lat'],d['lon']               =   zip(*d.geometry.map(lambda s: (s['location']['lat'],s['location']['lng'])))
+            tbl_dict                        =   dict(zip(df.chk_addr.tolist(),df.id.tolist()))
+            d['%(db_tbl)s_id' % self.T]     =   d.orig_addr.map(tbl_dict)
 
             # push orig_df to pgSQL
-            d['geometry'] = d.geometry.map(str)
-            d['res_data'] = d.res_data.map(str)
-            self.T.conn.set_isolation_level(0)
-            self.T.cur.execute( """drop table if exists tmp;""")
-            d.to_sql('tmp',self.T.eng)
-            self.T.conn.set_isolation_level(0)
-            self.T.cur.execute("""
-                alter table tmp add column gid serial primary key;
-                update tmp set gid = nextval(pg_get_serial_sequence('tmp','gid'));
-            """)
+            d['geometry']                   =   d.geometry.map(str)
+            d['res_data']                   =   d.res_data.map(str)
+            self.T.conn.set_isolation_level(    0)
+            self.T.cur.execute(                 "drop table if exists %(tmp_tbl)s;" % self.T)
+            d.to_sql(                           self.T.tmp_tbl,self.T.eng)
+            self.T.conn.set_isolation_level(    0)
+
+            from ipdb import set_trace as i_trace; i_trace()
+
             # update 'geocoded' and $tbl
-            cmd="""
-            with upd as (
-                        update geocoded g
-                        set
-                            addr_valid = t.addr_valid,
-                            form_addr = t.form_addr,
-                            geometry = t.geometry,
-                            orig_addr = t.orig_addr,
-                            partial_match = t.partial_match,
-                            res_data = t.res_data,
-                            res_i = t.res_i,
-                            lat = t.lat,
-                            lon = t.lon,
-                            %(db_tbl)s_id = t.%(db_tbl)s_id
-                        from tmp t
-                        where g.orig_addr = t.orig_addr
-                        returning t.orig_addr orig_addr
-                    )
-            insert into geocoded (
-                                    addr_valid,
-                                    form_addr,
-                                    geometry,
-                                    orig_addr,
-                                    partial_match,
-                                    res_data,
-                                    res_i,
-                                    lat,
-                                    lon,
-                                    %(db_tbl)s_id
-                                )
-            select
-                    t.addr_valid,
-                    t.form_addr,
-                    t.geometry,
-                    t.orig_addr,
-                    t.partial_match,
-                    t.res_data,
-                    t.res_i,
-                    t.lat,
-                    t.lon,
-                    t.%(db_tbl)s_id
-            from
-                tmp t,
-                (select array_agg(f.orig_addr) upd_addrs from upd f) as f1
-                where (not upd_addrs && array[t.orig_addr]
-                        or upd_addrs is null);
+            cmd                             =   """
+                                                    with upd as (
+                                                                update geocoded g
+                                                                set
+                                                                    addr_valid = t.addr_valid,
+                                                                    form_addr = t.form_addr,
+                                                                    geometry = t.geometry,
+                                                                    orig_addr = t.orig_addr,
+                                                                    partial_match = t.partial_match,
+                                                                    res_data = t.res_data,
+                                                                    res_i = t.res_i,
+                                                                    lat = t.lat,
+                                                                    lon = t.lon,
+                                                                    %(db_tbl)s_id = t.%(db_tbl)s_id
+                                                                from %(tmp_tbl)s t
+                                                                where g.orig_addr = t.orig_addr
+                                                                returning t.orig_addr orig_addr
+                                                            )
+                                                    insert into geocoded (
+                                                                            addr_valid,
+                                                                            form_addr,
+                                                                            geometry,
+                                                                            orig_addr,
+                                                                            partial_match,
+                                                                            res_data,
+                                                                            res_i,
+                                                                            lat,
+                                                                            lon,
+                                                                            %(db_tbl)s_id
+                                                                        )
+                                                    select
+                                                            t.addr_valid,
+                                                            t.form_addr,
+                                                            t.geometry,
+                                                            t.orig_addr,
+                                                            t.partial_match,
+                                                            t.res_data,
+                                                            t.res_i,
+                                                            t.lat,
+                                                            t.lon,
+                                                            t.%(db_tbl)s_id
+                                                    from
+                                                        %(tmp_tbl)s t,
+                                                        (select array_agg(f.orig_addr) upd_addrs from upd f) as f1
+                                                        where (not upd_addrs && array[t.orig_addr]
+                                                                or upd_addrs is null);
 
-            UPDATE %(db_tbl)s t set geom = st_setsrid(st_makepoint(g.lon,g.lat),4326)
-                FROM geocoded g
-                WHERE g.addr_valid is true
-                and g.%(db_tbl)s_id = t.%(id_col)s
-                and t.geom is null;
+                                                    UPDATE %(db_tbl)s t set
+                                                            geom = st_setsrid(st_makepoint(g.lon,g.lat),4326)
+                                                        FROM geocoded g
+                                                        WHERE g.addr_valid is true
+                                                        and g.%(db_tbl)s_id = t.%(id_col)s
+                                                        and t.geom is null;
 
-            """%T
-            self.T.conn.set_isolation_level(0)
-            self.T.cur.execute(cmd)
+                                                """ % self.T
+            self.T.conn.set_isolation_level(    0)
+            self.T.cur.execute(                 cmd)
 
             # provide result info
-            uniq_search_queries = len(d['%s_id'%tbl].unique().tolist())
-            search_query_res_cnt = len(d)
-            single_res_cnt = len(d[d.res_i==-1])
-            remaining_no_addr = self.T.pd.read_sql('select count(*) c from %s where geom is null'%tbl,self.T.eng).c[0]
+            uniq_search_queries             =   len(d['%(db_tbl)s_id' % self.T].unique().tolist())
+            search_query_res_cnt            =   len(d)
+            single_res_cnt                  =   len(d[d.res_i==-1])
+            remaining_no_addr               =   self.T.pd.read_sql("""  select count(*) c from %(db_tbl)s
+                                                                        where geom is null"""%self.T,self.T.eng).c[0]
 
-            print '\tTABLE:',tbl
-            print addr_start_cnt,'\t total addresses in %s'%tbl
-            print uniq_addr_start_cnt,'\t unique addresses in %s'%tbl
+            print '\tTABLE:',self.T.db_tbl
+            print addr_start_cnt,'\t total addresses in %(db_tbl)s without geom' % self.T
+            print uniq_addr_start_cnt,'\t unique addresses '
             print uniq_search_queries,'\t # of unique Search Queries'
             print search_query_res_cnt,'\t # of Search Query Results'
             print single_res_cnt,'\t # of Query Results with a Single Result'
-            print remaining_no_addr,'\t # of Vendors in %s still without geom'%tbl
+            print remaining_no_addr,'\t # of Vendors in %(db_tbl)s still without geom' % self.T
+            return
+
         def update_lot_pt_idx(self):
             a="""
             update lot_pts set lot_idx_start =
@@ -3108,7 +3147,9 @@ class pgSQL_Tables:
 
 
 
+
 class To_Class:
+
     def __init__(self, init=None):
         if init is not None:
             self.__dict__.update(init)
@@ -3130,6 +3171,8 @@ class To_Class:
 
     def __repr__(self):
         return repr(self.__dict__)
+
+
 
 class pgSQL:
 
