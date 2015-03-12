@@ -31,8 +31,8 @@ from system_settings                import *
 from System_Control                 import System_Reporter
 SYS_r                                   =   System_Reporter()
 py_path.append(                             os_path.join(os_environ['BD'],'geolocation'))
-from f_postgres                     import pgSQL_Functions,ST_Parts
-PGFS                                    =   pgSQL_Functions()
+# from f_postgres                     import pgSQL_Functions,ST_Parts
+# PGFS                                    =   pgSQL_Functions()
 
 import                                      pandas              as pd
 pd.set_option(                              'expand_frame_repr', False)
@@ -1783,45 +1783,7 @@ class Scrape_Functions:
         a,b,c                           =   pd.read_sql(cmd,routing_eng).iloc[0,:]
         assert True == a == b == c == True
 
-    def clean_street_names(self,df,from_label,to_label):
 
-        def remove_non_ascii(text):
-            return re_sub(r'[^\x00-\x7F]+',' ', text)
-
-        st_parts                        =   ST_Parts()
-
-        df_ignore                       =   df[df[from_label].map(lambda s: type(s))==NoneType]
-        df_ignore_idx                   =   df_ignore.index.tolist()
-        if len(df_ignore_idx)>0:
-            df                          =   df.ix[df[df.index.isin(df_ignore_idx)==False].index,:]
-
-        df[to_label]                    =   df[from_label].map(lambda s: s.lower().strip())
-        df[to_label]                    =   df[to_label].map(remove_non_ascii)
-
-        # st_strip_before
-        for k,v in st_parts.ST_STRIP_BEFORE_DICT.iteritems():
-            df[to_label]                =   df[to_label].map(lambda s: re_sub(k,v,s))
-
-        # st_prefix
-        for k,v in st_parts.ST_PREFIX_DICT.iteritems():
-            df[to_label]                =   df[to_label].map(lambda s: re_sub(r'^('+k+r')\s',v+r' ',s)
-                                                if st_parts.ST_SUFFIX_DICT.values().count(
-                                                re_sub(r'^('+k+r')\s',v+r' ',s)
-                                                ) == 0 else s)
-
-        # st_suffix
-        for k,v in st_parts.ST_SUFFIX_DICT.iteritems():
-            df[to_label]                =   df[to_label].map(lambda s: re_sub(r'\s('+k+r')$'   ,r' '+v,s))
-
-        # st_body
-        for k,v in st_parts.ST_BODY_DICT.iteritems():
-            df[to_label]                =   df[to_label].map(lambda s: re_sub(k,v,s))
-
-        # st_strip_after
-        for k,v in st_parts.ST_STRIP_AFTER_DICT.iteritems():
-            df[to_label]                =   df[to_label].map(lambda s: re_sub(k,v,s))
-
-        return df.append(                   df_ignore)
 
     def match_vend_info_by_uniq_vars(self):
         match_var = 'vend_name'

@@ -1,16 +1,16 @@
 
-
+# from ipdb import set_trace as i_trace; i_trace()
 
 
 def get_tables_headers(filePath=''):
-    df_t = pd.read_sql_query("select * from information_schema.tables",engine)
+    df_t = self.T.pd.read_sql_query("select * from information_schema.tables",engine)
     all_t = df_t[(df_t.table_schema=='public') & (df_t.table_catalog=='routing')].table_name.tolist()
     w,max_l = {},0
     print("All Routing Tables")
     for i in range(0,len(all_t)):
         t=all_t[i]
         print(str(i)+'\t\t'+t+'\n')
-        df = pd.read_sql_query("SELECT * FROM "+t+" LIMIT 1", engine)
+        df = self.T.pd.read_sql_query("SELECT * FROM "+t+" LIMIT 1", engine)
         x = df.columns
         w.update({t : x.values.tolist()})
         if len(x)>max_l: max_l=len(x)
@@ -18,7 +18,7 @@ def get_tables_headers(filePath=''):
         print('\n\n')
         print('\n',df.head())
         print('\n\n')
-    j=pd.DataFrame(dict([ (k,pd.Series(v)) for k,v in w.iteritems() ]))
+    j=self.T.pd.DataFrame(dict([ (k,self.T.pd.Series(v)) for k,v in w.iteritems() ]))
     j.to_csv(filePath)
     return j
 def copy_select_to_hd5(table):
@@ -36,7 +36,7 @@ def copy_select_to_hd5(table):
                     ]
         s = str(['x.'+it for it in save_cols]).strip("[]").replace("'",'')
         w = ' WHERE x.LBoro=1 OR x.RBoro=1'
-        df = pd.read_sql_query("SELECT "+s+" FROM "+t+" x"+w,engine)
+        df = self.T.pd.read_sql_query("SELECT "+s+" FROM "+t+" x"+w,engine)
         df.to_hdf(BASE_SAVE_PATH+t+'_select.h5','table')
         return
     # elif t=='lion_nodes':
@@ -59,7 +59,7 @@ def copy_select_to_hd5(table):
                         'ZipCode'       ]
         s = str(['x.'+it for it in save_cols]).strip("[]").replace("'",'')
         w = ' WHERE x.LBoro=1 OR x.RBoro=1'
-        df = pd.read_sql_query("SELECT "+s+" FROM "+t+" x"+w,engine)
+        df = self.T.pd.read_sql_query("SELECT "+s+" FROM "+t+" x"+w,engine)
         df.to_hdf(BASE_SAVE_PATH+t+'_select.h5','table')
         return
 
@@ -119,9 +119,9 @@ def update_remaining_lots():
                 })
 
     cmd = "select bbl from lot_pts where geom is null and ignore is false and place is false"
-    l = pd.read_sql_query(cmd,engine)
+    l = self.T.pd.read_sql_query(cmd,engine)
     cmd = "select geom from pluto where bbl = any(array"+str(l.bbl.tolist()).replace("'",'')+")"
-    p = gd.read_postgis(cmd,conn)
+    p = self.T.gd.read_postgis(cmd,conn)
     poly_set=p.geom
     fPath = '/Users/admin/Projects/GIS/map_data/remaining_lots.shp'
     save_polygon_shape(fPath,poly_set)
@@ -157,12 +157,12 @@ def add_points_to_remaining_lots(show_some_detail=True,show_steps=False):
     def geom_txts_to_collection(geom_txts):
         return "ST_Collect(ARRAY["+geoms_to_text(geom_txts)+'])'
 
-    all_pts = pd.read_sql_query("select * from lot_pts where geom is null and ignore is false and place is false",engine)
+    all_pts = self.T.pd.read_sql_query("select * from lot_pts where geom is null and ignore is false and place is false",engine)
     all_pts['block'] = all_pts.bbl.map(lambda s: str(s)[1:6])
     uniq_blocks = all_pts.block.unique().tolist()
     if show_some_detail==True: print len(uniq_blocks),'unique blocks'
     if show_some_detail==True: print 'pluto has 1961 unique blocks'
-    # a=pd.read_sql_query("select distinct block from pluto",engine).block.tolist()
+    # a=self.T.pd.read_sql_query("select distinct block from pluto",engine).block.tolist()
     # for it in a:
     #     if uniq_blocks.count(str('%05d'%it))==0:
     #         print it
@@ -189,7 +189,7 @@ def add_points_to_remaining_lots(show_some_detail=True,show_steps=False):
             cmd=""" SELECT _bbl bbl,geom
                     FROM pluto p,unnest(array%s) _bbl
                     WHERE p.bbl = _bbl"""%str(pts.bbl.astype(int).tolist()).replace("'",'')
-            lots = gd.read_postgis(cmd,engine)
+            lots = self.T.gd.read_postgis(cmd,engine)
             #if show_steps==True: A.extend(lots.geom)
 
             ### Create Buffer Around Lots
@@ -198,7 +198,7 @@ def add_points_to_remaining_lots(show_some_detail=True,show_steps=False):
                  'geoms' : s}
             cmd =   """ SELECT ST_Buffer(ST_ConvexHull((ST_Collect(the_geom))), %(buffer)s) as geom
                         FROM ( SELECT (ST_Dump( unnest(array[%(geoms)s]) )).geom the_geom) as t""".replace('\n','')%T
-            block_buffer = gd.read_postgis(cmd,engine)
+            block_buffer = self.T.gd.read_postgis(cmd,engine)
             #if show_steps==True: A.extend(block_buffer.geom)
 
             ### Get street as Line from lion_ways
@@ -215,7 +215,7 @@ def add_points_to_remaining_lots(show_some_detail=True,show_steps=False):
                     """.replace('\n','')%{'1':str(street_name),
                                           'block_buffer':str(block_buffer.geom[0].to_wkt())}
             try:
-                line_geom = gd.read_postgis(cmd,engine)
+                line_geom = self.T.gd.read_postgis(cmd,engine)
                 skip_street=False
             except AttributeError:
                 print 'skipping street:',street_name
@@ -237,7 +237,7 @@ def add_points_to_remaining_lots(show_some_detail=True,show_steps=False):
                                 st_geomfromtext('%(street_line)s') s2,
                                 st_intersection(s1,s2) res_geom
                         """.replace('\n','')%T
-                tmp_part_line=gd.read_postgis(cmd,engine)
+                tmp_part_line=self.T.gd.read_postgis(cmd,engine)
         #
                 if show_steps==True:  A.extend(tmp_part_line.geom)
 
@@ -252,7 +252,7 @@ def add_points_to_remaining_lots(show_some_detail=True,show_steps=False):
                         """.replace('\n','')%{'1':str(lot.to_wkt())}
 
                     ### Get Single Lot Polygon
-                    lot=gd.read_postgis(cmd,engine)
+                    lot=self.T.gd.read_postgis(cmd,engine)
                     if show_some_detail==True: A.append(lot.geom[0])
 
                     ### Get Line From Lot Polygon
@@ -261,11 +261,11 @@ def add_points_to_remaining_lots(show_some_detail=True,show_steps=False):
 
                     ### Get Points of Segment of Lot Polygon Closest to Street
                     cmd =   """ SELECT ( st_dumppoints( st_geomfromtext('%(1)s') )).geom""".replace('\n','')%{'1':str(perim_line)}
-                    points = gd.read_postgis(cmd,engine).geom
+                    points = self.T.gd.read_postgis(cmd,engine).geom
                     t1,t2={},{}
                     for j in range(1,len(points)):
                         poly_seg_pts=points[j-1],points[j]
-                        dist_from_street = pd.read_sql("""  select
+                        dist_from_street = self.T.pd.read_sql("""  select
                                                             st_distance(
                                                                st_geomfromtext(' %(start_pt)s '),
                                                                st_geomfromtext(' %(street)s '))
@@ -282,7 +282,7 @@ def add_points_to_remaining_lots(show_some_detail=True,show_steps=False):
                     closest_seg_pts = t2[t1.values().index(min(t1.values()))+1]
 
                     ### Lot Segment MidPoint
-                    lot_seg_mid_pt = gd.read_postgis("""   SELECT ST_Line_Interpolate_Point(st_makeline(ptA,ptB),0.5) geom
+                    lot_seg_mid_pt = self.T.gd.read_postgis("""   SELECT ST_Line_Interpolate_Point(st_makeline(ptA,ptB),0.5) geom
                                                             FROM
                                                                 st_geomfromtext(' %(start_pt)s ') ptA,
                                                                 st_geomfromtext(' %(end_pt)s ') ptB
@@ -293,7 +293,7 @@ def add_points_to_remaining_lots(show_some_detail=True,show_steps=False):
                     if show_steps==True: A.append(lot_seg_mid_pt.geom[0])
 
                     ### Closest Point in Street
-                    street_seg_mid_pt = gd.read_postgis("""
+                    street_seg_mid_pt = self.T.gd.read_postgis("""
                         SELECT ST_ClosestPoint(
                             st_geomfromtext(' %(street)s '),
                             st_geomfromtext(' %(mid_pt)s ')) geom
@@ -302,7 +302,7 @@ def add_points_to_remaining_lots(show_some_detail=True,show_steps=False):
                     #A.append(street_seg_mid_pt.geom[0])
 
                     ### Absolute Angle of Segment (12=0 deg.,6=180 deg.)
-                    seg_angle = pd.read_sql("""     SELECT ST_Azimuth(ptA,ptB) ang
+                    seg_angle = self.T.pd.read_sql("""     SELECT ST_Azimuth(ptA,ptB) ang
                                                     FROM
                                                                 st_geomfromtext(' %(start_pt)s ') ptA,
                                                                 st_geomfromtext(' %(end_pt)s ') ptB
@@ -310,7 +310,7 @@ def add_points_to_remaining_lots(show_some_detail=True,show_steps=False):
                                                                           'end_pt'  : str(closest_seg_pts[1])},engine).ang[0]
 
                     ### Point on Street that Intersects with perp. line extending from Poly Segment Midpoint
-                    this_lot_pt = gd.read_postgis("""
+                    this_lot_pt = self.T.gd.read_postgis("""
                         SELECT ( st_dumppoints( st_intersection( street, st_makeline(
                             st_makeline(mid_pt::geometry(Point,4326),ptA::geometry(Point,4326)),
                             st_makeline(mid_pt::geometry(Point,4326),ptB::geometry(Point,4326))))  )).geom
@@ -340,7 +340,7 @@ def add_points_to_remaining_lots(show_some_detail=True,show_steps=False):
                                         'geom':this_lot_pt[0]})
 
                         ### Line Connecting Lot to Street
-                        line_lot_to_street = gd.read_postgis("""
+                        line_lot_to_street = self.T.gd.read_postgis("""
                             SELECT ST_ShortestLine(lot_pt,mid_pt) geom
                             FROM
                                 st_geomfromtext(' %(lot_pt)s ',4326) lot_pt,
@@ -349,14 +349,14 @@ def add_points_to_remaining_lots(show_some_detail=True,show_steps=False):
                                                   'lot_pt'  : this_lot_pt[0]},engine)
             #
                         if len(line_lot_to_street.geom)>1:
-                            gd.GeoSeries(line_lot_to_street.geom).plot()
+                            self.T.gd.GeoSeries(line_lot_to_street.geom).plot()
                             print 'too much for Line Connecting Lot to Street'
                             raise SystemError
                         if show_some_detail==True: A.append(line_lot_to_street.geom[0])
 
 
         if show_some_detail==True:
-            d=gd.GeoSeries(A).plot(fig_size=(26,22),
+            d=self.T.gd.GeoSeries(A).plot(fig_size=(26,22),
                                    save_fig_path=save_fig_path,
                                    save_and_show=False)
 
@@ -364,7 +364,7 @@ def add_points_to_remaining_lots(show_some_detail=True,show_steps=False):
         else: me='y'
 
         if me=='y' and lot_pts!=[]:
-            c = gd.GeoDataFrame(lot_pts)
+            c = self.T.gd.GeoDataFrame(lot_pts)
             d = engine.execute("""
                         UPDATE lot_pts
                         SET geom = the_geom
@@ -384,7 +384,7 @@ def add_points_to_remaining_lots(show_some_detail=True,show_steps=False):
 
 def convert_street_names_in_lot_pts():
     cmd = "select bbl,bldg_street from lot_pts where geom is not null and ignore is false and bldg_street is not null"
-    l = lots = pd.read_sql_query(cmd,engine)
+    l = lots = self.T.pd.read_sql_query(cmd,engine)
 
     l = geoparse(l,'bldg_street','bldg_street')
 
@@ -402,7 +402,7 @@ def convert_street_names_in_lot_pts():
         INNER JOIN unnest(array[%(1)s]) %(2)s
         ON a.start_idx <= %(2)s and %(2)s <= a.end_idx
         """.replace('\n',' ') % T
-    res = pd.read_sql_query(cmd,engine)
+    res = self.T.pd.read_sql_query(cmd,engine)
 
 def make_index(describe=True,commit=False):
     # from sys import path as sys_path
@@ -413,13 +413,13 @@ def make_index(describe=True,commit=False):
     from re import sub as re_sub  # re_sub('pattern','repl','string','count')
 
     cmd = "select bbl,bldg_num,bldg_street from lot_pts where geom is not null and ignore is false and bldg_street is not null"
-    l = lots = pd.read_sql_query(cmd,engine)
+    l = lots = self.T.pd.read_sql_query(cmd,engine)
 
     ## geoparse everything
     l = geoparse(l,'bldg_street','clean_addr')
     ## reduce to unique way (street,road,avenue,lane, etc...)
     addr_bbl_dict = dict(zip(l.clean_addr.tolist(),l.bbl.tolist()))
-    ul = pd.DataFrame({'addr':addr_bbl_dict.keys(),'bbl':addr_bbl_dict.values()})
+    ul = self.T.pd.DataFrame({'addr':addr_bbl_dict.keys(),'bbl':addr_bbl_dict.values()})
 
     # ul['has_number_in_name'] = ul.addr.map(lambda s: bool(re_search(r'[0-9]',s)))
     #
@@ -437,7 +437,7 @@ def make_index(describe=True,commit=False):
     # nn = nn.reset_index(drop=True)
     #
     # a = n.append(nn,ignore_index=True)
-    # a = pd.DataFrame({'addr':dict(zip(a.addr.tolist(),range(0,len(a.index)))).keys()})
+    # a = self.T.pd.DataFrame({'addr':dict(zip(a.addr.tolist(),range(0,len(a.index)))).keys()})
 
     a = ul.copy()
     a['nid'] = a.index
@@ -448,14 +448,14 @@ def make_index(describe=True,commit=False):
     a_idx = a.bldg_street_idx.tolist()
 
     # pre_re_s = re_search_string = r'^('+"|".join(ST_PREFIX_DICT.values())+r')\s'
-    # alp  = a_less_prefix = pd.DataFrame({'addr':a.addr.map(lambda s: re_sub(pre_re_s,r'',s).strip()
+    # alp  = a_less_prefix = self.T.pd.DataFrame({'addr':a.addr.map(lambda s: re_sub(pre_re_s,r'',s).strip()
     #                                        if ST_SUFFIX_DICT.values().count(  # this extra is to prevent a "st" result
     #                                         re_sub(pre_re_s,r'',s).strip()
     #                                         ) == 0 else ''),
     #                                      'bldg_street_idx': a_idx})
 
     suf_re_s = re_search_string = r'\s('+r'|'.join(ST_SUFFIX_DICT.values())+r')$'
-    als  = a_less_suffix = pd.DataFrame({'addr':a.addr.map(lambda s: re_sub(suf_re_s,r'',s).strip()
+    als  = a_less_suffix = self.T.pd.DataFrame({'addr':a.addr.map(lambda s: re_sub(suf_re_s,r'',s).strip()
                                            if ST_SUFFIX_DICT.values().count(  # this extra is to prevent a "w" result
                                             re_sub(suf_re_s,r'',s).strip()
                                             ) == 0 else s),
@@ -466,7 +466,7 @@ def make_index(describe=True,commit=False):
     nw['one_word'] = nw.addr.map(lambda s: True if len(s.split(' '))==1 else False)
     als = als[als.index.isin(nw[(nw.below13==True)&(nw.one_word==True)].index.tolist())==False]
 
-    # alps = a_less_prefix_less_suffix = pd.DataFrame({'addr':alp.addr.map(lambda s: re_sub(suf_re_s,'',s).strip()),
+    # alps = a_less_prefix_less_suffix = self.T.pd.DataFrame({'addr':alp.addr.map(lambda s: re_sub(suf_re_s,'',s).strip()),
     #                                      'bldg_street_idx':a_idx})
 
     alr = avenues_lettered_reversed = a[a.addr.map(lambda s: (s.find('avenue')==0)&(len(s.split(' '))==2))].copy()
@@ -520,7 +520,7 @@ def make_index(describe=True,commit=False):
 
     bldg_idx_addr_map = dict(zip(A.bldg_street_idx.tolist(),A.addr.tolist()))
     addr_bldg_idx_map = dict(zip(A.addr.tolist(),A.bldg_street_idx.tolist()))
-    B = pd.DataFrame({'addr':all_unique_addr_list})
+    B = self.T.pd.DataFrame({'addr':all_unique_addr_list})
     B['bldg_street_idx'] = B.addr.map(addr_bldg_idx_map)
     st_pt=int(a.nid.max())+1
     end_pt=st_pt+len(B.index)
@@ -579,7 +579,7 @@ def add_bldg_range_pts():
     ###Add "bldg_num_end" values
 
     cmd = "select bbl,bldg_num,bldg_street from lot_pts where geom is not null and ignore is false and bldg_street is not null"
-    l = pd.read_sql_query(cmd,engine)
+    l = self.T.pd.read_sql_query(cmd,engine)
     uniq_streets = l.bldg_street.unique().tolist()
 
     i=0
@@ -618,8 +618,8 @@ def add_bldg_range_pts():
             engine.execute('update lot_pts l set bldg_num_end = t.bldg_num_end from temp t where t.bbl = l.bbl')
             engine.execute('drop table if exists temp')
 
-    #print pd.read_sql_query('select count(*) cnt from lot_pts',engine).cnt[0],'\tTOTAL LOTS'
-    #print pd.read_sql_query('select count(*) cnt from lot_pts where bldg_num_end is null',engine).cnt[0],'\tremaining lots without bldg_num_end'
+    #print self.T.pd.read_sql_query('select count(*) cnt from lot_pts',engine).cnt[0],'\tTOTAL LOTS'
+    #print self.T.pd.read_sql_query('select count(*) cnt from lot_pts where bldg_num_end is null',engine).cnt[0],'\tremaining lots without bldg_num_end'
 def add_geoms_to_index():
 
     def geoms_to_collection(geoms):
@@ -641,7 +641,7 @@ def add_geoms_to_index():
     def geom_txts_to_collection(geom_txts):
         return "ST_Collect(ARRAY["+geoms_to_text(geom_txts)+'])'
 
-    lion_ways = gd.read_postgis("select lw.gid,lw.clean_street,lw.streetcode,lw.geom from address_idx a "+
+    lion_ways = self.T.gd.read_postgis("select lw.gid,lw.clean_street,lw.streetcode,lw.geom from address_idx a "+
                                 "inner join lion_ways lw on lw.clean_street = a.street",engine)
     print len(lion_ways),'total lion ways'
     uniq_streets = lion_ways.clean_street.unique().tolist()
@@ -657,12 +657,12 @@ def add_geoms_to_index():
         select st_astext(st_linefrommultipoint(st_boundary(st_unaryunion(
         %(1)s
         )))) this_line""".replace('\n',' ') % T
-        this_line = pd.read_sql_query(cmd,engine).ix[0,'this_line']
-        this_nid = pd.read_sql_query("select nid from address_idx where street = '%s' order by nid"%name,engine).ix[0,'nid']
+        this_line = self.T.pd.read_sql_query(cmd,engine).ix[0,'this_line']
+        this_nid = self.T.pd.read_sql_query("select nid from address_idx where street = '%s' order by nid"%name,engine).ix[0,'nid']
         t.append({'street':name,
                   'nid':this_nid,
                   'geom':this_line})
-    d = pd.DataFrame(t)
+    d = self.T.pd.DataFrame(t)
     engine.execute('drop table if exists temp')
     d.to_sql('temp',engine,if_exists='append',index=False)
     engine.execute('update address_idx a set geom = ST_GeomFromText(t.geom,4326) from temp t where t.nid = a.nid and t.street = a.street')
@@ -715,7 +715,7 @@ def save_polygon_shapefile():
     ds = layer = feat = geom = None
 def polygon_from_points():
     #Create polygon from lists of points
-    from_nodes = pd.read_sql_query("SELECT lat,lon FROM lion_nodes",engine)
+    from_nodes = self.T.pd.read_sql_query("SELECT lat,lon FROM lion_nodes",engine)
     x = from_nodes.lon.tolist()
     y = from_nodes.lat.tolist()
     poly_all = Polygon(zip(x,y))
@@ -724,7 +724,7 @@ def polygon_from_points():
     # x_outer,y_outer = poly_all.exterior.coords.xy
 def plot_pluto_block(block):
     # 121 madison is on block 860
-    m = gd.read_postgis("SELECT * FROM pluto where block = "+block+'"',conn)
+    m = self.T.gd.read_postgis("SELECT * FROM pluto where block = "+block+'"',conn)
     m.plot()
 def geoms_to_text(geoms):
     if type(geoms) != list: geoms=[geoms]
@@ -763,7 +763,7 @@ def geom_inside_street_box(ways,geom_table,geom_label,table_cols=None,conditions
 def lion_node_changes1():
     t = 'lion_nodes'
     ####Get all unique lion_node ids with a Manhattan boolean attribute
-    # select_lion = pd.read_hdf(BASE_SAVE_PATH+t+'_select.h5', 'table')
+    # select_lion = self.T.pd.read_hdf(BASE_SAVE_PATH+t+'_select.h5', 'table')
     # uniq_nodes = np.unique(np.array(select_lion.nodeidfrom.unique().tolist()+
     #                                 select_lion.nodeidto.unique().tolist())).tolist()
     ####Add Manhattan Column/Attribute to lion_nodes
@@ -778,15 +778,15 @@ def lion_node_changes1():
     # sql_cmd(cmd,engine)
     ####Reduce Nodes in lion_nodes
     cmd="select gid,nodeid,geom from lion_nodes where lion_nodes.manhattan is true"
-    with_MN=pd.read_sql_query(cmd,engine)
+    with_MN=self.T.pd.read_sql_query(cmd,engine)
     print 'with_MN',len(with_MN.index)
 
     cmd="select gid,nodeid,geom from lion_nodes where lion_nodes.manhattan is not true"
-    without_MN=pd.read_sql_query(cmd,engine)
+    without_MN=self.T.pd.read_sql_query(cmd,engine)
     print 'without_MN',len(without_MN.index)
 
     cmd="select count(*) from lion_nodes"
-    lion_cnt = pd.read_sql_query(cmd,engine)
+    lion_cnt = self.T.pd.read_sql_query(cmd,engine)
     print 'lion_cnt',lion_cnt.ix[0,0]
 
     if lion_cnt.ix[0,0] - (len(with_MN.index) + len(without_MN.index)) == 0:
@@ -819,17 +819,17 @@ def lion_node_changes1():
     # 4. create new layer and re-import.
 def lion_nodes_changes2():
     ####Remove Nodes from "lion_nodes" based on changed "lion_ways"
-    nodes_from_lion_nodes = pd.read_sql_query("SELECT nodeid FROM lion_nodes",engine)
-    nodes_from_lion_ways = pd.read_sql_query("SELECT nodeidfrom,nodeidto FROM lion_ways",engine)
+    nodes_from_lion_nodes = self.T.pd.read_sql_query("SELECT nodeid FROM lion_nodes",engine)
+    nodes_from_lion_ways = self.T.pd.read_sql_query("SELECT nodeidfrom,nodeidto FROM lion_ways",engine)
 
     check_nodes = nodes_from_lion_nodes.nodeid.map(int)
     good_nodes = nodes_from_lion_ways.nodeidfrom.map(int).append(nodes_from_lion_ways.nodeidto.map(int))
 
-    check_nodes = pd.Series(check_nodes.unique())
+    check_nodes = self.T.pd.Series(check_nodes.unique())
     good_nodes = good_nodes.unique().tolist()
 
     bool_check = check_nodes.isin(good_nodes)
-    df = pd.DataFrame({'nodes':check_nodes,'good':bool_check})
+    df = self.T.pd.DataFrame({'nodes':check_nodes,'good':bool_check})
     nodes_to_remove = df[(df.good==False)].nodes.tolist()
     print len(nodes_from_lion_nodes.nodeid),'\t','total nodes'
     print len(nodes_to_remove),'\t','nodes to remove'
@@ -857,7 +857,7 @@ def pluto_changes():
     #     ALTER TABLE pluto ADD COLUMN "bldg_num" integer;
     #     ALTER TABLE pluto ADD COLUMN "bldg_street" character varying (28);
 
-    df = pd.read_sql_query("select gid,address,bldg_num,bldg_street from pluto;",conn)
+    df = self.T.pd.read_sql_query("select gid,address,bldg_num,bldg_street from pluto;",conn)
     print '\n'
     print len(df.index),'\t','Total Addresses (slash geometries?)'
     df['isdigit']=df.bldg_num.map(lambda s: str(s).isdigit())
@@ -910,7 +910,7 @@ def lion_ways_changes1():
         new_all_ways = sql_cmd("select count(*) from "+t,engine).fetchall()[0][0]
         print '\n'+'Total "'+t+'" \t=',new_all_ways
 def add_clean_street_to_lion_ways():
-    lw = pd.read_sql_query("select lw.gid,lw.street from lion_ways lw",engine)
+    lw = self.T.pd.read_sql_query("select lw.gid,lw.street from lion_ways lw",engine)
     lw = geoparse(lw,'street','clean_street')
     engine.execute('drop table if exists temp')
     lw.to_sql('temp',engine,if_exists='append',index=False)
@@ -921,9 +921,9 @@ def reduce_ways():
 
     # Here, trying to reduce OSM data by using convex hull of pluto to find points outside of the hull and set remove to true.
 
-    pts = gd.read_postgis("SELECT id gid,the_geom geom FROM ways_vertices_pgr",conn)
+    pts = self.T.gd.read_postgis("SELECT id gid,the_geom geom FROM ways_vertices_pgr",conn)
     f = '/Users/admin/Projects/GIS/map_data/MN_pluto_lines_hull.shp'
-    hull = gd.GeoDataFrame.from_file(f)
+    hull = self.T.gd.GeoDataFrame.from_file(f)
 
     #####Executed these SQL queries in QGIS:
 
@@ -949,7 +949,7 @@ def postgres_plotting():
     ax.add_collection(PatchCollection(patches, match_original=True));
     ####Make subplot for way_vertices
     x,y = zip(*pts.geom.map(lambda s: s.coords[0]))
-    T = pd.DataFrame({'lon': x ,'lat' : y })
+    T = self.T.pd.DataFrame({'lon': x ,'lat' : y })
     slim_T = T[(minx<=T.lon)&(T.lon<=maxx)&(miny<=T.lat)&(T.lat<=maxy)]
     a=len(T.index)
     b=len(slim_T.index)
@@ -994,7 +994,7 @@ def enable_pg_routing_with_nyc_data():
 
     ## add simplified geom data from lion_ways
 
-    # uniq_streets = pd.read_sql_query("select street streets from lion_ways",engine).streets.unique().tolist()
+    # uniq_streets = self.T.pd.read_sql_query("select street streets from lion_ways",engine).streets.unique().tolist()
     # print len(uniq_streets)
     # i=1
     # for u_st in uniq_streets[1:]:
@@ -1048,13 +1048,13 @@ def use_USPS_street_abbr_as_nyc_street_names():
     # multisub(X,'1 AVENUE LOWER NB ROADBED'.lower())
 
     # fpath_abbr = SND_NON_S_PATH.replace('snd14Bcow_non_s_recs','usps_street_abbr')
-    # u = pd.read_csv(fpath_abbr,index_col=0)
+    # u = self.T.pd.read_csv(fpath_abbr,index_col=0)
     # fpath_abbr_regex = fpath_abbr.replace('.csv','_regex.csv')
-    # df = pd.read_csv(fpath_abbr_regex,index_col=0)
+    # df = self.T.pd.read_csv(fpath_abbr_regex,index_col=0)
     # print len(u),len(df)
 
     # g = u.groupby('prim_suff')
-    # df = pd.DataFrame({'prim_suff':g.groups.keys()}).sort('prim_suff').reset_index(drop=True)
+    # df = self.T.pd.DataFrame({'prim_suff':g.groups.keys()}).sort('prim_suff').reset_index(drop=True)
 
     # suff_abbr_map = dict(zip(u.prim_suff.tolist(),u.usps_abbr.tolist()))
     # df['usps_abbr'] = df.prim_suff.map(suff_abbr_map)
@@ -1076,7 +1076,7 @@ def use_USPS_street_abbr_as_nyc_street_names():
 
 def combine_east_west():
     ### Combine East/West Streets
-    a = gd.read_postgis("select street,geom from address_idx where geom is not null",engine)
+    a = self.T.gd.read_postgis("select street,geom from address_idx where geom is not null",engine)
 
     ns = num_streets = a[a.street.str.contains('(^e\s[0-9])|(^w\s[0-9])')==True]
     ns['num'] = ns.street.map(lambda s: eval(re_search(r'([0-9]+)',s).groups()[0]))
@@ -1104,7 +1104,7 @@ def combine_east_west():
     print east_streets.head()
     print west_streets.head()
 
-    cs = combined_streets = pd.DataFrame({'street':east_streets.street.map(lambda s: s.replace('e ','')).tolist(),
+    cs = combined_streets = self.T.pd.DataFrame({'street':east_streets.street.map(lambda s: s.replace('e ','')).tolist(),
                                           'east':east_streets.geom.tolist(),
                                           'west':west_streets.geom.tolist()})
     cs = cs.ix[:,['street','west','east']]
@@ -1131,9 +1131,9 @@ def combine_east_west():
                 ) t
             """.replace('\n',' ') % T
 
-    g = gd.read_postgis(cmd,engine)
+    g = self.T.gd.read_postgis(cmd,engine)
 
-    nid_start = 1+pd.read_sql_query("select nid from address_idx order by nid desc limit 1",engine).nid.tolist()[0]
+    nid_start = 1+self.T.pd.read_sql_query("select nid from address_idx order by nid desc limit 1",engine).nid.tolist()[0]
     g['nid'] = range(nid_start,nid_start+len(g))
     g['geom'] = g.geom.map(str)
 
@@ -1156,13 +1156,13 @@ def compare_lion_ways_content():
             { '1' : '*',#','.join(cols),
               '2' : ''.join(conditions),
               '3' : current_db}
-    a1 = gd.read_postgis(cmd,engine)
+    a1 = self.T.gd.read_postgis(cmd,engine)
 
     cmd2 = "select %(1)s from %(3)s %(2)s" % \
             { '1' : '*',#','.join(cols),
               '2' : ''.join(conditions),
               '3' : new_db}
-    a2 = gd.read_postgis(cmd,engine)
+    a2 = self.T.gd.read_postgis(cmd,engine)
     ### Comparing Overlapping Streets
     uniq_geoms = a2.geom.map(lambda s: str(s)).unique().tolist()
     all_str_geoms = a2.geom.map(lambda s: str(s)).tolist()
@@ -1197,7 +1197,7 @@ def compare_lion_ways_content():
                         break
         t.append(r.ix[1,'gid'])
 
-    l=pd.DataFrame({'gid':t,'geom':None})
+    l=self.T.pd.DataFrame({'gid':t,'geom':None})
     engine.execute('drop table if exists temp')
     l.to_sql('temp',engine,if_exists='append',index=False)
     engine.execute("update lion_ways l set geom = t.geom from temp t where t.gid = l.gid")
@@ -1213,91 +1213,6 @@ def compare_lion_ways_content():
         print '\n',len(t),'rows had geoms stripped\n'
 
 
-
-class ST_Parts:
-
-    def __init__(self,_parent):
-
-
-        ST_STRIP_BEFORE_DICT    =   {
-                                    r'(,|"|'+r"')"                  :r'',
-                                    r'(\s){2,}'                     :r' ',
-                                    r'(?P<num>[0-9])(\s)(th)'       :r'\g<num>th',
-                                    }
-
-        ST_PREFIX_DICT = {  r'east'         :r'e',
-                            r'north'        :r'n',
-                            r'south'        :r's',
-                            r'west'         :r'w',
-                            }
-
-        ST_SUFFIX_DICT = {  'alley'         :r'aly',
-                            'avenue'        :r'ave',
-                            'boulevard'     :r'blvd',
-                            'circle'        :r'cir',
-                            'court'         :r'ct',
-                            'drive'         :r'dr',
-                            'east'          :r'e',
-                            'highway'       :r'hwy',
-                            'island'        :r'isle',
-                            'lane'          :r'ln',
-                            'market'        :r'mkt',
-                            'north'         :r'n',
-                            'parkway'       :r'pkwy',
-                            'place'         :r'pl',
-                            'plaza'         :r'plz',
-                            'road'          :r'rd',
-                            'south'         :r's',
-                            'square'        :r'sq',
-                            'street'        :r'st',
-                            'terrace'       :r'ter',
-                            'west'          :r'w',
-                            }
-
-        ST_BODY_DICT = {    r'\s(north)\s'          :r' n ',
-                            r'\s(south)\s'          :r' s ',
-                            r'\s(west)\s'           :r' w ',
-                            r'\s(east)\s'           :r' e ',
-                            r'\s(avenue)\s'         :r' ave ',
-                            r'\s(place)\s'          :r' pl ',
-                            r'\s(square)\s'         :r' sq ',
-                            r'\s(terrace)\s'        :r' ter ',
-
-                            r'(1st|first)'          :r'1',
-                            r'(2nd|second)'         :r'2',
-                            r'(3rd|third)'          :r'3',
-                            r'(4th|fourth)'         :r'4',
-                            r'(5th|fifth)'          :r'5',
-                            r'(6th|sixth)'          :r'6',
-                            r'(7th|seventh)'        :r'7',
-                            r'(8th|eigth)'          :r'8',
-                            r'(9th|nineth|ninth)'   :r'9',
-                            r'(0th)'                :r'0',
-                            r'(1th)'                :r'1',
-                            r'(2th)'                :r'2',
-                            r'(3th)'                :r'3',
-
-                            r'(tenth)'              :r'10',
-                            r'(eleventh)'           :r'11',
-                            r'(twelth|twelfth)'     :r'12',
-
-                            r'(ave[nues]*)\s(of)(\s(the))?\s(amer[icas]*)$'       :r'6 ave',
-
-                            r'^(st.|st)\s'           :r'saint ',
-                            r'^fort\s'               :r'ft ',
-                            r'^f\sd\sr\s'            :r'fdr ',
-
-                            }
-
-        ST_STRIP_AFTER_DICT =   {
-                                r'(\.|,|\-)'         :r'',
-                                }
-        self.ST_STRIP_BEFORE_DICT       =   ST_STRIP_BEFORE_DICT
-        self.ST_PREFIX_DICT             =   ST_PREFIX_DICT
-        self.ST_SUFFIX_DICT             =   ST_SUFFIX_DICT
-        self.ST_BODY_DICT               =   ST_BODY_DICT
-        self.ST_STRIP_AFTER_DICT        =   ST_STRIP_AFTER_DICT
-
 class pgSQL_Functions:
     """
 
@@ -1307,18 +1222,14 @@ class pgSQL_Functions:
 
 
     def __init__(self,_parent):
-        self.conn                           =   _parent.conn
-        self.cur                            =   _parent.cur
-        self.eng                            =   _parent.eng
+        self.T                              =   _parent.T
         self.Make                           =   self.Make(self)
         self.Run                            =   self.Run(self)
 
     class Run:
 
         def __init__(self,_parent):
-            self.conn                       =   _parent.conn
-            self.cur                        =   _parent.cur
-            self.eng                        =   _parent.eng
+            self.T                          =   _parent.T
             self.Run                        =   self
 
         def make_column_primary_serial_key(self,table_name,uid_col,is_new_col=True):
@@ -1332,15 +1243,13 @@ class pgSQL_Functions:
                                                                                         '%(uid_col)s',
                                                                                          %(is_new_col)s );
                                             """ % T
-            self.conn.set_isolation_level(       0)
-            self.cur.execute(                    cmd)
+            self.T.conn.set_isolation_level(       0)
+            self.T.cur.execute(                    cmd)
 
     class Make:
 
         def __init__(self,_parent):
-            self.conn                       =   _parent.conn
-            self.cur                        =   _parent.cur
-            self.eng                        =   _parent.eng
+            self.T                          =   _parent.T
             self.Make                       =   self
 
         def z_make_column_primary_serial_key(self):
@@ -1381,8 +1290,8 @@ class pgSQL_Functions:
                     $BODY$
                     LANGUAGE plpythonu
                 """ % T
-            self.conn.set_isolation_level(       0)
-            self.cur.execute(                    cmd)
+            self.T.conn.set_isolation_level(       0)
+            self.T.cur.execute(                    cmd)
         def z_get_way_between_ways(self):
             cmd="""CREATE OR REPLACE FUNCTION
                     z_get_way_between_ways( IN get_way text, in ways1 text,
@@ -1444,8 +1353,8 @@ class pgSQL_Functions:
                 end;
                 $$ language plpgsql;
                 """.replace('\n','')
-            self.conn.set_isolation_level(       0)
-            self.cur.execute(                    cmd)
+            self.T.conn.set_isolation_level(       0)
+            self.T.cur.execute(                    cmd)
         def z_parse_NY_addrs(self):
             T = {'fct_name'                 :   'z_parse_NY_addrs',
                  'fct_args_types'           :   [ ['IN','query_str','text'],],
@@ -1471,7 +1380,7 @@ class pgSQL_Functions:
                 DROP FUNCTION IF EXISTS %(fct_name)s( %(fct_types)s );
 
                 CREATE TYPE parsed_addr AS (
-                    src_gid integer,
+                    src_gid bigint,
                     orig_addr text,
                     bldg text,
                     box text,
@@ -1547,27 +1456,25 @@ class pgSQL_Functions:
                             select (res).*
                             from
                                 (
-                                select  z_custom_addr_post_filter( f3.res,f3.orig_addr,f3.src_gid ) res
+                                select  z_custom_addr_post_filter(
+
+                                            standardize_address('tiger.pagc_lex','tiger.pagc_gaz',
+                                                                    'tiger.pagc_rules',f2.addr_zip),
+                                            f2.orig_addr,
+                                            f2.src_gid
+                                            ) res
                                 from
                                     (
-                                    select  array_agg(
-                                                standardize_address('tiger.pagc_lex','tiger.pagc_gaz',
-                                                                    'tiger.pagc_rules',f2.addr_zip) ) res,
-                                            array_agg(f2.orig_addr) orig_addr,
-                                            array_agg(f2.src_gid) src_gid
+                                    select
+                                        z_custom_addr_pre_filter( f1.address,f1.zipcode ) addr_zip,
+                                        f1.address orig_addr,
+                                        f1.gid src_gid
                                     from
                                         (
-                                        select
-                                            z_custom_addr_pre_filter( f1.address,f1.zipcode ) addr_zip,
-                                            f1.address::text orig_addr,
-                                            f1.gid src_gid
-                                        from
-                                            (
-                                            ##(_QUERY_STR)s
-                                            ) as f1
-                                        ) as f2
-                                    ) as f3
-                                ) as f4;
+                                        ##(_QUERY_STR)s
+                                        ) as f1
+                                    ) as f2
+                                ) as f3
                         \"\"\" ## query_dict
 
                         q_res = plpy.execute(q)
@@ -1591,28 +1498,163 @@ class pgSQL_Functions:
             COMMENT ON FUNCTION public.%(fct_name)s(%(fct_types)s) IS '%(cmt)s';
             """ % T
             cmd                         =   a.replace('##','%')
-            self.conn.set_isolation_level(       0)
-            self.z_custom_addr_pre_filter(  )
-            self.z_custom_addr_post_filter( )
-            self.cur.execute(                    cmd)
+            self.T.conn.set_isolation_level(       0)
+            self.T.cur.execute(                    cmd)
         def z_custom_addr_post_filter(self):
             cmd="""
 
-                DROP FUNCTION IF EXISTS z_custom_addr_post_filter(integer,text,text,integer);
+                DROP FUNCTION IF EXISTS z_custom_addr_post_filter(stdaddr,text,integer);
                 DROP FUNCTION IF EXISTS z_custom_addr_post_filter(stdaddr[],text[],integer[]);
-                CREATE OR REPLACE FUNCTION z_custom_addr_post_filter(   res stdaddr[],
+                CREATE OR REPLACE FUNCTION z_custom_addr_post_filter(   res stdaddr,
+                                                                        orig_addr text,
+                                                                        src_gid bigint)
+                RETURNS parsed_addr AS $$
+                    --log("start")
+                    local some_src_cols = {"building","house_num","predir","qual","pretype","name","suftype","sufdir",
+                                            "city","state","postcode","box","unit",}
+
+                    local some_dest_cols = {"bldg","num","predir","qual","pretype","name","suftype","sufdir",
+                                            "city","state","zip","box","unit"}
+                    tmp_pt = {}
+                    local tmp = res
+                    local tmp_col = ""
+                    --log(1521)
+                    for k,v in pairs(some_dest_cols) do
+                        tmp_col = some_src_cols[k]
+                        tmp_pt[v] = tmp[tmp_col]
+                    end
+                    tmp_pt["src_gid"] = src_gid
+                    tmp_pt["orig_addr"] = orig_addr
+                    tmp_pt["zip"] = tmp.postcode
+                    --log(1529)
+                    -- CLEAN UP TEMP SUBSTITUTION {Qx5 = no space, Qx4 = space} < -- OUTPUT
+                    if tmp_pt["name"] then
+                        if tmp_pt["name"]:find("QQQQQ") then
+                            tmp_pt["name"] = tmp_pt["name"]:gsub("(QQQQQ)","")
+                        end
+                        if tmp_pt["name"]:find("QQQQ") then
+                            tmp_pt["name"] = tmp_pt["name"]:gsub("(QQQQ)"," ")
+                        end
+                        if tmp_pt["name"]:find("AVENUE OF THE") then
+                            tmp_pt["suftype"] = "AVE"
+                        end
+                    end
+                    --log(1542)
+
+                    local t = ""
+                    local s1,e1,s2,e2 = 0,0,0,0
+
+                    -- DISCARD PRETYPES, MOVE THEM BACK TO 'NAME', UPDATE SUFTYPE
+                    if tmp_pt["pretype"] then
+                        --log("1549")
+                        if tmp_pt["num"]==0 then
+                            s1,e1=0,0
+                        else
+                            s1,e1 = orig_addr:find(tmp_pt["num"])
+                        end
+                        if e1==nil then
+                            log("1555")
+                            log(tmp_pt["num"])
+                            log(tmp_pt["name"])
+                            log(orig_addr)
+                            log(tmp_pt["pretype"])
+                            log(src_gid)
+                            if true then return end
+                        end
+                        if not orig_addr then
+                            log("1566")
+                            log(tmp_pt["num"])
+                            log(tmp_pt["name"])
+                            log(orig_addr)
+                            log(tmp_pt["pretype"])
+                            log(src_gid)
+                            if true then return end
+                        end
+
+                        s2,e2 = orig_addr:find(tmp_pt["name"])
+
+                        if s2==nil then
+                            log("1578")
+                            log(tmp_pt["num"])
+                            log(tmp_pt["name"])
+                            log(orig_addr)
+                            log(tmp_pt["pretype"])
+                            log(tostring(src_gid))
+                            if true then return end
+                        end
+                        --log("1575")
+                        t = orig_addr:sub(e1+2,s2-2)
+
+                        -- if this string has a space, meaning at least two words, take only last word
+                        if t:find("[%s]")==nil then
+                            tmp_pt["name"] = t.." "..tmp_pt["name"]
+                        else
+                            t = t:gsub("(.*)%s([a-zA-Z0-9]+)$","%2")
+                            tmp_pt["name"] = t.." "..tmp_pt["name"]
+                        end
+                        tmp_pt["pretype"] = nil
+                        --log("1586")
+                        t = orig_addr:sub(e2+2)
+
+                        cmd = string.format([[  select usps_abbr abbr
+                                                from usps where common_use ilike '%s']],t)
+
+                        for row in server.rows(cmd) do
+                            t = row.abbr
+                            break
+                        end
+                        --log("1596")
+                        tmp_pt["suftype"] = t:upper()
+
+                    end
+                    --log("1600")
+                    -- FOR ANY PREDIR NOT 'E' OR 'W', MOVE BACK TO 'NAME'
+                    if tmp_pt["predir"] and (tmp_pt["predir"]~="E" and tmp_pt["predir"]~="W") then
+                        --log("1742")
+                        if tmp_pt["predir"]=='N' then t = "NORTH" end
+                        if tmp_pt["predir"]=='S' then t = "SOUTH" end
+
+                        tmp_pt["predir"] = nil
+                        tmp_pt["name"] = t.." "..tmp_pt["name"]
+                    end
+                    --log("1610")
+                    -- WHEN UNIT CONTAINS 'PIER', e.g., 'PIER-15 SOUTH STREET' (filtered as '0 PIER-15 SOUTH STREET')
+                    if tmp_pt["unit"] then
+                        if tmp_pt["unit"]:find('# 0 PIER') and tmp_pt["bldg"]==nil then
+                            tmp_pt["bldg"] = "PIER "..tmp_pt["num"]
+                            tmp_pt["num"] = 0
+                            tmp_pt["unit"] = nil
+                        end
+                    end
+
+                    -- IF num,predir, and name==number but no suftype, add it.
+                    if not tmp_pt["suftype"] then
+                        if type(tmp_pt["name"])==type(11) then
+                            if ( tmp_pt["predir"]=='E' or tmp_pt["predir"]=='W' ) then
+                                tmp_pt["suftype"] = "ST"
+                                -- NOT DOING AVENUES BECAUSE SO FEW AND HIGHER ODDS OF THIS BEING A MISTAKE
+                            end
+                        end
+                    end
+
+                    return tmp_pt
+
+                $$ LANGUAGE plluau;
+            """
+            self.T.conn.set_isolation_level(       0)
+            self.T.cur.execute(                    cmd)
+        def z_custom_addr_post_filter_with_iter(self):
+            cmd="""
+
+                DROP FUNCTION IF EXISTS z_custom_addr_post_filter_with_iter(stdaddr[],text[],integer[]);
+                CREATE OR REPLACE FUNCTION z_custom_addr_post_filter_with_iter(   res stdaddr[],
                                                                         orig_addr text[],
                                                                         src_gid integer[])
                 RETURNS SETOF parsed_addr AS $$
-                    _U(res,orig_addr,src_gid)
+                    return _U(res,orig_addr,src_gid)
                 end
                 do
                     _U = function(res,orig_addr,src_gid)
-
-                    --log("starting post-filter")
-
-                    ret_res = {}
-                    tmp,tmp_pt = {},{}
 
                     local some_src_cols = {"building","house_num","predir","qual","pretype","name","suftype","sufdir",
                                             "city","state","postcode","box","unit",}
@@ -1623,9 +1665,9 @@ class pgSQL_Functions:
 
                     for i=1, #res do
 
-                        tmp = res[i]
-                        tmp_pt = {}
-                        tmp_col = ""
+                        local tmp = res[i]
+                        local tmp_pt = {}
+                        local tmp_col = ""
 
                         for k,v in pairs(some_dest_cols) do
                             tmp_col = some_src_cols[k]
@@ -1723,25 +1765,15 @@ class pgSQL_Functions:
                                 tmp_pt["unit"] = nil
                             end
                         end
-
-
                         coroutine.yield(tmp_pt)
-
                     end
 
-                    --for k,v in pairs(ret_res[1]) do log(k..' --- '..v) end
-                    --log('returning '..string.format('%d',table.getn(ret_res)))
-                    --return {}
-
                 end
-                --do
-                --    _U = {}
-                --    z_custom_addr_post_filter = coroutine.wrap(z_custom_addr_post_filter)
 
                 $$ LANGUAGE plluau;
             """
-            self.conn.set_isolation_level(       0)
-            self.cur.execute(                    cmd)
+            self.T.conn.set_isolation_level(       0)
+            self.T.cur.execute(                    cmd)
         def z_custom_addr_pre_filter(self):
             """
 
@@ -1752,7 +1784,7 @@ class pgSQL_Functions:
             """
             cmd="""
                 drop function if exists z_custom_addr_pre_filter(text);
-                CREATE OR REPLACE FUNCTION z_custom_addr_pre_filter(addr text, zipcode integer)
+                CREATE OR REPLACE FUNCTION z_custom_addr_pre_filter(addr text, zipcode bigint)
                 RETURNS text AS $$
 
                     if addr==nil then
@@ -1789,26 +1821,23 @@ class pgSQL_Functions:
                         zipcode=11111
                     end
 
-                    return addr..", New York, NY, "..zipcode
+                    return addr..", New York, NY, "..tostring(zipcode)
                 $$ LANGUAGE plluau;
             """
-            self.conn.set_isolation_level(       0)
-            self.cur.execute(                    cmd)
+            self.T.conn.set_isolation_level(       0)
+            self.T.cur.execute(                    cmd)
+
 
 class pgSQL_Triggers:
 
     def __init__(self,_parent):
-        self.conn                           =   _parent.conn
-        self.cur                            =   _parent.cur
-        self.eng                            =   _parent.eng
+        self.T                              =   _parent.T
         self.Create                         =   self.Create(self)
         self.Destroy                        =   self.Destroy(self)
 
     class Create:
         def __init__(self,_parent):
-            self.conn                       =   _parent.conn
-            self.cur                        =   _parent.cur
-            self.eng                        =   _parent.eng
+            self.T                          =   _parent.T
             self.Create                     =   self
         def z_auto_add_primary_key(self):
             c                           =   """
@@ -1855,8 +1884,8 @@ class pgSQL_Triggers:
                 EXECUTE PROCEDURE z_auto_add_primary_key();
 
                                                 """
-            self.conn.set_isolation_level(           0)
-            self.cur.execute(                        c)
+            self.T.conn.set_isolation_level(           0)
+            self.T.cur.execute(                        c)
         def z_auto_add_last_updated_field(self):
             c                           =   """
                 DROP FUNCTION if exists z_auto_add_last_updated_field() cascade;
@@ -1897,14 +1926,12 @@ class pgSQL_Triggers:
                 WHEN TAG IN ('CREATE TABLE')
                 EXECUTE PROCEDURE z_auto_add_last_updated_field();
                                             """
-            self.conn.set_isolation_level(0)
-            self.cur.execute(c)
+            self.T.conn.set_isolation_level(0)
+            self.T.cur.execute(c)
 
     class Destroy:
         def __init__(self,_parent):
-            self.conn                       =   _parent.conn
-            self.cur                        =   _parent.cur
-            self.eng                        =   _parent.eng
+            self.T                          =   _parent.T
             self.Destroy                    =   self
         def z_auto_add_primary_key(self):
             c                           =   """
@@ -1913,8 +1940,8 @@ class pgSQL_Triggers:
 
             DROP EVENT TRIGGER if exists missing_primary_key_trigger;
                                             """
-            self.conn.set_isolation_level(0)
-            self.cur.execute(c)
+            self.T.conn.set_isolation_level(0)
+            self.T.cur.execute(c)
         def z_auto_add_last_updated_field(self):
             c                               =   """
             DROP FUNCTION if exists
@@ -1922,8 +1949,8 @@ class pgSQL_Triggers:
 
             DROP EVENT TRIGGER if exists missing_last_updated_field;
                                             """
-            self.conn.set_isolation_level(0)
-            self.cur.execute(c)
+            self.T.conn.set_isolation_level(0)
+            self.T.cur.execute(c)
 
 class pgSQL_Tables:
     """
@@ -1936,22 +1963,433 @@ class pgSQL_Tables:
     """
 
     def __init__(self,_parent):
-        self.conn                           =   _parent.conn
-        self.cur                            =   _parent.cur
-        self.eng                            =   _parent.eng
+        self.T                              =   _parent.T
         self.Make                           =   self.Make(self)
+        self.Update                         =   self.Update(self)
+
+    class Update:
+        def __init__(self,_parent):
+            self.T                          =   _parent.T
+
+        def prep_vendor_data_for_adding_geom(self,data_type,data_set,purpose,args=None):
+            """
+            This is a custom function for preparing data in a particular way.
+
+            Uses:
+
+                df = prep_data(data_type='db',data_set='seamless',purpose='get_bldg_street_idx')
+
+                df = prep_data(data_type='db',data_set='mnv',purpose='get_bldg_street_idx')
+
+                df = prep_data(data_type='db',data_set='yelp',purpose='google_geocode')
+
+
+            """
+            self.T.py_path.append(              self.T.os_environ['BD'] + '/geolocation')
+            from f_geolocation                  import Addr_Parsing
+            self.Parsing                    =   Addr_Parsing()
+
+            # from pygeocoder                   import Geocoder
+            # from time                         import sleep            as delay
+
+            def format_db(db,purpose,args):
+
+                # ------------------
+                # ------------------
+                if   (db=='seamless' or db=='seamless_geom_error'):
+                    T                       =   {'db_tbl'           :   db,
+                                                 'id_col'           :   'vend_id',
+                                                 'vend_name'        :   'vend_name',
+                                                 'address_col'      :   'address',
+                                                 'zip_col'          :   'zipcode',
+                                                }
+                elif (db=='yelp' or db=='yelp_geom_error'):
+                    T                       =   {'db_tbl'           :   db,
+                                                 'id_col'           :   'gid',
+                                                 'vend_name'        :   'vend_name',
+                                                 'address_col'      :   'address',
+                                                 'zip_col'          :   'postal_code',
+                                                    }
+                elif db=='mnv':
+                    T                       =   {'db_tbl'           :   db,
+                                                 'id_col'           :   'id',
+                                                 'vend_name'        :   'vend_name',
+                                                 'address_col'      :   'address',
+                                                 'zip_col'          :   'zipcode',
+                                                    }
+                # ------------------
+                # ------------------
+
+                if purpose=='google_geocode':
+                    cmd                     =   """
+                                                    select %(id_col)s id,%(vend_name)s vend_name,
+                                                        %(address_col)s address,%(zip_col)s zipcode
+                                                    from %(db_tbl)s
+                                                    where address is not null
+                                                    and (char_length(bbl::text)!=10 or bbl is null)
+                                                """%T
+                    df                      =   self.T.pd.read_sql(cmd,self.T.eng)
+                    return df,T
+
+                if purpose=='get_bldg_street_idx':
+                    cmd                     =   """
+                                                    select %(id_col)s id,%(address_col)s address,%(zip_col)s zipcode
+                                                    from %(db_tbl)s
+                                                    where address is not null and geom is null
+                                                    and (bbl::text='NaN' or bbl is null or char_length(bbl::text)<10)
+                                                """%T
+                    df                      =   self.T.pd.read_sql(cmd,self.T.eng)
+                    df                      =   self.Parsing.clean_street_names(df,'address','address')
+                    df['address']           =   df.address.map(lambda s: s.decode('ascii','ignore').encode('utf-8','ignore'))
+                    df['bldg_num']          =   df.address.map(lambda s: s.split(' ')[0])
+                    df['clean_bldg_num']    =   df.bldg_num.map(lambda s: None if ''==''.join([it for it in str(s)
+                                                                                               if str(s).isdigit()])
+                                                          else int(''.join([it for it in str(s) if str(s).isdigit()])))
+                    df                      =   df[df.clean_bldg_num.map(lambda s: True if str(s)[0].isdigit()
+                                                                                    else False)].reset_index(drop=True)
+                    df['bldg_street']       =   df.address.map(lambda s: ' '.join(s.split(' ')[1:]))
+                    df['clean_bldg_num']    =   df.clean_bldg_num.map(int)
+                    df['zipcode']           =   df.zipcode.map(int)
+                    df['addr_set']          =   map(lambda s: ' '.join(map(str,s.tolist())),
+                                                            df.ix[:,['clean_bldg_num','bldg_street']].as_matrix())
+                    df.rename(                  columns={'clean_bldg_num':'addr_num','bldg_street':'addr_street'},
+                                                inplace=True)
+                    return df,T
+
+            if data_type=='db':
+                return format_db(               data_set,purpose,args)
+        def add_geom_using_address(self,working_table):
+            """
+
+            Usages:
+
+                working_table = 'seamless' | 'yelp' | 'seamless_geom_error' | 'mnv'
+
+            """
+            # 1. load NYC TABLE -- Libraries & F(x)s
+            # 2. format data for and run 'get_bldg_street_idx' function
+            df,T = self.prep_vendor_data_for_adding_geom(data_type      =   'db',
+                                                         data_set       =   working_table,
+                                                         purpose        =   'get_bldg_street_idx')
+            addr_tot                        =   len(df)
+            addr_uniq                       =   len(df.addr_set.unique().tolist())
+            self.T.__init__(                    T)
+            recognized,not_recog,TCL        =   self.Parsing.get_bldg_street_idx(   df,
+                                                         addr_set_col   =   'addr_set',
+                                                         addr_num_col   =   'addr_num',
+                                                         addr_street_col=   'addr_street',
+                                                         zipcode_col    =   'zipcode',
+                                                         show_info      =   False  )
+
+            to_check_later                  =   TCL
+            addr_recog                      =   len(recognized)
+            addr_unrecog                    =   len(not_recog)
+            addr_TCL                        =   len(to_check_later)
+
+            # 3. push data to table 'tmp'
+            z                               =   self.T.pd.merge(df,recognized.ix[:, ['addr_set','bldg_street_idx']], on='addr_set',how='outer')
+            z                               =   z.drop(['addr_set'],axis=1)
+            self.T.conn.set_isolation_level(    0)
+            self.T.cur.execute(                 'drop table if exists %(tmp_tbl)s' % self.T)
+            z.to_sql(                           self.T.tmp_tbl,self.T.eng,index=False)
+            tmp_rows                        =   len(z)
+
+            # 4. add necessary columns if not exist to $working_table
+            cmd                             =   """   select column_name cols, data_type
+                                                from INFORMATION_SCHEMA.COLUMNS
+                                                where table_name = '%(tmp_tbl)s'""" % self.T
+            tbl_info                        =   self.T.pd.read_sql(cmd,self.T.eng)
+            tbl_cols                        =   map(str,tbl_info.cols.tolist())
+            cols_needed                     =   { 'camis'           :   'integer',
+                                                   'bbl'            :   'integer',
+                                                   'lot_cnt'        :   'integer DEFAULT 1',
+                                                   'geom'           :   'geometry(Point,4326)'}
+            for k,v in cols_needed.iteritems():
+                if tbl_cols.count(k)==0:
+                    self.T.conn.set_isolation_level(0)
+                    self.T.cur.execute('alter table %(tbl)s add column %(k)s %(v)s'%{'tbl':self.T.tmp_tbl,'k':k,'v':v})
+
+            # from ipdb import set_trace as i_trace; i_trace()
+
+            if not len(recognized):
+                self.T.conn.set_isolation_level(0)
+                self.T.cur.execute(             "DROP TABLE IF EXISTS %(tmp_tbl)s;" % self.T)
+                print '\tTABLE:',working_table
+                print addr_tot,'\t\ttotal addresses without geom [%s]'%working_table
+                print addr_uniq,'\t\t# of unique addresses [%s]'%working_table
+                print addr_recog,'\t\t\trecognized'
+                print addr_unrecog,'\t\t\tnot_recog'
+                print addr_TCL,'\t\t\tto_check_later'
+                # print tmp_rows,'\t\trows in %(tmp_tbl)s' % self.T
+                return
+
+            # 5. update table $working_table and delete table 'tmp'
+            self.T.conn.set_isolation_level(0)
+            self.T.cur.execute("""
+
+                -- COPY BBL VALUE WHERE A MATCH EXISTS AND VALUE OF ADDRESS NUMBER EQUAL/BETWEEN EXISTING DB PTS
+                update %(tmp_tbl)s s set bbl = l.bbl
+                    from lot_pts l
+                    where
+                        char_length(l.bbl::text)        >=  10
+                        and s.bldg_street_idx::text     !=  'NaN'
+                        and s.addr_num::text            !=  'NaN'
+                        --and s.id                      =   s.%(id_col)s
+                        and (
+                            to_number(concat(s.bldg_street_idx,'.',to_char(s.addr_num,'00000')),'00000.00000')
+                            between l.lot_idx_start and l.lot_idx_end
+                            );
+
+
+                -- COPY BBL VALUE WHERE A MATCH EXISTS BUT THE NEW ADDRESS HAS STREET NUMBER EXCEEDING THE DB IDX
+                with upd as (   select *
+                                from
+                                    (
+                                    select
+                                        id,bldg_street_idx,l.bbl,l.lot_idx_end,
+                                        max(l.lot_idx_end) over (partition by bldg_street_idx) as max_thing
+                                    from lot_pts l,%(tmp_tbl)s t
+                                    where t.bldg_street_idx is not null
+                                        and regexp_replace(lot_idx_end::text,'^([0-9]{1,5})\.([0-9]{1,5})$',
+                                                    '\\1','g')::integer
+                                                    = t.bldg_street_idx::integer
+                                     ) f1
+                                where lot_idx_end = max_thing       )
+                update %(tmp_tbl)s t set bbl = d.bbl from upd d where t.id = d.id;
+
+
+                -- COPY OVER LOT COUNTS
+                update %(tmp_tbl)s s set lot_cnt = (select count(l.bbl) from %(db_tbl)s l
+                                                     where s.bbl is not null
+                                                     and l.bbl is not null
+                                                     and l.bbl=s.bbl);
+
+
+                -- COPY OVER GEOM FOR MATCHING BBL
+                update %(tmp_tbl)s s set geom = pc.geom
+                    from pluto_centroids pc
+                    where   pc.bbl = s.bbl
+                            and pc.bbl is not null;
+
+
+                -- COPY ALL NEW DATA BACK TO WORKING TABLE (i.e., seamless, yelp)
+                update %(db_tbl)s l set geom = t.geom
+                    from %(tmp_tbl)s t
+                    where t.geom is not null and t.id = l.%(id_col)s;
+
+
+                -- DROP TMP TABLE
+                DROP TABLE IF EXISTS %(tmp_tbl)s;
+
+            """ % self.T)
+
+            # no_geoms = self.T.pd.read_sql('select count(*) c from %(tmp_tbl)s where geom is null'%self.T,self.T.eng).c[0]
+
+            # 6. provide result info
+            print '\tTABLE:',working_table
+            print addr_tot,'\t\ttotal addresses without geom [%s]'%working_table
+            print addr_uniq,'\t\t# of unique addresses [%s]'%working_table
+            print addr_recog,'\t\t\trecognized'
+            print addr_unrecog,'\t\t\tnot_recog'
+            print addr_TCL,'\t\t\tto_check_later'
+            # print tmp_rows,'\t\trows in %(tmp_tbl)s' % self.T
+            # print no_geoms,'\t\trows without geoms'
+
+        def add_geom_using_external(self,working_tbl,print_gps=True):
+            """
+
+            Usages:
+
+                 add_geom_using_geocoding(self,working_tbl=('seamless' | 'yelp' | 'mnv'))
+
+            """
+
+
+            tbl                         =   working_tbl
+            print_gps                   =   False
+
+
+            df,T = self.prep_vendor_data_for_adding_geom(data_type='db',
+                                                         data_set=tbl,
+                                                         purpose='google_geocode')
+            addr_start_cnt = len(df)
+            df['zipcode'] = df.zipcode.map(lambda s: '' if str(s).lower()=='nan' else str(int(s)))
+            df['chk_addr'] = df.ix[:,['address','zipcode']].apply(lambda s: str(s[0]+', New York, NY, '+str(s[1])).strip(),axis=1)
+            uniq_addr_start_cnt = len(df.chk_addr.unique().tolist())
+
+            # get google geocode results
+            all_chk_addr = df.chk_addr.tolist()
+            uniq_addr = self.T.pd.DataFrame({'addr':all_chk_addr}).addr.unique().tolist()
+            uniq_addr_dict = dict(zip(uniq_addr,range(len(uniq_addr))))
+            _iter = self.T.pd.Series(uniq_addr).iterkv()
+
+            # if two vendors have same address: only one id will be associated with address
+
+            y,z=[],[]
+            pt,s=0,'Address\tZip\tLat.\tLong.\r'
+            #    print '\n"--" means only one result found.\nOtherwise, numbered results will be shown.'
+            if print_gps==True: print s
+            for k,it in _iter:
+                try:
+                    results = Geocoder.geocode(it)
+
+                    if results.count > 1:
+                        for i in range(0,results.count):
+
+                            res=results[i]
+                            r_data = res.data[0]
+                            t = {'res_i'            : i,
+                                 'orig_addr'        : it.rstrip(),
+                                 'addr_valid'       : res.valid_address,
+                                 'partial_match'    : r_data['partial_match'] if res.valid_address != True else False,
+                                 'form_addr'        : res.formatted_address,
+                                 'geometry'         : r_data['geometry'],
+                                 'res_data'         : str(r_data),
+                                 }
+
+                            y.append(t)
+                            z.append(k)
+                            a=str(i)+'\t'+str(it.rstrip())+'\t'+str(res.postal_code)+'\t'+str(res.coordinates[0])+'\t'+str(res.coordinates[1])
+                            s+=a+'\r'
+                            if print_gps==True: print a
+
+                    else:
+
+                        res=results
+                        r_data = res.data[0]
+                        partial_option = True if r_data.keys().count('partial_match') != 0 else False
+                        t = {'res_i'            : -1,
+                             'orig_addr'        : it.rstrip(),
+                             'addr_valid'       : res.valid_address,
+                             'partial_match'    : r_data['partial_match'] if partial_option else False,
+                             'form_addr'        : res.formatted_address,
+                             'geometry'         : r_data['geometry'],
+                             'res_data'             : str(r_data),
+                             }
+
+                        y.append(t)
+                        z.append(k)
+                        a='--'+'\t'+str(it.rstrip())+'\t'+str(results.postal_code)+'\t'+str(results.coordinates[0])+'\t'+str(results.coordinates[1])
+                        s+=a+'\r'
+                        if print_gps==True: print a
+
+                except:
+                    pass
+
+                pt+=1
+                if pt==5:
+                    delay(2.6)
+                    pt=0
+
+            d = self.T.pd.DataFrame(y)
+            d['iter_keys'] = z
+            d['lat'],d['lon'] = zip(*d.geometry.map(lambda s: (s['location']['lat'],s['location']['lng'])))
+            tbl_dict = dict(zip(df.chk_addr.tolist(),df.id.tolist()))
+            d['%s_id'%tbl] = d.orig_addr.map(tbl_dict)
+
+            # push orig_df to pgSQL
+            d['geometry'] = d.geometry.map(str)
+            d['res_data'] = d.res_data.map(str)
+            self.T.conn.set_isolation_level(0)
+            self.T.cur.execute( """drop table if exists tmp;""")
+            d.to_sql('tmp',self.T.eng)
+            self.T.conn.set_isolation_level(0)
+            self.T.cur.execute("""
+                alter table tmp add column gid serial primary key;
+                update tmp set gid = nextval(pg_get_serial_sequence('tmp','gid'));
+            """)
+            # update 'geocoded' and $tbl
+            cmd="""
+            with upd as (
+                        update geocoded g
+                        set
+                            addr_valid = t.addr_valid,
+                            form_addr = t.form_addr,
+                            geometry = t.geometry,
+                            orig_addr = t.orig_addr,
+                            partial_match = t.partial_match,
+                            res_data = t.res_data,
+                            res_i = t.res_i,
+                            lat = t.lat,
+                            lon = t.lon,
+                            %(db_tbl)s_id = t.%(db_tbl)s_id
+                        from tmp t
+                        where g.orig_addr = t.orig_addr
+                        returning t.orig_addr orig_addr
+                    )
+            insert into geocoded (
+                                    addr_valid,
+                                    form_addr,
+                                    geometry,
+                                    orig_addr,
+                                    partial_match,
+                                    res_data,
+                                    res_i,
+                                    lat,
+                                    lon,
+                                    %(db_tbl)s_id
+                                )
+            select
+                    t.addr_valid,
+                    t.form_addr,
+                    t.geometry,
+                    t.orig_addr,
+                    t.partial_match,
+                    t.res_data,
+                    t.res_i,
+                    t.lat,
+                    t.lon,
+                    t.%(db_tbl)s_id
+            from
+                tmp t,
+                (select array_agg(f.orig_addr) upd_addrs from upd f) as f1
+                where (not upd_addrs && array[t.orig_addr]
+                        or upd_addrs is null);
+
+            UPDATE %(db_tbl)s t set geom = st_setsrid(st_makepoint(g.lon,g.lat),4326)
+                FROM geocoded g
+                WHERE g.addr_valid is true
+                and g.%(db_tbl)s_id = t.%(id_col)s
+                and t.geom is null;
+
+            """%T
+            self.T.conn.set_isolation_level(0)
+            self.T.cur.execute(cmd)
+
+            # provide result info
+            uniq_search_queries = len(d['%s_id'%tbl].unique().tolist())
+            search_query_res_cnt = len(d)
+            single_res_cnt = len(d[d.res_i==-1])
+            remaining_no_addr = self.T.pd.read_sql('select count(*) c from %s where geom is null'%tbl,self.T.eng).c[0]
+
+            print '\tTABLE:',tbl
+            print addr_start_cnt,'\t total addresses in %s'%tbl
+            print uniq_addr_start_cnt,'\t unique addresses in %s'%tbl
+            print uniq_search_queries,'\t # of unique Search Queries'
+            print search_query_res_cnt,'\t # of Search Query Results'
+            print single_res_cnt,'\t # of Query Results with a Single Result'
+            print remaining_no_addr,'\t # of Vendors in %s still without geom'%tbl
+        def update_lot_pt_idx(self):
+            a="""
+            update lot_pts set lot_idx_start =
+                (to_char(regexp_replace(lot_idx_start::text,
+                                        '^([0-9]{1,5})\.([0-9]{1,5})$',
+                                        '\\1','g')::integer,'00000')
+                    ||'.'|| trim(leading ' ' from to_char(bldg_num_start,'00000')))::numeric(10,5)
+            where regexp_replace(lot_idx_start::text,'^([0-9]{1,5})\.([0-9]{1,5})$','\\2','g')::integer
+                != bldg_num_start::integer
+            """
+            return
 
     class Make:
 
         def __init__(self,_parent):
-            self.conn                       =   _parent.conn
-            self.cur                        =   _parent.cur
-            self.eng                        =   _parent.eng
+            self.T                          =   _parent.T
 
         def scrape_lattice(self,pt_buff_in_miles,lattice_table_name):
             meters_in_one_mile              =   1609.34
 
-            z                               =   pd.read_sql("select min(lat) a,max(lat) b,min(lon) c,max(lon) d from lws_vertices_pgr",self.eng)
+            z                               =   self.T.pd.read_sql("select min(lat) a,max(lat) b,min(lon) c,max(lon) d from lws_vertices_pgr",self.eng)
             lat_min,lat_max,lon_min,lon_max =   z.a[0],z.b[0],z.c[0],z.d[0]
             lat_mid,lon_mid                 =   lat_min+((lat_max-lat_min)/float(2)),lon_min+((lon_max-lon_min)/float(2))
             lat_cmd                         =   """
@@ -1964,8 +2402,8 @@ class pgSQL_Tables:
                                                 from (SELECT ST_GeomFromText('POINT(%s %s)',4326) as ptA,
                                                              ST_GeomFromText('POINT(%s %s)',4326) as ptB) as foo;
                                                 """%(str(lon_max),str(lat_mid),str(lon_min),str(lat_mid))
-            lat_range                       =   pd.read_sql(lat_cmd,self.eng).lat_dist[0] + (pt_buff_in_miles * meters_in_one_mile)
-            lon_range                       =   pd.read_sql(lon_cmd,self.eng).lon_dist[0] + (pt_buff_in_miles * meters_in_one_mile)
+            lat_range                       =   self.T.pd.read_sql(lat_cmd,self.T.eng).lat_dist[0] + (pt_buff_in_miles * meters_in_one_mile)
+            lon_range                       =   self.T.pd.read_sql(lon_cmd,self.T.eng).lon_dist[0] + (pt_buff_in_miles * meters_in_one_mile)
             lat_segs                        =   int(round(lat_range/float(pt_buff_in_miles * meters_in_one_mile),))
             lon_segs                        =   int(round(lon_range/float(pt_buff_in_miles * meters_in_one_mile),))
 
@@ -1993,11 +2431,11 @@ class pgSQL_Tables:
                                                                         radians(%(sw_rad)s)) sw_geom) as foo;
 
                                                 """ % T
-            min_x,min_y                     =   pd.read_sql(cmd,self.eng).ix[0,['min_x','min_y']]
+            min_x,min_y                     =   self.T.pd.read_sql(cmd,self.T.eng).ix[0,['min_x','min_y']]
 
             # create lattice table
-            self.conn.set_isolation_level(           0)
-            self.cur.execute(                        """
+            self.T.conn.set_isolation_level(           0)
+            self.T.cur.execute(                        """
                                                     DROP TABLE IF EXISTS %(latt_tbl)s;
 
                                                     CREATE TABLE %(latt_tbl)s (
@@ -2059,8 +2497,8 @@ class pgSQL_Tables:
                                                                         radians(%(e_rad)s)) e_geom) as foo2;
 
                                                 """.replace('\n','')%T
-                    self.conn.set_isolation_level(   0)
-                    self.cur.execute(                cmd)
+                    self.T.conn.set_isolation_level(   0)
+                    self.T.cur.execute(                cmd)
 
             T                               =   {  'latt_tbl'           :   lattice_table_name,
                                                    'tmp_tbl'            :   'tmp_'+INSTANCE_GUID,
@@ -2069,8 +2507,8 @@ class pgSQL_Tables:
                                                    'buf_rad'            :   str(int((pt_buff_in_miles *
                                                                               meters_in_one_mile)/2.0))}
 
-            self.conn.set_isolation_level(           0)
-            self.cur.execute(                        """
+            self.T.conn.set_isolation_level(           0)
+            self.T.cur.execute(                        """
                                                 UPDATE %(latt_tbl)s SET geom = ST_SetSRID(ST_MakePoint(x,y), 4326);
 
                                                 -- 1. Remove points outside geographic land boundary of manhattan
@@ -2170,23 +2608,23 @@ class pgSQL_Tables:
             T.update(                           { 'latt_tbl'            :   lattice_table_name,})
 
             # PROVE THAT ALL ADDRESSES ARE UNIQUE ( assuming no two addresses have the same BBL )
-            assert True                    ==   pd.read_sql(""" select all_bbl=uniq_bbl _bool
+            assert True                    ==   self.T.pd.read_sql(""" select all_bbl=uniq_bbl _bool
                                                                 from
                                                                     (select count(distinct y1.bbl) uniq_bbl
                                                                         from %(latt_tbl)s y1) as f1,
                                                                     (select count(y2.bbl) all_bbl
                                                                         from %(latt_tbl)s y2) as f2
-                                                            """ % T,self.eng)._bool[0]
+                                                            """ % T,self.T.eng)._bool[0]
 
         def usps_table(self):
-            py_path.append(                         os_path.join(os_environ['BD'],'geolocation/USPS'))
+            self.T.py_path.append(                        self.T.os_environ['BD'] + '/geolocation/USPS')
             from USPS_syntax_pdf_scrape         import load_from_file
-            py_path.append(                         os_path.join(os_environ['BD'],'html'))
+            self.T.py_path.append(                        self.T.os_environ['BD'] + '/html')
             from scrape_vendors                 import Scrape_Vendors
             SV = Scrape_Vendors()
 
             # Files
-            dir_path = os_path.join(os_environ['BD'],'geolocation/USPS')
+            dir_path                                =   self.T.os_environ['BD'] + '/geolocation/USPS'
             fpath_pdf                               =   dir_path + '/usps_business_abbr.pdf'
             fpath_xml                               =   dir_path + '/usps_business_abbr.xml'
 
@@ -2210,8 +2648,8 @@ class pgSQL_Tables:
             SV.SF.PGFS.Run.make_column_primary_serial_key('usps','gid',True)
             SV.SF.PGFS.Run.make_column_primary_serial_key('tmp_usps','gid',True)
 
-            self.conn.set_isolation_level(0)
-            self.cur.execute("""
+            self.T.conn.set_isolation_level(0)
+            self.T.cur.execute("""
 
             alter table usps add column abbr_type text;
             update usps set abbr_type='business';
@@ -2231,7 +2669,7 @@ class pgSQL_Tables:
             incomplete and untested
             """
             src = 'http://www.unitedstateszipcodes.org/zip_code_database.csv'
-            z = pd.read_csv(src)
+            z = self.T.pd.read_csv(src)
             x = z[(z.state=='NY')&(z.county=='New York County')&(z.type!='PO BOX')].sort('zip')
 
             # print len(x)
@@ -2383,7 +2821,7 @@ class pgSQL_Tables:
                     -- b/c WALL in 'WALL STREET' no longer refers to a wall
                     ('custom_addr_pre_filter',
                         '([0-9]+)%|(WALL)[%s]+(STR?E?E?T?)[%s]?(.*)$',
-                        '%1|WAQQQQLL %3 %4','','1'),
+                        '%1|WAQQQQQLL %3 %4','','1'),
 
 
                     -- b/c WEST in 'LITTLE WEST 12 STREET' does not refer to the west end of Little West 12th Street
@@ -2407,6 +2845,18 @@ class pgSQL_Tables:
                         '([^|]*)|(LA)[%s]+(.*)',
                         '%1|%2QQQQ%3','','3'),
 
+                    -- STREETS WITH MISSING/MISPELLED TAIL LETTERS, e.g., 'STREE', 'AV', 'P'
+                    ('custom_addr_pre_filter',
+                        '([^|]*)|(.*)[%s]+(STR?E?E?T?)$',
+                        '%1|%2 STREET','','3'),
+                    ('custom_addr_pre_filter',
+                        '([^|]*)|(.*)[%s]+(AVE?N?U?E?)$',
+                        '%1|%2 AVENUE','','3'),
+                    ('custom_addr_pre_filter',
+                        '([^|]*)|(.*)[%s]+(PL?A?C?E?)$',
+                        '%1|%2 PLACE','','3'),
+
+
                     ('custom_addr_pre_filter',
                         '([0-9]+)[%-]([a-zA-Z0-9]+)%|(.*)',
                         '%1|%3, Bldg. %2','','4'),
@@ -2422,8 +2872,8 @@ class pgSQL_Tables:
 
                 ;
             """
-            self.conn.set_isolation_level(               0)
-            self.cur.execute(                            a)
+            self.T.conn.set_isolation_level(               0)
+            self.T.cur.execute(                            a)
 
         def tmp_addr_idx_pluto(self):
             cmd                         =   """
@@ -2435,8 +2885,8 @@ class pgSQL_Tables:
 
                 select z_make_column_primary_serial_key( 'tmp_addr_idx_pluto', 'gid', true);
                                             """
-            self.conn.set_isolation_level(       0)
-            self.cur.execute(                    cmd)
+            self.T.conn.set_isolation_level(       0)
+            self.T.cur.execute(                    cmd)
             tmp_tbl_matches_pluto       =   """
                 select pluto_cnt=tmp_cnt is_true from
                     (select count(distinct src_gid) tmp_cnt
@@ -2444,7 +2894,7 @@ class pgSQL_Tables:
                     (select count(distinct gid) pluto_cnt
                         from pluto where address is not null) as f2;
                                             """
-            assert pd.read_sql(tmp_tbl_matches_pluto,self.eng).is_true[0]==True
+            assert self.T.pd.read_sql(tmp_tbl_matches_pluto,self.T.eng).is_true[0]==True
             tmp_tbl_appears_valid       =   """
                 select count(*)=0 is_true from tmp_addr_idx_pluto where
                     box is not null
@@ -2459,7 +2909,7 @@ class pgSQL_Tables:
                     or zip is null or zip = '0'
                     or num is null
                                             """
-            assert pd.read_sql(tmp_tbl_appears_valid,self.eng).is_true[0]==True
+            assert self.T.pd.read_sql(tmp_tbl_appears_valid,self.T.eng).is_true[0]==True
 
         def tmp_addr_idx_snd(self):
             # TMP_SND
@@ -2473,8 +2923,8 @@ class pgSQL_Tables:
             select z_make_column_primary_serial_key( 'tmp_snd', 'gid', true);
 
             """
-            self.conn.set_isolation_level(       0)
-            self.cur.execute(                    a)
+            self.T.conn.set_isolation_level(       0)
+            self.T.cur.execute(                    a)
             # Remove from TMP_SND
             full_entries_with_words = [' APPR','APPROACH',' EXIT','ENTRANCE','PEDESTRIAN',
                                        'DRIVE NB','DRIVE SB','NORTHBOUND','SOUTHBOUND',' HOUSES',
@@ -2491,17 +2941,17 @@ class pgSQL_Tables:
                                        'RANDALLS ISLAND','MANHATTANVILLES']
             for it in full_entries_with_words:
                 a = "delete from tmp_snd where address ilike '%s'" % ('%%'+it+'%%')
-                self.conn.set_isolation_level(       0)
-                self.cur.execute(                    a)
+                self.T.conn.set_isolation_level(       0)
+                self.T.cur.execute(                    a)
             # CLEAN ADDRESS IN TMP_SND
             remove_suffix = [' LOOP',' TRANSVERSE',' CROSSING', 'EXTENSION',' REHAB']
             for it in remove_suffix:
                 a = "update tmp_snd set address = regexp_replace(address,'%s','')" % it
-                self.conn.set_isolation_level(       0)
-                self.cur.execute(                    a)
+                self.T.conn.set_isolation_level(       0)
+                self.T.cur.execute(                    a)
             fix_extra_end_spaces = "update tmp_snd set address = regexp_replace(address,'[\s]+$','')"
-            self.conn.set_isolation_level(       0)
-            self.cur.execute(                    fix_extra_end_spaces)
+            self.T.conn.set_isolation_level(       0)
+            self.T.cur.execute(                    fix_extra_end_spaces)
             # de-dupe
             T = {'tbl':'tmp_snd',
                  'uid_col':'gid',
@@ -2535,14 +2985,14 @@ class pgSQL_Tables:
                 drop table if exists tmp1;
                 drop table if exists tmp2;
                 """%T
-            self.conn.set_isolation_level(       0)
-            self.cur.execute(                    a)
+            self.T.conn.set_isolation_level(       0)
+            self.T.cur.execute(                    a)
             fix_wall_streets = """
             update tmp_snd set address = regexp_replace(address,'WALL STREET','WALLQQQQSTREET')
             where address ilike '%wall street %'
             """
-            self.conn.set_isolation_level(       0)
-            self.cur.execute(                    fix_wall_streets)
+            self.T.conn.set_isolation_level(       0)
+            self.T.cur.execute(                    fix_wall_streets)
 
             # Reload tmp_addr_idx_snd
             cmd                         =   """
@@ -2568,13 +3018,13 @@ class pgSQL_Tables:
             where concat(s.predir,' ',s.name,' ',s.suftype,' ',s.sufdir) = any (all_idx);
 
                                             """
-            self.conn.set_isolation_level(       0)
-            self.cur.execute(                    cmd)
+            self.T.conn.set_isolation_level(       0)
+            self.T.cur.execute(                    cmd)
             return
 
         def addr_idx(self):
-            self.tmp_addr_idx_pluto()
-            self.tmp_addr_idx_snd()
+            self.T.tmp_addr_idx_pluto()
+            self.T.tmp_addr_idx_snd()
 
             # Take all uniq from tmp_addr_idx pluto & snd
             T = {'new_tbl':'tmp_addr_idx',
@@ -2637,8 +3087,8 @@ class pgSQL_Tables:
                 drop column pretype,drop column qual,drop column num;
 
             """ % T
-            self.conn.set_isolation_level(       0)
-            self.cur.execute(                    a)
+            self.T.conn.set_isolation_level(       0)
+            self.T.cur.execute(                    a)
             return
 
         def pluto_changes(self):
@@ -2655,6 +3105,31 @@ class pgSQL_Tables:
                         or gid = 26608
                         or gid = 36230;
             """
+
+
+
+class To_Class:
+    def __init__(self, init=None):
+        if init is not None:
+            self.__dict__.update(init)
+
+    def __getitem__(self, key):
+        return self.__dict__[key]
+
+    def __setitem__(self, key, value):
+        self.__dict__[key] = value
+
+    def __delitem__(self, key):
+        del self.__dict__[key]
+
+    def __contains__(self, key):
+        return key in self.__dict__
+
+    def __len__(self):
+        return len(self.__dict__)
+
+    def __repr__(self):
+        return repr(self.__dict__)
 
 class pgSQL:
 
@@ -2673,41 +3148,48 @@ class pgSQL:
         from time                           import sleep            as delay
         from os                             import environ          as os_environ
         from uuid                           import uuid4            as get_guid
-        from os                             import path             as os_path
         from sys                            import path             as py_path
-        py_path.append(                             os_path.join(os_environ['HOME'],'.scripts'))
+        py_path                             =   py_path
+        py_path.append(                         os_environ['HOME'] + '/.scripts')
         from system_settings                import DB_HOST,DB_PORT
         # from System_Control               import System_Reporter
         # SYS_r                               =   System_Reporter()
-        import                                      pandas          as pd
-
+        import                                  pandas          as pd
         # from pandas.io.sql                import execute              as sql_cmd
-        pd.set_option(                              'expand_frame_repr', False)
+        pd.set_option(                         'expand_frame_repr', False)
         pd.set_option(                              'display.max_columns', None)
         pd.set_option(                              'display.max_rows', 1000)
         pd.set_option(                              'display.width', 180)
-        self.np                             =   pd.np
-        self.np.set_printoptions(                        linewidth=200,threshold=self.np.nan)
-        import                                      geopandas       as gd
-        from sqlalchemy                     import create_engine
-        from logging                        import getLogger
-        from logging                        import INFO             as logging_info
-
+        np                                  =   pd.np
+        np.set_printoptions(                    linewidth=200,threshold=np.nan)
+        import                                  geopandas       as gd
+        from sqlalchemy                         import create_engine
+        from logging                            import getLogger
+        from logging                            import INFO             as logging_info
         getLogger(                                  'sqlalchemy.dialects.postgresql').setLevel(logging_info)
-        self.eng                            =   create_engine(r'postgresql://postgres:postgres@%s:%s/%s'
+        eng                                 =   create_engine(r'postgresql://postgres:postgres@%s:%s/%s'
                                                           %(DB_HOST,DB_PORT,'routing'),
                                                           encoding='utf-8',
                                                           echo=False)
-        from psycopg2                       import connect          as pg_connect
-        self.pd                             =   pd
-        self.gd                             =   gd
-        self.conn                           =   pg_connect("dbname='routing' "+
+        from psycopg2                           import connect          as pg_connect
+        pd                                  =   pd
+        gd                                  =   gd
+        conn                                =   pg_connect("dbname='routing' "+
                                                              "user='postgres' "+
                                                              "host='%s' password='' port=8800" % DB_HOST);
-        self.cur                            =   self.conn.cursor()
+        cur                                 =   conn.cursor()
 
-        self.INSTANCE_GUID                  =   'tmp_'+str(get_guid().hex)[:7]
-
+        D                                   =   {'pd'           :   pd,
+                                                 'np'           :   np,
+                                                 'gd'           :   gd,
+                                                 'conn'         :   conn,
+                                                 'cur'          :   cur,
+                                                 'eng'          :   eng,
+                                                 'os_environ'   :   os_environ,
+                                                 'py_path'      :   py_path,
+                                                 'guid'         :   str(get_guid().hex)[:7]}
+        D.update(                               {'tmp_tbl'      :   'tmp_'+D['guid']})
+        self.T                              =   To_Class(D)
         # py_path.append(                         os_path.join(os_environ['BD'],'geolocation'))
         #### from f_vendor_postgre import get_bldg_street_idx
         #### from f_vendor_postgre import get_addr_body,match_simple_regex
@@ -2719,5 +3201,5 @@ class pgSQL:
         self.Functions                      =   pgSQL_Functions(self)
         self.Triggers                       =   pgSQL_Triggers(self)
         self.Tables                         =   pgSQL_Tables(self)
-        self.ST_Parts                       =   ST_Parts(self)
+        # self.ST_Parts                       =   ST_Parts(self)
 
