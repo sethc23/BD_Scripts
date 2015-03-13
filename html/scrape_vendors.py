@@ -918,7 +918,7 @@ class Seamless:
                                                 WHERE checked_out       =   '%(guid)s';
                                             """ % self.T
 
-            query_str                   =   t if not query_str else query_str
+            query_str                   =   t #if not query_str else query_str
             d                           =   self.T.pd.read_sql(query_str,self.T.eng)
             sl_links                    =   d.sl_link.tolist()
             br                          =   self.SV.SF.browser()
