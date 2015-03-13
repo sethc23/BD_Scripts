@@ -52,8 +52,8 @@ class Scrape_Vendors:
         py_path                             =   py_path
         py_path.append(                         os_environ['HOME'] + '/.scripts')
         from system_settings                import DB_HOST,DB_PORT
-        # from System_Control               import System_Reporter
-        # SYS_r                               =   System_Reporter()
+        from System_Control               import System_Reporter
+        SYS_r                               =   System_Reporter()
         import                                  pandas          as pd
         # from pandas.io.sql                import execute              as sql_cmd
         pd.set_option(                         'expand_frame_repr', False)
@@ -98,7 +98,8 @@ class Scrape_Vendors:
 
         all_imports                         =   locals().keys()
         for k in all_imports:
-            self.T.update(                      {k                      :   eval(k) })
+            if not k=='D':
+                self.T.update(                  {k                      :   eval(k) })
 
     def post_screenshot(self,br):
         fpath                           =   '/home/ub2/SERVER2/aprinto/static/phantom_shot'
@@ -261,7 +262,7 @@ class Seamless:
         t                               =   self.T.getTagsByAttr(html, 'span', {'id':'VendorName'},contents=False)
         if len(t)==0:
             try:
-                a                       =   self.T.getTagsByAttr(html, 'div', {'id':'Bummer'},contents=False)
+                a                       =   self.T.getTagsByAttr(html, 'div', {'id':'Bummer'},contents=False)[0].text.replace('\n','').replace('Bummer!','').strip()
                 b                       =   a[0].text.replace('\n','').replace('Bummer!','').strip()
                 vend_name               =   b[:b.find('(')].strip().replace("'","''")
                 addr                    =   self.T.self.T.re_findall(r'[(](.*)[)]',b)[0].strip(',')
@@ -275,7 +276,7 @@ class Seamless:
                                                 upd_vend_content        =   'now'::timestamp with time zone,
                                                 checked_out             =   null
                                             where vend_id               =   %(vendor_id)s
-                                            """%T
+                                            """ % self.T
             except:
                 self.T.update(              {'vendor_id':vendor_id})
                 cmd                     =   """
@@ -285,7 +286,7 @@ class Seamless:
                                                 upd_vend_content        =   'now'::timestamp with time zone,
                                                 checked_out             =   null
                                             where vend_id               =   %(vendor_id)s
-                                            """%T
+                                            """ % self.T
             self.T.conn.set_isolation_level(       0)
             self.T.cur.execute(                    cmd)
             return
@@ -310,7 +311,7 @@ class Seamless:
         phone                           =   int(p.strip()[:10])
         if len(str(phone))!=10:
             self.T.update(                  {'line_no'                  :   self.T.I.currentframe().f_back.f_lineno})
-            SYS_r._growl(                   '%(line_no)s SL@%(user)s<%(guid)s>: Update Error: Phone Length Not 10.' % self.T)
+            self.T.SYS_r._growl(                   '%(line_no)s SL@%(user)s<%(guid)s>: Update Error: Phone Length Not 10.' % self.T)
             raise SystemError()
         try:
             price                       =   int(self.T.getTagsByAttr(html, 'span', {'class':'price-text'},contents=False)[0].getText().count('$'))
@@ -712,7 +713,7 @@ class Seamless:
         get_sl_addr_search_results(         self,src )
         self.T.update(                      {'line_no'                  :   self.T.I.currentframe().f_back.f_lineno})
         msg                             =   '%(line_no)s SL@%(user)s<%(guid)s>: Search Results Scraped.' % self.T
-        SYS_r._growl(                       msg )
+        self.T.SYS_r._growl(                       msg )
         print msg
         return True
     #   seamless: 2 of 3
@@ -791,7 +792,7 @@ class Seamless:
                     br.browser.set_window_size=start_size
 
                     self.T.update(          {'line_no'                  :   self.T.I.currentframe().f_back.f_lineno})
-                    SYS_r._growl(           '%(line_no)s SL@%(user)s<%(guid)s>: NEED CAPTCHA' % self.T,
+                    self.T.SYS_r._growl(           '%(line_no)s SL@%(user)s<%(guid)s>: NEED CAPTCHA' % self.T,
                                             'http://demo.aporodelivery.com/phantomjs.html' )
                     captcha_input       =   get_input("Captcha code?\n")
                     br.browser.find_element_by_id("captcha").send_keys(captcha_input)
@@ -868,7 +869,7 @@ class Seamless:
         self.T.update(                      {'line_no'                  :   self.T.I.currentframe().f_back.f_lineno})
         msg                             =   '%(line_no)s SL@%(user)s<%(guid)s>: Prev. Closed Updated.' % self.T
         print msg
-        SYS_r._growl(                       msg)
+        self.T.SYS_r._growl(                       msg)
         br.quit()
         return True
     #   seamless: 3 of 3
@@ -937,7 +938,7 @@ class Seamless:
                                              'current_url'              :   br.get_url()})
                 msg                     =   '%(line_no)s SL@%(user)s<%(guid)s>: Issue with Known Vendors @ %(current_url)s' % self.T
                 print msg
-                SYS_r._growl(               msg)
+                self.T.SYS_r._growl(        msg)
 
                 current_url             =   "'"++"'"
                 self.T.conn.set_isolation_level(   0)
@@ -949,7 +950,7 @@ class Seamless:
                                             'current_url'               :   br.get_url()})
         msg                             =   '%(line_no)s SL@%(user)s<%(guid)s>: Known Vendors Updated.' % self.T
         print msg
-        SYS_r._growl(                       msg)
+        self.T.SYS_r._growl(                       msg)
         br.quit()
         return True
     def quick_geom_upsert(self):
@@ -1205,7 +1206,7 @@ class Yelp:
         self.T.update(                      {'line_no'                  :   self.T.I.currentframe().f_back.f_lineno})
         msg                             =   '%(line_no)s Yelp@%(user)s<%(guid)s>: Search Results Scraped.' % self.T
         print msg
-        SYS_r._growl(                       msg)
+        self.T.SYS_r._growl(                       msg)
         br.quit()
         return True
     #   yelp:     1 of 2
@@ -1247,7 +1248,7 @@ class Yelp:
             if type(df)==NoneType:
                 msg                     =   '%(line_no)s Yelp@%(user)s<%(guid)s>: API Scrape -- ABORTED b/c %(status)s' % self.T
                 print msg
-                SYS_r._growl(               msg)
+                self.T.SYS_r._growl(               msg)
                 return
 
             if not status=='OK':
@@ -1432,7 +1433,7 @@ class Yelp:
 
 
         print msg
-        SYS_r._growl(                       msg)
+        self.T.SYS_r._growl(                       msg)
         br.quit()
         return
     #   yelp:     2 of 2
@@ -1642,10 +1643,10 @@ class Yelp:
             # Save Comments To Separate Table
             save_comments(                  self,br,html,vend_data['url'])
 
-
+        self.T.update(                      {'line_no'                  :   self.T.I.currentframe().f_back.f_lineno})
         msg                             =   '%(line_no)s Yelp@%(user)s<%(guid)s>: Known Vendors Updated.' % self.T
         print msg
-        SYS_r._growl(                       msg)
+        self.T.SYS_r._growl(                       msg)
         br.quit()
         return True
 

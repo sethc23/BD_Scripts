@@ -1221,7 +1221,6 @@ class pgSQL_Functions:
 
     """
 
-
     def __init__(self,_parent):
         self.T                              =   _parent.T
         self.Make                           =   self.Make(self)
@@ -1933,7 +1932,7 @@ class pgSQL_Triggers:
             self.T.cur.execute(c)
         def z_auto_update_timestamp(self,tbl,col):
             a="""
-                DROP FUNCTION if exists z_auto_update_timestamp(text) cascade;
+                DROP FUNCTION if exists z_auto_update_timestamp_on_%(tbl)s_in_%(col)s() cascade;
                 DROP TRIGGER if exists update_timestamp_on_%(tbl)s_in_%(col)s ON %(tbl)s;
 
                 CREATE OR REPLACE FUNCTION z_auto_update_timestamp_on_%(tbl)s_in_%(col)s()
@@ -1948,6 +1947,31 @@ class pgSQL_Triggers:
                 BEFORE UPDATE OR INSERT ON %(tbl)s
                 FOR EACH ROW
                 EXECUTE PROCEDURE z_auto_update_timestamp_on_%(tbl)s_in_%(col)s();
+
+            """ % {'tbl':tbl,'col':col}
+
+            self.T.conn.set_isolation_level(       0)
+            self.T.cur.execute(                    a)
+            return
+
+        def z_parse_address(self,tbl,col):
+            a="""
+                DROP FUNCTION if exists z_parse_address_on_%(tbl)s_in_%(col)s() cascade;
+                DROP TRIGGER if exists parse_address_on_%(tbl)s_in_%(col)s ON %(tbl)s;
+
+                CREATE OR REPLACE FUNCTION z_parse_address_on_%(tbl)s_in_%(col)s()
+                RETURNS TRIGGER AS $$
+
+                    if TD["new"]['address'] and TD["new"]['zipcode']:
+                        NEW.last_updated := now();
+                    RETURN NEW;
+
+                $$ language 'plpythonu';
+
+                CREATE TRIGGER parse_address_on_%(tbl)s_in_%(col)s
+                BEFORE UPDATE OR INSERT ON %(tbl)s
+                FOR EACH ROW
+                EXECUTE PROCEDURE z_parse_address_on_%(tbl)s_in_%(col)s();
 
             """ % {'tbl':tbl,'col':col}
 
