@@ -43,6 +43,7 @@ class Scrape_Vendors:
         from subprocess                     import PIPE             as sub_PIPE
         from traceback                      import format_exc       as tb_format_exc
         from sys                            import exc_info         as sys_exc_info
+        import                                  inspect             as I
         from types                          import NoneType
         from time                           import sleep            as delay
         from os                             import environ          as os_environ
@@ -308,7 +309,7 @@ class Seamless:
         for it in excl_chars:      p    =   p.replace(it,'')
         phone                           =   int(p.strip()[:10])
         if len(str(phone))!=10:
-            self.T.update(                  {'line_no'                  :   I.currentframe().f_back.f_lineno})
+            self.T.update(                  {'line_no'                  :   self.T.I.currentframe().f_back.f_lineno})
             SYS_r._growl(                   '%(line_no)s SL@%(user)s<%(guid)s>: Update Error: Phone Length Not 10.' % self.T)
             raise SystemError()
         try:
@@ -709,7 +710,7 @@ class Seamless:
                                             """ % self.T
         src                             =   src if not query_str else query_str
         get_sl_addr_search_results(         self,src )
-        self.T.update(                      {'line_no'                  :   I.currentframe().f_back.f_lineno})
+        self.T.update(                      {'line_no'                  :   self.T.I.currentframe().f_back.f_lineno})
         msg                             =   '%(line_no)s SL@%(user)s<%(guid)s>: Search Results Scraped.' % self.T
         SYS_r._growl(                       msg )
         print msg
@@ -789,7 +790,7 @@ class Seamless:
                     br.browser.set_window_position=start_location
                     br.browser.set_window_size=start_size
 
-                    self.T.update(          {'line_no'                  :   I.currentframe().f_back.f_lineno})
+                    self.T.update(          {'line_no'                  :   self.T.I.currentframe().f_back.f_lineno})
                     SYS_r._growl(           '%(line_no)s SL@%(user)s<%(guid)s>: NEED CAPTCHA' % self.T,
                                             'http://demo.aporodelivery.com/phantomjs.html' )
                     captcha_input       =   get_input("Captcha code?\n")
@@ -864,7 +865,7 @@ class Seamless:
                                                         'sl_link'      :   sl_link} )
 
 
-        self.T.update(                      {'line_no'                  :   I.currentframe().f_back.f_lineno})
+        self.T.update(                      {'line_no'                  :   self.T.I.currentframe().f_back.f_lineno})
         msg                             =   '%(line_no)s SL@%(user)s<%(guid)s>: Prev. Closed Updated.' % self.T
         print msg
         SYS_r._growl(                       msg)
@@ -932,7 +933,7 @@ class Seamless:
             try:
                 self.SL.update_pgsql_with_sl_page_content(br)
             except:
-                self.T.update(              {'line_no'                  :   I.currentframe().f_back.f_lineno,
+                self.T.update(              {'line_no'                  :   self.T.I.currentframe().f_back.f_lineno,
                                              'current_url'              :   br.get_url()})
                 msg                     =   '%(line_no)s SL@%(user)s<%(guid)s>: Issue with Known Vendors @ %(current_url)s' % self.T
                 print msg
@@ -944,7 +945,7 @@ class Seamless:
                 skipped                +=   1
 
 
-        self.T.update(                      {'line_no'                  :   I.currentframe().f_back.f_lineno,
+        self.T.update(                      {'line_no'                  :   self.T.I.currentframe().f_back.f_lineno,
                                             'current_url'               :   br.get_url()})
         msg                             =   '%(line_no)s SL@%(user)s<%(guid)s>: Known Vendors Updated.' % self.T
         print msg
@@ -1201,7 +1202,7 @@ class Yelp:
 
 
 
-        self.T.update(                      {'line_no'                  :   I.currentframe().f_back.f_lineno})
+        self.T.update(                      {'line_no'                  :   self.T.I.currentframe().f_back.f_lineno})
         msg                             =   '%(line_no)s Yelp@%(user)s<%(guid)s>: Search Results Scraped.' % self.T
         print msg
         SYS_r._growl(                       msg)
@@ -1241,7 +1242,7 @@ class Yelp:
             search_addr                 =   p[i]
             df,status                   =   YELP.yelp_search_api(search_addr,radius_in_meters)
 
-            self.T.update(                  {'line_no'                  :   I.currentframe().f_back.f_lineno,
+            self.T.update(                  {'line_no'                  :   self.T.I.currentframe().f_back.f_lineno,
                                              'status'                   :   status})
             if type(df)==NoneType:
                 msg                     =   '%(line_no)s Yelp@%(user)s<%(guid)s>: API Scrape -- ABORTED b/c %(status)s' % self.T
