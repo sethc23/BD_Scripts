@@ -1954,29 +1954,135 @@ class pgSQL_Triggers:
             self.T.cur.execute(                    a)
             return
 
-        def z_parse_address(self,tbl,col):
+        def z_parse_address(self,tbl,gid_col='gid',addr_col='address',zip_col='zipcode'):
+            """
+            alter table tmp_5e244d5
+                add column bldg text,
+                add column box text,
+                add column unit text,
+                add column num text,
+                add column predir text,
+                add column street_name text,
+                add column suftype text,
+                add column sufdir text,
+                add column bldg_street_idx text,
+                add column sm integer DEFAULT 0,
+                add column ls integer DEFAULT 0,
+                add column gc_lat double precision,
+                add column gc_lon double precision,
+                add column gc_addr text,
+                add column ai integer DEFAULT 0,
+                add column pa text;
+            """
             a="""
-                DROP FUNCTION if exists z_parse_address_on_%(tbl)s_in_%(col)s() cascade;
-                DROP TRIGGER if exists parse_address_on_%(tbl)s_in_%(col)s ON %(tbl)s;
+                DROP FUNCTION if exists z_parse_address_on_%(tbl)s_in_%(addr_col)s() cascade;
+                DROP TRIGGER if exists parse_address_on_%(tbl)s_in_%(addr_col)s ON %(tbl)s;
 
-                CREATE OR REPLACE FUNCTION z_parse_address_on_%(tbl)s_in_%(col)s()
-                RETURNS TRIGGER AS $$
+                CREATE OR REPLACE FUNCTION z_parse_address_on_%(tbl)s_in_%(addr_col)s()
+                RETURNS TRIGGER AS $funct$
 
-                    if TD["new"]['address'] and TD["new"]['zipcode']:
-                        NEW.last_updated := now();
-                    RETURN NEW;
+                try:
 
-                $$ language 'plpythonu';
+                    def adjust_single_quote(text_var,repl_var):
+                        if text_var.count("'")>0:
+                            text_var = ''.join(["concat('",
+                                                         "',$single_quote$'$single_quote$,'".join(text_var.split("'")),
+                                                         "')"])
+                            text_var = text_var.replace("'","''")
+                        else:
+                            text_var = "''##("  +  repl_var  +  ")s''"
+                        return text_var
 
-                CREATE TRIGGER parse_address_on_%(tbl)s_in_%(col)s
-                BEFORE UPDATE OR INSERT ON %(tbl)s
+
+                    if (TD["new"]["%(addr_col)s"] == TD["old"]["%(addr_col)s"] or
+                        TD["new"]["pa"] == '1'):
+                        return
+
+                    T = TD["new"]
+                    T["tbl"] = TD["table_name"]
+
+                    T["%(addr_col)s"] = adjust_single_quote(text_var=T["%(addr_col)s"],
+                                                            repl_var="%(addr_col)s")
+
+                    if T["%(addr_col)s"] and T["%(zip_col)s"]:
+                        p = \"\"\"  select  bldg,box,unit,num,predir,name street_name,suftype,sufdir,
+                                            tbl,gid
+                                    from    z_parse_NY_addrs('
+                                                            select
+                                                                ''##(%(gid_col)s)s''::bigint gid,
+                                                                ##(%(addr_col)s)s::text address,
+                                                                ''##(%(zip_col)s)s''::bigint zipcode
+                                                            '),
+                                            (select '##(tbl)s' tbl) f2,
+                                            (select '##(%(gid_col)s)s'::bigint gid) f3
+                            \"\"\" ## T
+                        #plpy.log(p)
+                        try:
+                            res = plpy.execute(p)[0]
+                            #plpy.log("FIRST EXECUTION")
+
+                            res["street_name"] = adjust_single_quote( text_var=res["street_name"],
+                                                                      repl_var='street_name')
+                            res["street_name"] =  res["street_name"].replace("''","'")
+
+                            p = \"\"\"  update ##(tbl)s set
+                                            bldg = '##(bldg)s',
+                                            box = '##(box)s',
+                                            unit = '##(unit)s',
+                                            num = '##(num)s',
+                                            predir = '##(predir)s',
+                                            street_name = ##(street_name)s,
+                                            suftype = '##(suftype)s',
+                                            sufdir = '##(sufdir)s',
+                                            pa = '1'
+                                        where %(gid_col)s::bigint = ##(gid)s::bigint
+                                \"\"\" ## res
+                            #plpy.log("SECOND EXECUTION")
+                            #plpy.log(p)
+                            #plpy.log(res)
+                            #plpy.execute(p)
+                            #plpy.log("FINIS ?")
+                            return
+
+                        except plpy.SPIError, e:
+                            plpy.log("table: " + TD["table_name"])
+                            plpy.log("%(gid_col)s: " + str(TD["old"]["%(gid_col)s"]))
+                            plpy.log(e)
+                            plpy.execute(\"\"\" update ##(tbl)s set pa = 'failed error, logged'
+                                                where %(gid_col)s = ##(%(gid_col)s)s \"\"\" ## T )
+                            return
+
+                        else:
+                            plpy.log("table: " + TD["table_name"])
+                            plpy.log("%(gid_col)s: " + str(TD["old"]["%(gid_col)s"]))
+                            plpy.execute(\"\"\" update ##(tbl)s set pa = 'failed error, unknown'
+                                                where %(gid_col)s = ##(%(gid_col)s)s \"\"\" ## T )
+                            return
+
+
+                except plpy.SPIError, e:
+                    plpy.log('parse trigger failed')
+                    plpy.log("table: " + TD["table_name"])
+                    plpy.log("%(gid_col)s: " + TD["old"]["%(gid_col)s"])
+                    plpy.log(e)
+                    return
+
+                $funct$ language "plpythonu";
+
+                CREATE TRIGGER parse_address_on_%(tbl)s_in_%(addr_col)s
+                AFTER UPDATE OR INSERT ON %(tbl)s
                 FOR EACH ROW
-                EXECUTE PROCEDURE z_parse_address_on_%(tbl)s_in_%(col)s();
+                EXECUTE PROCEDURE z_parse_address_on_%(tbl)s_in_%(addr_col)s();
 
-            """ % {'tbl':tbl,'col':col}
+            """ % {"tbl"                        :   tbl,
+                   "addr_col"                   :   addr_col,
+                   "gid_col"                    :   gid_col,
+                   "zip_col"                    :   zip_col}
 
-            self.T.conn.set_isolation_level(       0)
-            self.T.cur.execute(                    a)
+            cmd                                 =   a.replace("##","%")
+            self.T.conn.set_isolation_level(        0)
+            self.T.cur.execute(                     cmd)
+            print cmd
             return
 
     class Destroy:

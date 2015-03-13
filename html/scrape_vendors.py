@@ -52,7 +52,7 @@ class Scrape_Vendors:
         py_path                             =   py_path
         py_path.append(                         os_environ['HOME'] + '/.scripts')
         from system_settings                import DB_HOST,DB_PORT
-        from System_Control               import System_Reporter
+        from System_Control                 import System_Reporter
         SYS_r                               =   System_Reporter()
         import                                  pandas          as pd
         # from pandas.io.sql                import execute              as sql_cmd
@@ -265,7 +265,8 @@ class Seamless:
                 a                       =   self.T.getTagsByAttr(html, 'div', {'id':'Bummer'},contents=False)[0].text.replace('\n','').replace('Bummer!','').strip()
                 b                       =   a[0].text.replace('\n','').replace('Bummer!','').strip()
                 vend_name               =   b[:b.find('(')].strip().replace("'","''")
-                addr                    =   self.T.self.T.re_findall(r'[(](.*)[)]',b)[0].strip(',')
+                addr                    =   self.T.re_findall(r'[(](.*)[)]',b)[0].strip(',')
+                addr                    =   self.T.re_sub(r'[^\u0000-\u007F\s]+','', addr)
                 self.T.update(              {'vendor_id':vendor_id,'vend_name':vend_name,'addr':addr} )
                 cmd                     =   """
                                             update seamless
@@ -296,7 +297,8 @@ class Seamless:
         addr                            =   self.T.getTagsByAttr(html, 'span',
                                                       {'itemprop':'streetAddress'},
                                                       contents=False)[0].contents[0]
-        addr                            =   self.T.re_sub('(^[\(])[\(]?(.*)$','$1',addr)
+        addr                            =   self.T.re_sub(r'^([^\(]*)[\(](.*)$',r'\1',addr)
+        addr                            =   self.T.re_sub(r'[^\u0000-\u007F\s]+','', addr)
         z                               =   self.T.getTagsByAttr(html, 'span',
                                                       {'itemprop':'postalCode'},
                                                       contents=False)[0].contents[0]
@@ -305,47 +307,54 @@ class Seamless:
             zipcode                     =   int(z[:z.find('-')])
         else:
             zipcode                     =   int(z)
-        p                               =   self.T.getTagsByAttr(html, 'span', {'itemprop':'telephone'},contents=False)[0].contents[0]
+        p                               =   self.T.getTagsByAttr(html, 'span', {'itemprop':'telephone'},
+                                                        contents=False)[0].contents[0]
         excl_chars                      =   ['(',')','-','x','/',',',' ']
         for it in excl_chars:      p    =   p.replace(it,'')
         phone                           =   int(p.strip()[:10])
         if len(str(phone))!=10:
             self.T.update(                  {'line_no'                  :   self.T.I.currentframe().f_back.f_lineno})
-            self.T.SYS_r._growl(                   '%(line_no)s SL@%(user)s<%(guid)s>: Update Error: Phone Length Not 10.' % self.T)
+            self.T.SYS_r._growl(            '%(line_no)s SL@%(user)s<%(guid)s>: Update Error: Phone Length Not 10.' % self.T)
             raise SystemError()
         try:
-            price                       =   int(self.T.getTagsByAttr(html, 'span', {'class':'price-text'},contents=False)[0].getText().count('$'))
+            price                       =   int(self.T.getTagsByAttr(html, 'span', {'class':'price-text'},
+                                                    contents=False)[0].getText().count('$'))
         except:
             price                       =   -1
         try:
             rating                      =   int(self.T.getTagsByAttr(html, 'a',
-                                                        {'class':'user-rating'},
-                                                        contents=False)[0].img.attrs['alt'].split(' ')[0])
+                                                    {'class':'user-rating'},
+                                                    contents=False)[0].img.attrs['alt'].split(' ')[0])
             rating_total                =   int(self.T.getTagsByAttr(html, 'span',
-                                                        { 'itemprop':'ratingCount',
-                                                          'id':'TotalRatings'},
-                                                        contents=False)[0].getText().replace('ratings','').strip())
+                                                    { 'itemprop':'ratingCount',
+                                                      'id':'TotalRatings'},
+                                                    contents=False)[0].getText().replace('ratings','').strip())
             rating_perc                 =   rating_total/rating
             reviews                     =   int(self.T.getTagsByAttr(html, 'span',
                                                         {'itemprop':'reviewCount',
                                                          'id':'TotalReviews'},
-                                                        contents=False)[0].getText())
+                                                    contents=False)[0].getText())
         except:
             rating                      =   rating_total = rating_perc = -1
             reviews                     =   0
         v                               =   html.find('Delivery Estimate:')
-        deliv_est                       =   '-'.join(self.T.self.T.re_findall(r'\d+', html[v:v+len('Delivery Estimate:')+100] ))
+        deliv_est                       =   '-'.join(self.T.re_findall(r'\d+',
+                                                    html[v:v+len('Delivery Estimate:')+100] ))
         v                               =   html.find('Delivery Minimum:')
-        deliv_min                       =   float('.'.join(self.T.self.T.re_findall(r'\d+', html[v:v+len('Delivery Minimum:')+100] )[:2]))
-        pickup_est                      =   '-'.join(self.T.self.T.re_findall(r'\d+', self.T.getTagsByAttr(html, 'span', {'class':'ready-time'},contents=False)[0].getText()))
+        deliv_min                       =   float('.'.join(self.T.re_findall(r'\d+',
+                                                    html[v:v+len('Delivery Minimum:')+100] )[:2]))
+        pickup_est                      =   '-'.join(self.T.re_findall(r'\d+',
+                                                    self.T.getTagsByAttr(html, 'span',
+                                                    {'class':'ready-time'},contents=False)[0].getText()))
         v                               =   self.T.getTagsByAttr(html, 'div',
-                                                      {'class':'estimates',
-                                                       'id':'RestaurantDetails'},
-                                                      contents=False)[0]
-        estimates_blob                  =   self.T.re_sub(r'\s+', ' ', v.findAll('span')[3].getText().replace('\n',''))
+                                                    {'class':'estimates',
+                                                     'id':'RestaurantDetails'},
+                                                    contents=False)[0]
+        estimates_blob                  =   self.T.re_sub(r'\s+', ' ',
+                                                    v.findAll('span')[3].getText().replace('\n',''))
         description                     =   self.T.getTagsByAttr(html, 'meta',
-                                                      {'property':'og:description'},
-                                                      contents=False)[0].attrs['content']
+                                                    {'property':'og:description'},
+                                                    contents=False)[0].attrs['content']
         try:
             cuisine                     =   self.T.getTagsByAttr(html, 'li',
                                                       {'itemprop':'servesCuisine'},
@@ -873,30 +882,32 @@ class Seamless:
         br.quit()
         return True
     #   seamless: 3 of 3
-    def scrape_sl_3_known_vendor_pages(self,query_str=''):
+    def scrape_sl_3_known_vendor_pages(self,grp_size=100,iterations=10,update_interval='3 days'):
         print self.T['guid']
-        self.T.update(                      {'tbl_name'                     :   'seamless',
-                                             'tbl_uid'                      :   'id',
-                                             'upd_var'                      :   'upd_vend_content',
-                                             'upd_interval'                 :   '3 days',
-                                             'select_vars'                  :   'id,sl_link' })
+        self.T.update(                      {'tbl_name'                 :   'seamless',
+                                             'tbl_uid'                  :   'id',
+                                             'upd_var'                  :   'upd_vend_content',
+                                             'upd_interval'             :   update_interval,
+                                             'select_vars'              :   'id,sl_link',
+                                             'transcation_cnt'          :   grp_size })
 
-        t                               =   """ UPDATE %(tbl_name)s t
-                                                    SET checked_out         = null
-                                                    WHERE checked_out       = '%(guid)s';
+        for _iter in range(iterations):
+            t                           =   """ UPDATE %(tbl_name)s t
+                                                    SET checked_out     =   null
+                                                    WHERE checked_out   =   '%(guid)s';
 
                                                 UPDATE %(tbl_name)s t
-                                                SET checked_out             =   '%(guid)s'
+                                                SET checked_out         =   '%(guid)s'
                                                 FROM (
                                                     SELECT array_agg(%(tbl_uid)s) all_ids from %(tbl_name)s t2
                                                     WHERE ( t2.checked_out is null )
                                                     AND (
-                                                        t2.%(upd_var)s      is   null
+                                                        t2.%(upd_var)s  is   null
                                                         OR age('now'::timestamp with time zone,
                                                                t2.%(upd_var)s) > interval '%(upd_interval)s'
                                                     )
-                                                    AND t2.inactive         is   false
-                                                    AND t2.skipped          is   false
+                                                    AND t2.inactive     is   false
+                                                    AND t2.skipped      is   false
                                                     GROUP BY t2.%(upd_var)s,t2.%(tbl_uid)s
                                                     ORDER BY t2.%(upd_var)s ASC,t2.%(tbl_uid)s ASC
                                                     LIMIT %(transcation_cnt)s
@@ -907,50 +918,52 @@ class Seamless:
                                                 WHERE checked_out       =   '%(guid)s';
                                             """ % self.T
 
-        query_str                       =   t if not query_str else query_str
-        d                               =   self.T.pd.read_sql(query_str,self.T.eng)
-        sl_links                        =   d.sl_link.tolist()
-        br                              =   self.SV.SF.browser()
+            query_str                   =   t if not query_str else query_str
+            d                           =   self.T.pd.read_sql(query_str,self.T.eng)
+            sl_links                    =   d.sl_link.tolist()
+            br                          =   self.SV.SF.browser()
 
-        base_url                        =   'http://www.seamless.com/food-delivery/'
-        first_link                      =   sl_links[0]
-        url                             =   base_url+first_link.replace(base_url,'')
-        br.open_page(                       url)
-
-        if br.source().count('fancybox-close')>0:
-            popup_element               =   br.window.find_element_by_id("fancybox-close")
-            if popup_element.is_displayed():
-                popup_element.click(        )
-                br.wait_for_page(           timeout_seconds=120)
-                z                       =   br.get_url()
-
-
-        self.SL.update_pgsql_with_sl_page_content(  br)
-        self.T.delay(                              5)
-        skipped                         =   0
-        for it in sl_links[1:]:
-            url                         =   base_url+it.replace(base_url,'')
+            base_url                    =   'http://www.seamless.com/food-delivery/'
+            first_link                  =   sl_links[0]
+            url                         =   base_url+first_link.replace(base_url,'')
             br.open_page(                   url)
-            try:
-                self.SL.update_pgsql_with_sl_page_content(br)
-            except:
-                self.T.update(              {'line_no'                  :   self.T.I.currentframe().f_back.f_lineno,
-                                             'current_url'              :   br.get_url()})
-                msg                     =   '%(line_no)s SL@%(user)s<%(guid)s>: Issue with Known Vendors @ %(current_url)s' % self.T
-                print msg
-                self.T.SYS_r._growl(        msg)
 
-                current_url             =   "'"++"'"
-                self.T.conn.set_isolation_level(   0)
-                self.T.cur.execute(                "update seamless set skipped=true,checked_out=null where sl_link = %s"%current_url)
-                skipped                +=   1
+            if br.source().count('fancybox-close')>0:
+                popup_element           =   br.window.find_element_by_id("fancybox-close")
+                if popup_element.is_displayed():
+                    popup_element.click(    )
+                    br.wait_for_page(       timeout_seconds=120)
+                    z                   =   br.get_url()
+
+
+            self.SL.update_pgsql_with_sl_page_content(  br)
+            self.T.delay(                   5)
+            skipped                     =   0
+            for it in sl_links[1:]:
+                url                     =   base_url+it.replace(base_url,'')
+                br.open_page(               url)
+                try:
+                    self.SL.update_pgsql_with_sl_page_content(br)
+                except:
+                    self.T.update(          {'line_no'                  :   self.T.I.currentframe().f_back.f_lineno,
+                                             'current_url'              :   br.get_url()})
+                    msg                 =   '%(line_no)s SL@%(user)s<%(guid)s>: Issue with Known Vendors @ %(current_url)s' % self.T
+                    print msg
+                    self.T.SYS_r._growl(    msg)
+
+                    current_url         =   "'"+url+"'"
+                    self.T.conn.set_isolation_level(   0)
+                    self.T.cur.execute(     "update seamless set skipped=true,checked_out=null where sl_link = %s"%current_url)
+                    skipped            +=   1
 
 
         self.T.update(                      {'line_no'                  :   self.T.I.currentframe().f_back.f_lineno,
-                                            'current_url'               :   br.get_url()})
-        msg                             =   '%(line_no)s SL@%(user)s<%(guid)s>: Known Vendors Updated.' % self.T
+                                             'current_url'              :   br.get_url(),
+                                             'vendor_num'               :   str(self.T.transaction_cnt * iterations)})
+        msg                             =   ' '.join(['%(line_no)s SL@%(user)s<%(guid)s>:',
+                                                      '%(vend_num)s Known Vendors Updated.']) % self.T
         print msg
-        self.T.SYS_r._growl(                       msg)
+        self.T.SYS_r._growl(                msg)
         br.quit()
         return True
     def quick_geom_upsert(self):
@@ -1103,7 +1116,6 @@ class Yelp:
 
             from ipdb import set_trace as i_trace; i_trace()
 
-
             if self.T.getTagsByAttr(br.source(), 'div', {'class':'no-results'},contents=False): pass
             else:
                 html                =   self.T.codecs_enc(br.source(),'utf8','ignore')
@@ -1117,7 +1129,7 @@ class Yelp:
                                         """%(str(res_num),gid))
                 else:
                     a               =   self.T.getTagsByAttr(html, 'span', {'class':'pagination-results-window'},contents=True)
-                    res_num         =   int(self.T.self.T.re_findall(r'\d+', str(a[a.find('of')+3:]))[0])
+                    res_num         =   int(self.T.re_findall(r'\d+', str(a[a.find('of')+3:]))[0])
                     self.T.conn.set_isolation_level(0)
                     self.T.cur.execute(        """ update scrape_lattice
                                             set yelp_cnt=%s,
@@ -1437,7 +1449,7 @@ class Yelp:
         br.quit()
         return
     #   yelp:     2 of 2
-    def scrape_yelp_2_vendor_pages(self,query_str=''):
+    def scrape_yelp_2_vendor_pages(self,grp_size=100,iterations=10,update_interval='3 days'):
         """
         use yelp.url to get hours from each page and update pgsql
         """
@@ -1511,15 +1523,17 @@ class Yelp:
             self.T.cur.execute(                    cmd)
             return
 
-        self.T.__init__(                   {'tbl_name'         :   'yelp',
-                                             'tbl_uid'          :   'uid',
-                                             'upd_var'          :   'hours_updated',
-                                             'upd_interval'     :   '3 days',
-                                             'select_vars'      :   'uid,url'})
+        self.T.__init__(                   { 'tbl_name'                     :   'yelp',
+                                             'tbl_uid'                      :   'uid',
+                                             'upd_var'                      :   'hours_updated',
+                                             'upd_interval'                 :   update_interval,
+                                             'select_vars'                  :   'uid,url',
+                                             'transcation_cnt'              :   grp_size})
 
-        t                               =   """ UPDATE %(tbl_name)s t
-                                                    SET checked_out         = null
-                                                    WHERE checked_out       = '%(guid)s';
+        for _iter in range(iterations):
+            t                           =   """ UPDATE %(tbl_name)s t
+                                                    SET checked_out         =   null
+                                                    WHERE checked_out       =   '%(guid)s';
 
                                                 UPDATE %(tbl_name)s t
                                                 SET checked_out             =   '%(guid)s'
@@ -1541,113 +1555,118 @@ class Yelp:
                                                 WHERE checked_out           =   '%(guid)s';
                                             """ % self.T
 
-        query_str                       =   t if not query_str else query_str
-        d                               =   self.T.pd.read_sql( query_str,self.T.eng )
+            query_str                   =   t if not query_str else query_str
+            d                           =   self.T.pd.read_sql( query_str,self.T.eng )
 
-        y_links                         =   d.url.tolist()
-        br                              =   self.SV.SF.browser()
-        comment_sort_opts               =   '?sort_by=date_desc&start=0'
+            y_links                     =   d.url.tolist()
+            br                          =   self.SV.SF.browser()
+            comment_sort_opts           =   '?sort_by=date_desc&start=0'
 
-        for it in y_links:
+            for it in y_links:
 
-            br.open_page(                   it+comment_sort_opts)
-            html                        =   self.T.codecs_enc(br.source(),'utf8','ignore')
+                br.open_page(               it+comment_sort_opts)
+                html                    =   self.T.codecs_enc(br.source(),'utf8','ignore')
 
-            # extract yelp page data
-            vend_data                   =   {'url':it}
+                # extract yelp page data
+                vend_data               =   {'url':it}
 
-            # biz info
-            try:
-                s                       =   self.T.getSoup(html).find('h3',text='More business info').find_parent()
-                t                       =   s.find('div', {'class':'short-def-list'},contents=False)
-                d_keys                  =   map(lambda x: str(x.get_text().strip('\n ')),t.findAll('dt'))
-                d_vals                  =   map(lambda x: str(x.get_text().strip('\n ')),t.findAll('dd'))
-                d                       =   dict(zip(d_keys,d_vals))
-                vend_data.update(           {'extra_info':str(d).replace("'",'"')})
-            except:
-                vend_data.update(           {'extra_info':None})
+                # biz info
+                try:
+                    s                   =   self.T.getSoup(html).find('h3',text='More business info').find_parent()
+                    t                   =   s.find('div', {'class':'short-def-list'},contents=False)
+                    d_keys              =   map(lambda x: str(x.get_text().strip('\n ')),t.findAll('dt'))
+                    d_vals              =   map(lambda x: str(x.get_text().strip('\n ')),t.findAll('dd'))
+                    d                   =   dict(zip(d_keys,d_vals))
+                    vend_data.update(       {'extra_info':str(d).replace("'",'"')})
+                except:
+                    vend_data.update(       {'extra_info':None})
 
-            # hours info
-            t                           =   self.T.getTagsByAttr(html, 'table',
-                                                      {'class':'table table-simple hours-table'},
-                                                      contents=False)
-            if len(t)!=0:
-                t                       =   t[0]
-                days                    =   map(lambda s: str(s.get_text()),t.findAll('th',attrs={'scope':'row'}))
-                hours                   =   map(lambda s: str(s.get_text().strip('\n ')),t.findAll('td',attrs={'class':''}))
-                h                       =   str(zip(days,hours)).replace("'",'"')
-                vend_data.update(           {'hours':h})
-            else:
-                vend_data.update(           {'hours':None})
+                # hours info
+                t                       =   self.T.getTagsByAttr(html, 'table',
+                                                          {'class':'table table-simple hours-table'},
+                                                          contents=False)
+                if len(t)!=0:
+                    t                   =   t[0]
+                    days                =   map(lambda s: str(s.get_text()),
+                                                t.findAll('th',attrs={'scope':'row'}))
+                    hours               =   map(lambda s: str(s.get_text().strip('\n ')),
+                                                t.findAll('td',attrs={'class':''}))
+                    h                   =   str(zip(days,hours)).replace("'",'"')
+                    vend_data.update(       {'hours':h})
+                else:
+                    vend_data.update(       {'hours':None})
 
-            # biz website
-            t                           =   self.T.getTagsByAttr(html, 'div',
-                                                      {'class':'biz-website'},
-                                                      contents=False)
-            if len(t)!=0:
-                t                       =   t[0].a.attrs['href']
-                s                       =   t.find('url=')+4
-                e                       =   t.find('&',s)
-                biz_website             =   str(self.T.unquote(t[s:e]))
-                vend_data.update(           {'website':biz_website})
-            else:
-                vend_data.update(           {'website':None})
+                # biz website
+                t                       =   self.T.getTagsByAttr(html, 'div',
+                                                {'class':'biz-website'},
+                                                contents=False)
+                if len(t)!=0:
+                    t                   =   t[0].a.attrs['href']
+                    s                   =   t.find('url=')+4
+                    e                   =   t.find('&',s)
+                    biz_website         =   str(self.T.unquote(t[s:e]))
+                    vend_data.update(       {'website':biz_website})
+                else:
+                    vend_data.update(       {'website':None})
 
-            # non-yelp menu link
-            t                           =   self.T.getTagsByAttr(html, 'a',
-                                                      {'class':'i-wrap ig-wrap-common i-external-link-common-wrap ig-wrap-common-r external-menu'},
-                                                      contents=False)
-            if len(t)!=0:
-                t                       =   t[0].attrs['href']
-                s                       =   t.find('url=')+4
-                biz_menu_page           =   str(self.T.unquote(t[s:]))
-                vend_data.update(           {'menu_page':biz_menu_page.replace("'","''")})
-            else:
-                vend_data.update(           {'menu_page':None})
+                # non-yelp menu link
+                t                       =   self.T.getTagsByAttr(html, 'a',
+                                                          {'class':' '.join(['i-wrap ig-wrap-common',
+                                                                             'i-external-link-common-wrap',
+                                                                             'ig-wrap-common-r external-menu'])},
+                                                          contents=False)
+                if len(t)!=0:
+                    t                   =   t[0].attrs['href']
+                    s                   =   t.find('url=')+4
+                    biz_menu_page       =   str(self.T.unquote(t[s:]))
+                    vend_data.update(       {'menu_page':biz_menu_page.replace("'","''")})
+                else:
+                    vend_data.update(       {'menu_page':None})
 
-            # price range
-            try:
-                price_range             =   str(self.T.getTagsByAttr(html, 'dd',
-                                                          {'class':'nowrap price-description'},
-                                                          contents=False)[0].get_text().strip('\n $'))
-                vend_data.update(           {'price_range':price_range})
-            except:
-                vend_data.update(           {'price_range':None})
+                # price range
+                try:
+                    price_range         =   str(self.T.getTagsByAttr(html, 'dd',
+                                                    {'class':'nowrap price-description'},
+                                                    contents=False)[0].get_text().strip('\n $'))
+                    vend_data.update(       {'price_range':price_range})
+                except:
+                    vend_data.update(       {'price_range':None})
 
-            # online ordering?
-            t                           =   self.T.getTagsByAttr(html, 'div',
-                                                      {'data-ro-mode-action':'place an order'},
-                                                      contents=False) # null return
-            online_ordering             =   len(t)!=0
-            #t=self.T.getTagsByAttr(html, 'div', {'class':'island platform yform js-platform no-js-hidden'},contents=False)
-            vend_data.update(               {'online_ordering':online_ordering})
+                # online ordering?
+                t                       =   self.T.getTagsByAttr(html, 'div',
+                                                    {'data-ro-mode-action':'place an order'},
+                                                    contents=False) # null return
+                online_ordering         =   len(t)!=0
+                vend_data.update(           {'online_ordering':online_ordering})
 
-            # push to pgsql
-            cmd                         =   """
-                                            update yelp set
-                                                extra_info                  =   '%(extra_info)s',
-                                                hours                       =   '%(hours)s',
-                                                hours_updated               =   'now'::timestamp with time zone,
-                                                menu_page                   =   '%(menu_page)s',
-                                                online_ordering             =   %(online_ordering)s,
-                                                price_range                 =   '%(price_range)s',
-                                                website                     =   '%(website)s',
-                                                checked_out                 =   null
-                                            where url                       =   '%(url)s'
+                # push to pgsql
+                cmd                     =   """
+                                                update yelp set
+                                                    extra_info                  =   '%(extra_info)s',
+                                                    hours                       =   '%(hours)s',
+                                                    hours_updated               =   'now'::timestamp with time zone,
+                                                    menu_page                   =   '%(menu_page)s',
+                                                    online_ordering             =   %(online_ordering)s,
+                                                    price_range                 =   '%(price_range)s',
+                                                    website                     =   '%(website)s',
+                                                    checked_out                 =   null
+                                                where url                       =   '%(url)s'
 
                                             """%(vend_data)
-            self.T.conn.set_isolation_level(       0)
-            self.T.cur.execute(                    cmd)
+                self.T.conn.set_isolation_level(0)
+                self.T.cur.execute(         cmd)
 
 
-            # Save Comments To Separate Table
-            save_comments(                  self,br,html,vend_data['url'])
+                # Save Comments To Separate Table
+                save_comments(              self,br,html,vend_data['url'])
 
-        self.T.update(                      {'line_no'                  :   self.T.I.currentframe().f_back.f_lineno})
-        msg                             =   '%(line_no)s Yelp@%(user)s<%(guid)s>: Known Vendors Updated.' % self.T
+        self.T.update(                      {'line_no'                      :   self.T.I.currentframe().f_back.f_lineno,
+                                             'vendor_num'                   :   str(self.T.transaction_cnt * iterations)})
+        msg                             =   ' '.join(['%(line_no)s Yelp@%(user)s<%(guid)s>:',
+                                                      '%(vend_num)s Known Vendors Updated.']) % self.T
         print msg
-        self.T.SYS_r._growl(                       msg)
-        br.quit()
+        self.T.SYS_r._growl(                msg)
+        br.quit(                            )
         return True
 
 
