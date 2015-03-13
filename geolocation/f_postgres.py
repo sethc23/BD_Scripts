@@ -1406,7 +1406,7 @@ class pgSQL_Functions:
                     #plpy.log('starting parser')
 
                     query_str = args[0]
-                    qs,res = query_str.lower().split(' '),[]
+                    qs,res = query_str.lower().replace('####','##').replace("''","'").split(' '),[]
                     drop_items = []
 
                     if qs.count('offset')>0:
@@ -1447,8 +1447,7 @@ class pgSQL_Functions:
 
                         q_range = 'OFFSET ##s LIMIT ##s' ## (q_offset,q_lim)
 
-                        query_dict = {   '_QUERY_STR'        :   ' '.join([query_str.replace('####','##'),
-                                                                           q_range]), }
+                        query_dict = {   '_QUERY_STR'        :   query_str + ' ' + q_range, }
 
 
                         #plpy.log(str(pt)+' '+query_dict['_QUERY_STR'])
@@ -1477,7 +1476,7 @@ class pgSQL_Functions:
                                     ) as f2
                                 ) as f3
                         \"\"\" ## query_dict
-
+                        #plpy.log(q)
                         q_res = plpy.execute(q)
                         #plpy.log(q)
 
@@ -2113,29 +2112,6 @@ class pgSQL_Tables:
             addr_unrecog                    =   len(not_recog)
             addr_TCL                        =   len(to_check_later)
 
-            # 3. push data to table 'tmp'
-            z                               =   self.T.pd.merge(df,recognized.ix[:, ['addr_set','bldg_street_idx']], on='addr_set',how='outer')
-            z                               =   z.drop(['addr_set'],axis=1)
-            self.T.conn.set_isolation_level(    0)
-            self.T.cur.execute(                 'drop table if exists %(tmp_tbl)s' % self.T)
-            z.to_sql(                           self.T.tmp_tbl,self.T.eng,index=False)
-            tmp_rows                        =   len(z)
-
-            # 4. add necessary columns if not exist to $working_table
-            cmd                             =   """   select column_name cols, data_type
-                                                from INFORMATION_SCHEMA.COLUMNS
-                                                where table_name = '%(tmp_tbl)s'""" % self.T
-            tbl_info                        =   self.T.pd.read_sql(cmd,self.T.eng)
-            tbl_cols                        =   map(str,tbl_info.cols.tolist())
-            cols_needed                     =   { 'camis'           :   'integer',
-                                                   'bbl'            :   'integer',
-                                                   'lot_cnt'        :   'integer DEFAULT 1',
-                                                   'geom'           :   'geometry(Point,4326)'}
-            for k,v in cols_needed.iteritems():
-                if tbl_cols.count(k)==0:
-                    self.T.conn.set_isolation_level(0)
-                    self.T.cur.execute('alter table %(tbl)s add column %(k)s %(v)s'%{'tbl':self.T.tmp_tbl,'k':k,'v':v})
-
             # from ipdb import set_trace as i_trace; i_trace()
 
             if not len(recognized):
@@ -2150,9 +2126,23 @@ class pgSQL_Tables:
                 # print tmp_rows,'\t\trows in %(tmp_tbl)s' % self.T
                 return
 
-            # 5. update table $working_table and delete table 'tmp'
+
+            # push data to table 'tmp'
+            z                               =   self.T.pd.merge(df,recognized.ix[:, ['addr_set','bldg_street_idx']], on='addr_set',how='outer')
+            z                               =   z.drop(['addr_set'],axis=1)
+            self.T.conn.set_isolation_level(    0)
+            self.T.cur.execute(                 'drop table if exists %(tmp_tbl)s' % self.T)
+            z.to_sql(                           self.T.tmp_tbl,self.T.eng,index=False)
+
+            # update table $working_table and delete table 'tmp'
             self.T.conn.set_isolation_level(0)
             self.T.cur.execute("""
+
+                alter table %(tmp_tbl)s
+                    add column camis integer,
+                    add column bbl integer,
+                    add column lot_cnt integer DEFAULT 1,
+                    add column geom geometry(Point,4326);
 
                 -- COPY BBL VALUE WHERE A MATCH EXISTS AND VALUE OF ADDRESS NUMBER EQUAL/BETWEEN EXISTING DB PTS
                 update %(tmp_tbl)s s set bbl = l.bbl
@@ -2328,13 +2318,39 @@ class pgSQL_Tables:
             d['res_data']                   =   d.res_data.map(str)
             self.T.conn.set_isolation_level(    0)
             self.T.cur.execute(                 "drop table if exists %(tmp_tbl)s;" % self.T)
-            d.to_sql(                           self.T.tmp_tbl,self.T.eng)
+            d.to_sql(                           self.T.tmp_tbl,self.T.eng,index=False)
             self.T.conn.set_isolation_level(    0)
 
             from ipdb import set_trace as i_trace; i_trace()
 
             # update 'geocoded' and $tbl
             cmd                             =   """
+                                                    alter table %(tmp_tbl)s
+                                                        add column to_parse_addr text,
+                                                        add column zipcode bigint;
+
+                                                    -- PULL OUT ONLY VALID, NEW YORK ADDRESSES
+                                                    update %(tmp_tbl)s t set
+                                                        to_parse_addr = regexp_replace( n.address,
+                                                                                        '(.*,\\s)([a-zA-Z0-9\\s]*)$',
+                                                                                        '\\2'),
+                                                        zipcode=n.zipcode::bigint
+                                                    from
+                                                        (
+                                                        select
+                                                            t2.uid gid,
+                                                            regexp_replace(t2.form_addr,'(.*)(, New York, NY)(.*)',
+                                                                            '\\1') address,
+                                                            regexp_replace(t2.form_addr,'(.*)([0-9]{5})(.*)',
+                                                                            '\\2') zipcode
+                                                        from %(tmp_tbl)s t2
+                                                        where t2.addr_valid is true
+                                                        ) as n
+                                                    where length(n.zipcode::text)=5
+                                                    and position(n.zipcode in n.address)=0
+                                                    and n.gid = t.uid;
+
+
                                                     with upd as (
                                                                 update geocoded g
                                                                 set
@@ -2816,8 +2832,8 @@ class pgSQL_Tables:
 
                     -- AVENUE B --> B AVENUE
                     ('custom_addr_pre_filter',
-                        '([0-9]+)%|(AVENUE)([%s]+)([A-F])([%s]*)(.*)',
-                        '%1|%4 %2 %3 %5','','0'),
+                        '([^|]*)%|(AVE?N?U?E?)[%s]+([A-F])[%s]?(.*)',
+                        '%1|%3 %2 %4','','0'),
 
                     -- AVENUE OF THE AMERICAS
                     ('custom_addr_pre_filter',
@@ -2833,15 +2849,8 @@ class pgSQL_Tables:
 
                     -- 3 AVENUE --> 0 3 AVENUE  (b/c street num required for parsing)
                     ('custom_addr_pre_filter',
-                        '([0-9]+)%|(AVENUE)[%s]?([a-zA-Z]*)$',
-                        '0|%1 %2 %3','','0'),
-                    ('custom_addr_pre_filter',
-                        '([0-9]+)%|(AVE)[%s]?([a-zA-Z]*)$',
-                        '0|%1 %2 %3','','0'),
-                    ('custom_addr_pre_filter',
-                        '([0-9]+)%|(AV)[%s]?([a-zA-Z]*)$',
-                        '0|%1 %2 %3','','0'),
-
+                        '([0-9]+)%|(AVE?N?U?E?)[%s]?([a-zA-Z]*)$',
+                        '0|%1 %2 %3','','1'),
 
                     -- special streets where 'EAST' and 'WEST' don't refer to an end of a street
                     ('custom_addr_pre_filter',

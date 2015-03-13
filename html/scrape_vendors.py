@@ -34,12 +34,12 @@ class Scrape_Vendors:
 
     def __init__(self):
         import                                  datetime            as dt
-        from time                           import sleep
         from urllib                         import quote_plus,unquote
         from re                             import findall          as re_findall
-        from re                             import sub              as re_sub           # re_sub('patt','repl','str','cnt')
-        from re                             import search           as re_search        # re_search('patt','str')
+        from re                             import sub              as re_sub           # self.T.re_sub('patt','repl','str','cnt')
+        # from re                             import search           as re_search        # re_search('patt','str')
         from subprocess                     import Popen            as sub_popen
+        from codecs                         import encode           as codecs_enc
         from subprocess                     import PIPE             as sub_PIPE
         from traceback                      import format_exc       as tb_format_exc
         from sys                            import exc_info         as sys_exc_info
@@ -78,15 +78,7 @@ class Scrape_Vendors:
                                                            "host='%s' password='' port=8800" % DB_HOST)
         cur                                 =   conn.cursor()
 
-        D                                   =   {'pd'                   :   pd,
-                                                 'np'                   :   np,
-                                                 'gd'                   :   gd,
-                                                 'conn'                 :   conn,
-                                                 'cur'                  :   cur,
-                                                 'eng'                  :   eng,
-                                                 'os_environ'           :   os_environ,
-                                                 'py_path'              :   py_path,
-                                                 'guid'                 :   str(get_guid().hex)[:7],
+        D                                   =   {'guid'                 :   str(get_guid().hex)[:7],
                                                  'user'                 :   os_environ['USER'],
                                                  'guid'                 :   str(get_guid().hex)[:7],
                                                  'today'                :   dt.datetime.now(),
@@ -94,15 +86,18 @@ class Scrape_Vendors:
                                                  'transcation_cnt'      :   '100',
                                                  'growl_notice'         :   True,
                                                  'debug'                :   True,}
-
         D.update(                               {'tmp_tbl'              :   'tmp_' + D['guid'] } )
 
         self.T                              =   To_Class(D)
         self.SL                             =   Seamless(self)
         self.Yelp                           =   Yelp(self)
-        self.Yelp_API                       =   Yelp_API()
+        self.Yelp_API                       =   Yelp_API(self)
         self.SF                             =   Scrape_Functions(self)
         self.SV                             =   self
+
+        all_imports                         =   locals().keys()
+        for k in all_imports:
+            self.T.update(                      {k                      :   eval(k) })
 
     def post_screenshot(self,br):
         fpath                           =   '/home/ub2/SERVER2/aprinto/static/phantom_shot'
@@ -115,7 +110,7 @@ class Scrape_Vendors:
                                                   'serv'                :   'ub2',
                                                   'fpath'               :   fpath }),
                                              'rm -f /tmp/phantom_shot;']
-            p                           =   sub_popen(cmds,stdout=sub_PIPE,shell=True)
+            p                           =   self.T.sub_popen(cmds,stdout=self.T.sub_PIPE,shell=True)
             (_out,_err)                 =   p.communicate()
             assert _out                ==   ''
             assert _err                ==   None
@@ -124,10 +119,6 @@ class Scrape_Vendors:
 class Seamless:
 
     def __init__(self,_parent):
-        # from scrape_vendors                 import *
-        from codecs                         import encode           as codecs_enc
-        from re                             import findall          as re_findall
-        from re                             import sub              as re_sub
         self.SV                         =   _parent
         self.T                          =   _parent.T
         self.SL                         =   self
@@ -161,31 +152,31 @@ class Seamless:
         search_element.send_keys(u'\ue007')
         br.wait_for_page(       timeout_seconds=120)
     def save_comments(self,br,html,vend_url):
-        review_block                =   getTagsByAttr(html, 'div',
+        review_block                =   self.T.getTagsByAttr(html, 'div',
                                               {'id':'reviews'},contents=True)
-        review_list                 =   getTagsByAttr(review_block, 'div',
+        review_list                 =   self.T.getTagsByAttr(review_block, 'div',
                                               {'itemtype':'http://schema.org/Review'},contents=False)
 
         rev_cols                    =   ['vend_url','review_id','review_date','review_rating','review_msg']
-        df                          =   pd.DataFrame(columns=rev_cols)
+        df                          =   self.T.pd.DataFrame(columns=rev_cols)
         for rev in review_list:
-            review_date             =   getTagsByAttr(str(rev), 'input',
+            review_date             =   self.T.getTagsByAttr(str(rev), 'input',
                                                  {'class':'ratingdate'},
                                                  contents=False)[0].attrs['value']
-            dt_review_date          =   dt.datetime.utcfromtimestamp(int(review_date))
+            dt_review_date          =   self.T.dt.datetime.utcfromtimestamp(int(review_date))
 
             if (self.T['today'] - dt_review_date).days > int(self.T['oldest_comments']):
                 pass
             else:
                 f_review_date   =   dt_review_date.isoformat()
 
-                review_rating   =   int(getTagsByAttr(str(rev), 'input',
+                review_rating   =   int(self.T.getTagsByAttr(str(rev), 'input',
                                                      {'class':'rating'},
                                                      contents=False)[0].attrs['value'])
-                review_msg      =   getTagsByAttr(str(rev), 'p',
+                review_msg      =   self.T.getTagsByAttr(str(rev), 'p',
                                                  {'itemprop':'reviewBody'},
                                                  contents=False)[0].contents[0].strip('\n\t ')
-                author_link     =   getTagsByAttr(str(rev), 'a',
+                author_link     =   self.T.getTagsByAttr(str(rev), 'a',
                                                  {'itemprop':'author'},
                                                  contents=False)[0].attrs['href']
                 review_id       =   '_'.join([str(review_date),
@@ -195,10 +186,10 @@ class Seamless:
                                                        [vend_url,review_id,f_review_date,
                                                         review_rating,review_msg])),ignore_index=True)
 
-        conn.set_isolation_level(   0)
-        cur.execute(                'drop table if exists %(tmp_tbl)s;' % self.T)
-        df.to_sql(                  self.T['tmp_tbl'],routing_eng,index=False)
-        conn.set_isolation_level(   0)
+        self.T.conn.set_isolation_level(   0)
+        self.T.cur.execute(                'drop table if exists %(tmp_tbl)s;' % self.T)
+        df.to_sql(                  self.T['tmp_tbl'],self.T.eng,index=False)
+        self.T.conn.set_isolation_level(   0)
         cmd                     =   """
                                     insert into customer_comments
                                         (vend_url,
@@ -220,7 +211,7 @@ class Seamless:
 
                                     DROP TABLE IF EXISTS %(tmp_tbl)s;
                                     """ % self.T
-        cur.execute(                cmd)
+        self.T.cur.execute(                cmd)
         return
     def make_SL_search_adjustments(self,order_type_str='delivery',time_str='1:00 PM'):
 
@@ -244,7 +235,7 @@ class Seamless:
         today_wk_day            =   int(self.T['today'].strftime('%w'))
         # want weekday (1-5), so change to tmw if 0-4
         if today_wk_day<=4:
-            tmw                 =   (self.T['today'] + dt.timedelta(days=+1)).strftime('%m/%d/%Y')
+            tmw                 =   (self.T['today'] + self.T.dt.timedelta(days=+1)).strftime('%m/%d/%Y')
             tmw_str             =   '/'.join([ it.lstrip('0') for it in tmw.split('/') ])
             date_element        =   br.browser.find_element_by_id('deliveryDate')
             _select             =   Select(date_element)
@@ -259,27 +250,20 @@ class Seamless:
 
         return br.wait_for_page(       timeout_seconds=120)
     def update_pgsql_with_sl_page_content(self,br,url=''):
-        from codecs                         import encode           as codecs_enc
-        from re                             import findall          as re_findall
-        from re                             import sub              as re_sub
-        from ipdb import set_trace as i_trace; i_trace()
-        br = self.SV.SF.browser()
-        if url:
-            br.open_page(url)
 
-        html                            =   codecs_enc(br.source(),'utf8','ignore')
+        html                            =   self.T.codecs_enc(br.source(),'utf8','ignore')
         seamless_link                   =   br.get_url()
 
         if seamless_link.find('http')!=0:   seamless_link='http://www.seamless.com/food-delivery/'+seamless_link
         vendor_id                       =   int(seamless_link[seamless_link[:-2].rfind('.')+1:-2])
 
-        t                               =   getTagsByAttr(html, 'span', {'id':'VendorName'},contents=False)
+        t                               =   self.T.getTagsByAttr(html, 'span', {'id':'VendorName'},contents=False)
         if len(t)==0:
             try:
-                a                       =   getTagsByAttr(html, 'div', {'id':'Bummer'},contents=False)
+                a                       =   self.T.getTagsByAttr(html, 'div', {'id':'Bummer'},contents=False)
                 b                       =   a[0].text.replace('\n','').replace('Bummer!','').strip()
                 vend_name               =   b[:b.find('(')].strip().replace("'","''")
-                addr                    =   re_findall(r'[(](.*)[)]',b)[0].strip(',')
+                addr                    =   self.T.self.T.re_findall(r'[(](.*)[)]',b)[0].strip(',')
                 self.T.update(              {'vendor_id':vendor_id,'vend_name':vend_name,'addr':addr} )
                 cmd                     =   """
                                             update seamless
@@ -301,17 +285,17 @@ class Seamless:
                                                 checked_out             =   null
                                             where vend_id               =   %(vendor_id)s
                                             """%T
-            conn.set_isolation_level(       0)
-            cur.execute(                    cmd)
+            self.T.conn.set_isolation_level(       0)
+            self.T.cur.execute(                    cmd)
             return
         else:
             vend_name                   =   t[0].getText().replace('\n','').strip()
 
-        addr                            =   getTagsByAttr(html, 'span',
+        addr                            =   self.T.getTagsByAttr(html, 'span',
                                                       {'itemprop':'streetAddress'},
                                                       contents=False)[0].contents[0]
-        addr                            =   re_sub('(^[\(])[\(]?(.*)$','$1',addr)
-        z                               =   getTagsByAttr(html, 'span',
+        addr                            =   self.T.re_sub('(^[\(])[\(]?(.*)$','$1',addr)
+        z                               =   self.T.getTagsByAttr(html, 'span',
                                                       {'itemprop':'postalCode'},
                                                       contents=False)[0].contents[0]
 
@@ -319,7 +303,7 @@ class Seamless:
             zipcode                     =   int(z[:z.find('-')])
         else:
             zipcode                     =   int(z)
-        p                               =   getTagsByAttr(html, 'span', {'itemprop':'telephone'},contents=False)[0].contents[0]
+        p                               =   self.T.getTagsByAttr(html, 'span', {'itemprop':'telephone'},contents=False)[0].contents[0]
         excl_chars                      =   ['(',')','-','x','/',',',' ']
         for it in excl_chars:      p    =   p.replace(it,'')
         phone                           =   int(p.strip()[:10])
@@ -328,19 +312,19 @@ class Seamless:
             SYS_r._growl(                   '%(line_no)s SL@%(user)s<%(guid)s>: Update Error: Phone Length Not 10.' % self.T)
             raise SystemError()
         try:
-            price                       =   int(getTagsByAttr(html, 'span', {'class':'price-text'},contents=False)[0].getText().count('$'))
+            price                       =   int(self.T.getTagsByAttr(html, 'span', {'class':'price-text'},contents=False)[0].getText().count('$'))
         except:
             price                       =   -1
         try:
-            rating                      =   int(getTagsByAttr(html, 'a',
+            rating                      =   int(self.T.getTagsByAttr(html, 'a',
                                                         {'class':'user-rating'},
                                                         contents=False)[0].img.attrs['alt'].split(' ')[0])
-            rating_total                =   int(getTagsByAttr(html, 'span',
+            rating_total                =   int(self.T.getTagsByAttr(html, 'span',
                                                         { 'itemprop':'ratingCount',
                                                           'id':'TotalRatings'},
                                                         contents=False)[0].getText().replace('ratings','').strip())
             rating_perc                 =   rating_total/rating
-            reviews                     =   int(getTagsByAttr(html, 'span',
+            reviews                     =   int(self.T.getTagsByAttr(html, 'span',
                                                         {'itemprop':'reviewCount',
                                                          'id':'TotalReviews'},
                                                         contents=False)[0].getText())
@@ -348,20 +332,20 @@ class Seamless:
             rating                      =   rating_total = rating_perc = -1
             reviews                     =   0
         v                               =   html.find('Delivery Estimate:')
-        deliv_est                       =   '-'.join(re_findall(r'\d+', html[v:v+len('Delivery Estimate:')+100] ))
+        deliv_est                       =   '-'.join(self.T.self.T.re_findall(r'\d+', html[v:v+len('Delivery Estimate:')+100] ))
         v                               =   html.find('Delivery Minimum:')
-        deliv_min                       =   float('.'.join(re_findall(r'\d+', html[v:v+len('Delivery Minimum:')+100] )[:2]))
-        pickup_est                      =   '-'.join(re_findall(r'\d+', getTagsByAttr(html, 'span', {'class':'ready-time'},contents=False)[0].getText()))
-        v                               =   getTagsByAttr(html, 'div',
+        deliv_min                       =   float('.'.join(self.T.self.T.re_findall(r'\d+', html[v:v+len('Delivery Minimum:')+100] )[:2]))
+        pickup_est                      =   '-'.join(self.T.self.T.re_findall(r'\d+', self.T.getTagsByAttr(html, 'span', {'class':'ready-time'},contents=False)[0].getText()))
+        v                               =   self.T.getTagsByAttr(html, 'div',
                                                       {'class':'estimates',
                                                        'id':'RestaurantDetails'},
                                                       contents=False)[0]
-        estimates_blob                  =   re_sub(r'\s+', ' ', v.findAll('span')[3].getText().replace('\n',''))
-        description                     =   getTagsByAttr(html, 'meta',
+        estimates_blob                  =   self.T.re_sub(r'\s+', ' ', v.findAll('span')[3].getText().replace('\n',''))
+        description                     =   self.T.getTagsByAttr(html, 'meta',
                                                       {'property':'og:description'},
                                                       contents=False)[0].attrs['content']
         try:
-            cuisine                     =   getTagsByAttr(html, 'li',
+            cuisine                     =   self.T.getTagsByAttr(html, 'li',
                                                       {'itemprop':'servesCuisine'},
                                                       contents=False)[0].contents[0]
         except:
@@ -380,9 +364,9 @@ class Seamless:
 
 
 
-        conn.set_isolation_level(           0)
-        cur.execute(                        'drop table if exists %(tmp_tbl)s' % self.T)
-        pd.DataFrame(                       [page_vars],columns=var_names).to_sql(self.T['tmp_tbl'],routing_eng)
+        self.T.conn.set_isolation_level(           0)
+        self.T.cur.execute(                        'drop table if exists %(tmp_tbl)s' % self.T)
+        self.T.pd.DataFrame(                       [page_vars],columns=var_names).to_sql(self.T['tmp_tbl'],self.T.eng)
 
         # first try to update vend_id
         self.T.update(                      {'wc'             :   '%%' })
@@ -412,8 +396,8 @@ class Seamless:
                                                 and   s.upd_vend_content < t.upd_vend_content::timestamp with time zone
 
                                             """ % self.T
-        conn.set_isolation_level(           0)
-        cur.execute(                        cmd)
+        self.T.conn.set_isolation_level(           0)
+        self.T.cur.execute(                        cmd)
         # upsert to seamless
         cmd                             =   """
                                                 with upd as (
@@ -490,21 +474,21 @@ class Seamless:
 
                                                 DROP TABLE %(tmp_tbl)s;
                                             """ % self.T
-        conn.set_isolation_level(           0)
-        cur.execute(                        cmd)
+        self.T.conn.set_isolation_level(           0)
+        self.T.cur.execute(                        cmd)
 
         if rating!=-1:
 
             try:
-                review_url              =   getTagsByAttr(html, 'a',
+                review_url              =   self.T.getTagsByAttr(html, 'a',
                                                           {'class':'showRatingsTab'},
                                                           contents=False)[0].attrs['href']
                 br.open_page(               review_url)
                 self.SL.save_comments(      br,html,seamless_link)
 
             except Exception, err:
-                print tb_format_exc()
-                print sys_exc_info()[0]
+                print self.T.tb_format_exc()
+                print self.T.sys_exc_info()[0]
                 print seamless_link
                 from ipdb import set_trace as i_trace; i_trace()
 
@@ -516,8 +500,8 @@ class Seamless:
         """
         get results from seamless address search and update pgsql -- worked 2014.11.16
         """
-        def get_sl_addr_search_results(src):
-            br                          =   scraper('phantom').browser
+        def get_sl_addr_search_results(self,src):
+            br                          =   self.SV.SF.browser()
             only_delivery               =   True
 
             #------------goto main page, identify PDF-page url, goto PDF-page url
@@ -530,7 +514,7 @@ class Seamless:
                     pop_up_element.click()
                     br.wait_for_page(       timeout_seconds=120)
 
-            d                           =   pd.read_sql(src,routing_eng)
+            d                           =   self.T.pd.read_sql(src,self.T.eng)
 
             for i in range(len(d)):
                 street,zipcode,gid      =   d.ix[i,['address','zipcode','gid']].astype(str)
@@ -579,18 +563,18 @@ class Seamless:
                         br.window.execute_script("window.scrollTo(%s, document.body.scrollHeight);" % str(b))
                         br.wait_for_page(   timeout_seconds=120)
                 # --- 2. update pgsql:seamless with address search results
-                html                    =   codecs.encode(br.source(),'utf8','ignore')
-                z                       =   getTagsByAttr(html, 'div', {'class':'restaurant-name'},contents=False)
+                html                    =   self.T.codecs_enc(br.source(),'utf8','ignore')
+                z                       =   self.T.getTagsByAttr(html, 'div', {'class':'restaurant-name'},contents=False)
                 open_res_total          =   len(z)
-                h                       =   pd.Series(map(lambda a: a.a.attrs['href'],z))
+                h                       =   self.T.pd.Series(map(lambda a: a.a.attrs['href'],z))
                 h                       =   h.map(lambda s: base_url + s if s.find('http')==-1 else s)
-                t                       =   pd.Series(map(lambda a: a.a.attrs['title'],z))
-                conn.set_isolation_level(   0)
-                cur.execute(                "drop table if exists %(tmp_tbl)s;" % self.T)
-                pd.DataFrame(               {'sl_link':h,'search_link_blob':t}).to_sql(self.T['tmp_tbl'],routing_eng)
+                t                       =   self.T.pd.Series(map(lambda a: a.a.attrs['title'],z))
+                self.T.conn.set_isolation_level(   0)
+                self.T.cur.execute(                "drop table if exists %(tmp_tbl)s;" % self.T)
+                self.T.pd.DataFrame(               {'sl_link':h,'search_link_blob':t}).to_sql(self.T['tmp_tbl'],self.T.eng)
 
-                conn.set_isolation_level(0)
-                cur.execute(                """
+                self.T.conn.set_isolation_level(0)
+                self.T.cur.execute(                """
                                             alter table %(tmp_tbl)s add column vend_id bigint;
 
                                             update %(tmp_tbl)s
@@ -598,8 +582,8 @@ class Seamless:
                                                 '[[:punct:]]([[:digit:]]*)[[:punct:]][r]$')::bigint
                                             where vend_id is null;
                                             """ % self.T )
-                conn.set_isolation_level(   0)
-                cur.execute(                """
+                self.T.conn.set_isolation_level(   0)
+                self.T.cur.execute(                """
                                             with upd as (
                                                 update seamless s
                                                 set
@@ -629,26 +613,26 @@ class Seamless:
                 if closed_vend_element.is_displayed():
                     closed_vend_element.click()
                 br.wait_for_page(           timeout_seconds=120)
-                html                    =   codecs.encode(br.source(),'utf8','ignore')
-                z                       =   getTagsByAttr(html, 'div', {'class':'closed1'},contents=False)
+                html                    =   self.T.codecs_enc(br.source(),'utf8','ignore')
+                z                       =   self.T.getTagsByAttr(html, 'div', {'class':'closed1'},contents=False)
                 closed_res_total        =   len(z)
                 tmp                     =   map(lambda a: [a.contents[2].replace('\n','').replace('\t','').strip()]+
                                                 a.span.contents[0].lower().replace('\n','').replace('\t','')\
                                                 .replace('open','').strip().split('-'),z)
 
-                self.T.update(              {'day':dt.datetime.strftime(dt.datetime.now(),'%a').lower()})
+                self.T.update(              {'day':self.T.dt.datetime.strftime(self.T.dt.datetime.now(),'%a').lower()})
                 cols                    =   str('vend_name,opens_%(day)s,closes_%(day)s' % self.T).split(',')
-                x                       =   pd.DataFrame(tmp,columns=cols)
-                x[cols[1]]              =   x[cols[1]].map(lambda s: dt.datetime.strftime(dt.datetime.strptime(s,'%I:%M %p'),'%H:%M'))
-                x[cols[2]]              =   x[cols[2]].map(lambda s: dt.datetime.strftime(dt.datetime.strptime(s,'%I:%M %p'),'%H:%M'))
-                conn.set_isolation_level(   0)
-                cur.execute(                "drop table if exists %(tmp_tbl)s;" % self.T)
-                x.to_sql(                   self.T['tmp_tbl'],routing_eng)
+                x                       =   self.T.pd.DataFrame(tmp,columns=cols)
+                x[cols[1]]              =   x[cols[1]].map(lambda s: self.T.dt.datetime.strftime(self.T.dt.datetime.strptime(s,'%I:%M %p'),'%H:%M'))
+                x[cols[2]]              =   x[cols[2]].map(lambda s: self.T.dt.datetime.strftime(self.T.dt.datetime.strptime(s,'%I:%M %p'),'%H:%M'))
+                self.T.conn.set_isolation_level(   0)
+                self.T.cur.execute(                "drop table if exists %(tmp_tbl)s;" % self.T)
+                x.to_sql(                   self.T['tmp_tbl'],self.T.eng)
                 # upsert
-                check                   =   pd.read_sql('select count(*) cnt from seamless_closed',routing_eng).cnt[0]
+                check                   =   self.T.pd.read_sql('select count(*) cnt from seamless_closed',self.T.eng).cnt[0]
                 if check == 0:
-                    conn.set_isolation_level(0)
-                    cur.execute(            """
+                    self.T.conn.set_isolation_level(0)
+                    self.T.cur.execute(            """
                                             insert into seamless_closed (
                                                  vend_name,
                                                  opens_%(day)s,
@@ -666,8 +650,8 @@ class Seamless:
                                             drop table if exists %(tmp_tbl)s;
                                             """ % self.T)
                 else:
-                    conn.set_isolation_level(0)
-                    cur.execute(            """
+                    self.T.conn.set_isolation_level(0)
+                    self.T.cur.execute(            """
                                             with upd as (
                                                 update seamless_closed s
                                                 set
@@ -697,8 +681,8 @@ class Seamless:
                                             drop table if exists %(tmp_tbl)s;
                                             """ % self.T)
                 # --- 4. update pgsql:scrape_lattice
-                conn.set_isolation_level(   0)
-                cur.execute(                """ update scrape_lattice
+                self.T.conn.set_isolation_level(   0)
+                self.T.cur.execute(                """ update scrape_lattice
                                                 set
                                                     sl_open_cnt=%s,
                                                     sl_closed_cnt=%s,
@@ -724,8 +708,7 @@ class Seamless:
                                                 limit %(transcation_cnt)s
                                             """ % self.T
         src                             =   src if not query_str else query_str
-        get_sl_addr_search_results(         src )
-        global T
+        get_sl_addr_search_results(         self,src )
         self.T.update(                      {'line_no'                  :   I.currentframe().f_back.f_lineno})
         msg                             =   '%(line_no)s SL@%(user)s<%(guid)s>: Search Results Scraped.' % self.T
         SYS_r._growl(                       msg )
@@ -737,12 +720,11 @@ class Seamless:
         get url and html for closed vendors -- worked 2014.11.18
         """
         print self.T['guid']
-
+        
         import sys
         reload(                             sys)
         sys.setdefaultencoding(             'UTF8')
 
-        global T
         self.T.update(                      {'tbl_name'         :   'seamless_closed',
                                              'tbl_uid'          :   'id',
                                              'upd_var'          :   'upd_seamless',
@@ -774,7 +756,7 @@ class Seamless:
 
         src                             =   t if not query_str else query_str
 
-        d                               =   pd.read_sql(src,routing_eng)
+        d                               =   self.T.pd.read_sql(src,self.T.eng)
 
         x                               =   d.vend_name.tolist()
         y                               =   d['id'].tolist()
@@ -786,7 +768,7 @@ class Seamless:
 
         base_url                        =   'http://www.seamless.com/food-delivery/'
 
-        br                              =   scraper('phantom').browser
+        br                              =   self.SV.SF.browser()
 
         stop                            =   False
         for it in x:
@@ -816,8 +798,8 @@ class Seamless:
                     z                   =   br.get_url()
 
             if z.count('google.com/search?')>0:
-                q                       =   codecs.encode(br.source(),'utf8','ignore')
-                a                       =   google()
+                q                       =   self.T.codecs_enc(br.source(),'utf8','ignore')
+                a                       =   self.T.google()
                 url                     =   a.get_results(q)[0].url
                 br.open_page(               url)
                 z                       =   br.get_url()
@@ -842,8 +824,8 @@ class Seamless:
 
             try:
                 vendor_id               =   int(z[z[:-2].rfind('.')+1:-2])
-                html                    =   codecs.encode(br.source(),'utf8','ignore')
-                vend_name               =   getTagsByAttr(html, 'span', {'id':'VendorName'},
+                html                    =   self.T.codecs_enc(br.source(),'utf8','ignore')
+                vend_name               =   self.T.getTagsByAttr(html, 'span', {'id':'VendorName'},
                                                           contents=False)[0].getText().replace('\n','').strip()
                 continue_processing     =   True
             except:
@@ -852,8 +834,8 @@ class Seamless:
 
             if not continue_processing:
 
-                conn.set_isolation_level(0)
-                cur.execute(                """
+                self.T.conn.set_isolation_level(0)
+                self.T.cur.execute(                """
                                             update seamless_closed
                                             set
                                                 inactive = true,
@@ -869,8 +851,8 @@ class Seamless:
 
                 self.SL.update_pgsql_with_sl_page_content(br)
 
-                conn.set_isolation_level(   0)
-                cur.execute(                """
+                self.T.conn.set_isolation_level(   0)
+                self.T.cur.execute(                """
                                             update seamless_closed sc
                                             set
                                                 upd_seamless = true,
@@ -924,9 +906,9 @@ class Seamless:
                                             """ % self.T
 
         query_str                       =   t if not query_str else query_str
-        d                               =   pd.read_sql(query_str,routing_eng)
+        d                               =   self.T.pd.read_sql(query_str,self.T.eng)
         sl_links                        =   d.sl_link.tolist()
-        br                              =   scraper('phantom').browser
+        br                              =   self.SV.SF.browser()
 
         base_url                        =   'http://www.seamless.com/food-delivery/'
         first_link                      =   sl_links[0]
@@ -940,8 +922,9 @@ class Seamless:
                 br.wait_for_page(           timeout_seconds=120)
                 z                       =   br.get_url()
 
+
         self.SL.update_pgsql_with_sl_page_content(  br)
-        sleep(                              5)
+        self.T.delay(                              5)
         skipped                         =   0
         for it in sl_links[1:]:
             url                         =   base_url+it.replace(base_url,'')
@@ -956,8 +939,8 @@ class Seamless:
                 SYS_r._growl(               msg)
 
                 current_url             =   "'"++"'"
-                conn.set_isolation_level(   0)
-                cur.execute(                "update seamless set skipped=true,checked_out=null where sl_link = %s"%current_url)
+                self.T.conn.set_isolation_level(   0)
+                self.T.cur.execute(                "update seamless set skipped=true,checked_out=null where sl_link = %s"%current_url)
                 skipped                +=   1
 
 
@@ -993,20 +976,26 @@ class Seamless:
                 ) as f3
             where sl.vend_id = sl_vend_id
         """
-        conn.set_isolation_level(0)
-        cur.execute( cmd)
+        self.T.conn.set_isolation_level(0)
+        self.T.cur.execute( cmd)
         return
 
 class Yelp_API:
 
-    def __init__(self):
-        global OAuth1Session,j_dump
-        from rauth                  import OAuth1Session
-        from json                   import dumps            as j_dump
-        self.consumer_key           =   'QzH1O3EktEQt89kegeaUxQ'
-        self.consumer_secret        =   'Q_GtZiKGtRvqQSTjGOSgsuogkTE'
-        self.token                  =   '6T7dDEQhf41FA2DIajIDZxsm4RwvBdM9'
-        self.token_secret           =   'YNaWq3LCjlQu9ir4Ibo-Zp6ELKI'
+    def __init__(self,_parent):
+        from rauth                              import OAuth1Session
+        from json                               import dumps            as j_dump
+        self.T                              =   _parent.T
+        self.Yelp_API                       =   self
+        self.consumer_key                   =   'QzH1O3EktEQt89kegeaUxQ'
+        self.consumer_secret                =   'Q_GtZiKGtRvqQSTjGOSgsuogkTE'
+        self.token                          =   '6T7dDEQhf41FA2DIajIDZxsm4RwvBdM9'
+        self.token_secret                   =   'YNaWq3LCjlQu9ir4Ibo-Zp6ELKI'
+
+        all_imports = locals().keys()
+        for k in all_imports:
+            self.T.update(                      {k                      :   eval(k) })
+
 
     def yelp_business_api(self,biz_id):
         params                      =   {}
@@ -1039,7 +1028,7 @@ class Yelp_API:
         if d.has_key('error'):
             return self.error_handling( returned_msg=d,previous_results=None)
 
-        df                          =   pd.read_json(j_dump(d[ T[api_branch] ]))
+        df                          =   self.T.pd.read_json(j_dump(d[ T[api_branch] ]))
         while d['total']!=len(df):
             params["offset"]        =   int(params["offset"]) + int(params["limit"])
             request                 =   session.get(url,params=params)
@@ -1048,7 +1037,7 @@ class Yelp_API:
             if d.has_key('error'):
                 return self.error_handling(returned_msg=d,previous_results=df)
 
-            t                       =   pd.read_json(  j_dump(  d[  T[api_branch]  ]  )  )
+            t                       =   self.T.pd.read_json(  j_dump(  d[  T[api_branch]  ]  )  )
             df                      =   df.append(t,ignore_index=True)
 
             if d['total']==len(df):
@@ -1070,9 +1059,10 @@ class Yelp_API:
 class Yelp:
 
     def __init__(self,_parent):
-        self.SV                     =   _parent
-        self.T                      =   _parent.T
-        self.Yelp                   =   self
+        self.SV                             =   _parent
+        self.T                              =   _parent.T
+        self.Yelp                           =   self
+
 
     # YELP FUNCTIONS
     #   yelp:     0 of 2
@@ -1092,12 +1082,12 @@ class Yelp:
                                             """ % self.T
 
         query_str                       =   t if not query_str else query_str
-        s                               =   pd.read_sql( query_str,routing_eng )
+        s                               =   self.T.pd.read_sql( query_str,self.T.eng )
 
         p                               =   map(lambda s: str(s[0].title()+', New York, NY '+str(s[1])),
                                                 zip(s.address,s.zipcode))
 
-        br                              =   scraper('phantom').browser
+        br                              =   self.SV.SF.browser()
 
         d_cols                          =   ['vend_name','url','phone']
         base_url                        =   'http://www.yelp.com'
@@ -1105,39 +1095,39 @@ class Yelp:
             gid                         =   s.ix[i,'gid']
             search_addr                 =   p[i]
 
-            url                         =   base_url+'/search?find_desc='+safe_url('restaurant')+'&find_loc='+safe_url(search_addr)
+            url                         =   base_url+'/search?find_desc='+self.T.safe_url('restaurant')+'&find_loc='+self.T.safe_url(search_addr)
             br.open_page(                   url)
 
 
             from ipdb import set_trace as i_trace; i_trace()
 
 
-            if getTagsByAttr(br.source(), 'div', {'class':'no-results'},contents=False): pass
+            if self.T.getTagsByAttr(br.source(), 'div', {'class':'no-results'},contents=False): pass
             else:
-                html                =   codecs.encode(br.source(),'utf8','ignore')
+                html                =   self.T.codecs_enc(br.source(),'utf8','ignore')
                 if html.find('ylist')==-1:
                     res_num         =   0
-                    conn.set_isolation_level(0)
-                    cur.execute(        """ update scrape_lattice
+                    self.T.conn.set_isolation_level(0)
+                    self.T.cur.execute(        """ update scrape_lattice
                                             set yelp_cnt=%s,
                                             yelp_updated='now'::timestamp with time zone
                                             where gid=%s
                                         """%(str(res_num),gid))
                 else:
-                    a               =   getTagsByAttr(html, 'span', {'class':'pagination-results-window'},contents=True)
-                    res_num         =   int(re_findall(r'\d+', str(a[a.find('of')+3:]))[0])
-                    conn.set_isolation_level(0)
-                    cur.execute(        """ update scrape_lattice
+                    a               =   self.T.getTagsByAttr(html, 'span', {'class':'pagination-results-window'},contents=True)
+                    res_num         =   int(self.T.self.T.re_findall(r'\d+', str(a[a.find('of')+3:]))[0])
+                    self.T.conn.set_isolation_level(0)
+                    self.T.cur.execute(        """ update scrape_lattice
                                             set yelp_cnt=%s,
                                             yelp_updated='now'::timestamp with time zone
                                             where gid=%s
                                         """%(str(res_num),gid))
-                    d               =   pd.DataFrame(columns=d_cols)
+                    d               =   self.T.pd.DataFrame(columns=d_cols)
                     first_page,last_page = True,False
 
                     while last_page == False:
 
-                        a           =   getTagsByAttr(html, 'ul',
+                        a           =   self.T.getTagsByAttr(html, 'ul',
                                                       {'class':'ylist ylist-bordered search-results'},
                                                       contents=False)
                         names       =   a[0].findAll('a',attrs={'class':'biz-name'})
@@ -1145,33 +1135,33 @@ class Yelp:
                                             if len(s.contents)>0 else '',names)
                         links       =   map(lambda s: base_url+str(s.attrs['href']),names)
                         phones      =   a[0].findAll('span',attrs={'class':'biz-phone'})
-                        phones_proper = map(lambda s: ''.join(re_findall(r'\d+', str(s))),phones)
+                        phones_proper = map(lambda s: ''.join(self.T.re_findall(r'\d+', str(s))),phones)
 
                         z           =   {'vend_name':pd.Series(names_proper),
                                          'url':pd.Series(links),
                                          'phone':pd.Series(phones_proper)}
                         d           =   d.append(pd.DataFrame(data=z,columns=d_cols),ignore_index=True)
 
-                        next_page   =   getSoup(html).findAll('a', {'class':'page-option prev-next'})
+                        next_page   =   self.T.getSoup(html).findAll('a', {'class':'page-option prev-next'})
                         if first_page==True and len(next_page)==1:
                             next_page_link = base_url + next_page[0].attrs['href']
                             br.open_page(next_page_link)
-                            html    =   codecs.encode(br.source(),'utf8','ignore')
+                            html    =   self.T.codecs_enc(br.source(),'utf8','ignore')
                             first_page= False
                         elif len(next_page)==2:
                             next_page_link = base_url + next_page[1].attrs['href']
                             br.open_page(next_page_link)
-                            html    =   codecs.encode(br.source(),'utf8','ignore')
+                            html    =   self.T.codecs_enc(br.source(),'utf8','ignore')
                         else:
                             last_page=  True
                             break
 
                     # upsert to yelp
-                    conn.set_isolation_level(0)
-                    cur.execute(        'drop table if exists %(tmp_tbl)s' % self.T)
+                    self.T.conn.set_isolation_level(0)
+                    self.T.cur.execute(        'drop table if exists %(tmp_tbl)s' % self.T)
                     d['id']         =   d.url.map(lambda s: s[s.find('/biz/')+5:])
                     d['phone_as_text'] = d.phone.map(str)
-                    d.to_sql(           self.T['tmp_tbl'],routing_eng)
+                    d.to_sql(           self.T['tmp_tbl'],self.T.eng)
 
                     cmd             =   """
                                         with upd as (
@@ -1206,8 +1196,8 @@ class Yelp:
                                         drop table %(tmp_tbl)s;
 
                                         """ % self.T
-                    conn.set_isolation_level(0)
-                    cur.execute(        cmd)
+                    self.T.conn.set_isolation_level(0)
+                    self.T.cur.execute(        cmd)
 
 
 
@@ -1236,7 +1226,7 @@ class Yelp:
 
         query_str                       =   t if not query_str else query_str
 
-        s                               =   pd.read_sql( query_str,routing_eng )
+        s                               =   self.T.pd.read_sql( query_str,self.T.eng )
 
         p                               =   map(lambda s: str(s[0].title()+', New York, NY '+str(s[1])),
                                                 zip(s.address,s.zipcode))
@@ -1266,8 +1256,8 @@ class Yelp:
                 self.T.update(              {'gid'                  :   s.ix[i,'gid'],
                                              'api_res_cnt'          :   len(df)})
 
-                conn.set_isolation_level(   0)
-                cur.execute(                """ update %(latt_tbl)s
+                self.T.conn.set_isolation_level(   0)
+                self.T.cur.execute(                """ update %(latt_tbl)s
                                                 set yelp_cnt        =   %(api_res_cnt)s,
                                                 yelp_updated        =   'now'::timestamp with time zone
                                                 where gid           =   %(gid)s;
@@ -1314,7 +1304,7 @@ class Yelp:
                 else:
                     df['menu_date_updated'] = df.menu_date_updated.map(lambda x:
                         None if str(x)[0].isdigit()==False
-                        else dt.datetime.fromtimestamp(  int(x)  ).strftime('%Y-%m-%d %H:%M:%S')
+                        else self.T.dt.datetime.fromtimestamp(  int(x)  ).strftime('%Y-%m-%d %H:%M:%S')
                                                                         )
                 df                      =   df.ix[:,['id',
                                                      'vend_name',
@@ -1338,9 +1328,9 @@ class Yelp:
                                                      'longitude',
                                                      'geo_accuracy']]
 
-                conn.set_isolation_level(   0)
-                cur.execute(                "drop table if exists %(tmp_tbl)s;" % self.T)
-                df.to_sql(                  self.T['tmp_tbl'],routing_eng)
+                self.T.conn.set_isolation_level(   0)
+                self.T.cur.execute(                "drop table if exists %(tmp_tbl)s;" % self.T)
+                df.to_sql(                  self.T['tmp_tbl'],self.T.eng)
 
                 # upsert 'tmp' to 'yelp'
                 cmd                     =   """
@@ -1433,8 +1423,8 @@ class Yelp:
                                             drop table %(tmp_table)s;
 
                                             """ % self.T
-                conn.set_isolation_level(   0)
-                cur.execute(                cmd)
+                self.T.conn.set_isolation_level(   0)
+                self.T.cur.execute(                cmd)
 
             if last_run:
                 break
@@ -1450,51 +1440,51 @@ class Yelp:
         use yelp.url to get hours from each page and update pgsql
         """
         print self.T['guid']
-        def save_comments(br,html,vend_url):
+        def save_comments(self,br,html,vend_url):
             stop                        =   False
             while stop!=True:
-                review_list             =   getTagsByAttr(html, 'div',
+                review_list             =   self.T.getTagsByAttr(html, 'div',
                                                       {'class':'review review--with-sidebar'},
                                                       contents=False)
                 rev_cols                =   ['vend_url','review_id','review_date','review_rating','review_msg']
-                df                      =   pd.DataFrame(columns=rev_cols)
+                df                      =   self.T.pd.DataFrame(columns=rev_cols)
                 for rev in review_list:
-                    review_id           =   getTagsByAttr(str(rev), 'div',
+                    review_id           =   self.T.getTagsByAttr(str(rev), 'div',
                                                       {'class':'review review--with-sidebar'},
                                                       contents=False)[0].attrs['data-review-id']
-                    review_date         =   getTagsByAttr(str(rev), 'meta',
+                    review_date         =   self.T.getTagsByAttr(str(rev), 'meta',
                                                       {'itemprop':'datePublished'},
                                                       contents=False)[0].attrs['content']
 
-                    dt_review_date      =   dt.datetime.strptime(review_date,'%Y-%m-%d')
+                    dt_review_date      =   self.T.dt.datetime.strptime(review_date,'%Y-%m-%d')
                     if (self.T['today'] - dt_review_date).days > self.T['oldest_comments']:
                         stop            =   True
                         break
 
                     f_review_date       =   dt_review_date.isoformat()
-                    review_rating       =   float(getTagsByAttr(str(rev), 'meta',
+                    review_rating       =   float(self.T.getTagsByAttr(str(rev), 'meta',
                                                             {'itemprop':'ratingValue'},
                                                             contents=False)[0].attrs['content'])
-                    bs_review_msg       =   getTagsByAttr(str(rev), 'p', {'itemprop':'description'},contents=False)[0]
-                    review_msg          =   codecs.encode(bs_review_msg.text,'ascii','ignore')
+                    bs_review_msg       =   self.T.getTagsByAttr(str(rev), 'p', {'itemprop':'description'},contents=False)[0]
+                    review_msg          =   self.T.codecs_enc(bs_review_msg.text,'ascii','ignore')
 
                     df                  =   df.append(dict(zip(rev_cols,
                                                            [vend_url,review_id,f_review_date,
                                                             review_rating,review_msg])),ignore_index=True)
                 try:
-                    next_pg_url         =   getTagsByAttr(html, 'a',
+                    next_pg_url         =   self.T.getTagsByAttr(html, 'a',
                                                       {'class':'page-option prev-next next'},
                                                       contents=False)[0].attrs['href']
                     br.open_page(           next_pg)
-                    html                =   codecs.encode(br.source(),'utf8','ignore')
+                    html                =   self.T.codecs_enc(br.source(),'utf8','ignore')
                 except:
                     stop                =   True
                     break
 
-            conn.set_isolation_level(       0)
-            cur.execute(                    'drop table if exists %(tmp_tbl)s;' % self.T)
-            df.to_sql(                      self.T['tmp_tbl'],routing_eng,index=False)
-            conn.set_isolation_level(       0)
+            self.T.conn.set_isolation_level(       0)
+            self.T.cur.execute(                    'drop table if exists %(tmp_tbl)s;' % self.T)
+            df.to_sql(                      self.T['tmp_tbl'],self.T.eng,index=False)
+            self.T.conn.set_isolation_level(       0)
             cmd                         =   """
                                             insert into customer_comments
                                                 (vend_url,
@@ -1516,13 +1506,13 @@ class Yelp:
 
                                             DROP TABLE IF EXISTS %(tmp_tbl)s;
                                             """ % self.T
-            cur.execute(                    cmd)
+            self.T.cur.execute(                    cmd)
             return
 
-        self.T.update(                      {'tbl_name'         :   'yelp',
+        self.T.__init__(                   {'tbl_name'         :   'yelp',
                                              'tbl_uid'          :   'uid',
                                              'upd_var'          :   'hours_updated',
-                                             'upd_interval'     :   '1 week',
+                                             'upd_interval'     :   '3 days',
                                              'select_vars'      :   'uid,url'})
 
         t                               =   """ UPDATE %(tbl_name)s t
@@ -1550,23 +1540,23 @@ class Yelp:
                                             """ % self.T
 
         query_str                       =   t if not query_str else query_str
-        d                               =   pd.read_sql( query_str,routing_eng )
+        d                               =   self.T.pd.read_sql( query_str,self.T.eng )
 
         y_links                         =   d.url.tolist()
-        br                              =   scraper('phantom').browser
+        br                              =   self.SV.SF.browser()
         comment_sort_opts               =   '?sort_by=date_desc&start=0'
 
         for it in y_links:
 
             br.open_page(                   it+comment_sort_opts)
-            html                        =   codecs.encode(br.source(),'utf8','ignore')
+            html                        =   self.T.codecs_enc(br.source(),'utf8','ignore')
 
             # extract yelp page data
             vend_data                   =   {'url':it}
 
             # biz info
             try:
-                s                       =   getSoup(html).find('h3',text='More business info').find_parent()
+                s                       =   self.T.getSoup(html).find('h3',text='More business info').find_parent()
                 t                       =   s.find('div', {'class':'short-def-list'},contents=False)
                 d_keys                  =   map(lambda x: str(x.get_text().strip('\n ')),t.findAll('dt'))
                 d_vals                  =   map(lambda x: str(x.get_text().strip('\n ')),t.findAll('dd'))
@@ -1576,7 +1566,7 @@ class Yelp:
                 vend_data.update(           {'extra_info':None})
 
             # hours info
-            t                           =   getTagsByAttr(html, 'table',
+            t                           =   self.T.getTagsByAttr(html, 'table',
                                                       {'class':'table table-simple hours-table'},
                                                       contents=False)
             if len(t)!=0:
@@ -1589,33 +1579,33 @@ class Yelp:
                 vend_data.update(           {'hours':None})
 
             # biz website
-            t                           =   getTagsByAttr(html, 'div',
+            t                           =   self.T.getTagsByAttr(html, 'div',
                                                       {'class':'biz-website'},
                                                       contents=False)
             if len(t)!=0:
                 t                       =   t[0].a.attrs['href']
                 s                       =   t.find('url=')+4
                 e                       =   t.find('&',s)
-                biz_website             =   str(unquote(t[s:e]))
+                biz_website             =   str(self.T.unquote(t[s:e]))
                 vend_data.update(           {'website':biz_website})
             else:
                 vend_data.update(           {'website':None})
 
             # non-yelp menu link
-            t                           =   getTagsByAttr(html, 'a',
+            t                           =   self.T.getTagsByAttr(html, 'a',
                                                       {'class':'i-wrap ig-wrap-common i-external-link-common-wrap ig-wrap-common-r external-menu'},
                                                       contents=False)
             if len(t)!=0:
                 t                       =   t[0].attrs['href']
                 s                       =   t.find('url=')+4
-                biz_menu_page           =   str(unquote(t[s:]))
+                biz_menu_page           =   str(self.T.unquote(t[s:]))
                 vend_data.update(           {'menu_page':biz_menu_page.replace("'","''")})
             else:
                 vend_data.update(           {'menu_page':None})
 
             # price range
             try:
-                price_range             =   str(getTagsByAttr(html, 'dd',
+                price_range             =   str(self.T.getTagsByAttr(html, 'dd',
                                                           {'class':'nowrap price-description'},
                                                           contents=False)[0].get_text().strip('\n $'))
                 vend_data.update(           {'price_range':price_range})
@@ -1623,11 +1613,11 @@ class Yelp:
                 vend_data.update(           {'price_range':None})
 
             # online ordering?
-            t                           =   getTagsByAttr(html, 'div',
+            t                           =   self.T.getTagsByAttr(html, 'div',
                                                       {'data-ro-mode-action':'place an order'},
                                                       contents=False) # null return
             online_ordering             =   len(t)!=0
-            #t=getTagsByAttr(html, 'div', {'class':'island platform yform js-platform no-js-hidden'},contents=False)
+            #t=self.T.getTagsByAttr(html, 'div', {'class':'island platform yform js-platform no-js-hidden'},contents=False)
             vend_data.update(               {'online_ordering':online_ordering})
 
             # push to pgsql
@@ -1644,12 +1634,12 @@ class Yelp:
                                             where url                       =   '%(url)s'
 
                                             """%(vend_data)
-            conn.set_isolation_level(       0)
-            cur.execute(                    cmd)
+            self.T.conn.set_isolation_level(       0)
+            self.T.cur.execute(                    cmd)
 
 
             # Save Comments To Separate Table
-            self.save_comments(                  br,html,vend_data['url'])
+            save_comments(                  self,br,html,vend_data['url'])
 
 
         msg                             =   '%(line_no)s Yelp@%(user)s<%(guid)s>: Known Vendors Updated.' % self.T
@@ -1667,7 +1657,7 @@ class Scrape_Functions:
         self.SF                     =   self
 
     def consolidate_yelp_urls(self):
-        df                              =   pd.read_sql('select url from yelp where url is not null',routing_eng)
+        df                              =   self.T.pd.read_sql('select url from yelp where url is not null',self.T.eng)
         all_urls                        =   df.url.tolist()
         uniq_urls                       =   df.url.unique().tolist()
         if len(all_urls)==len(uniq_urls):
@@ -1684,9 +1674,9 @@ class Scrape_Functions:
                                              'partition_col'        :   'url',
                                              'sort_col'             :   'last_api_update',
                                              'sort_order'           :   'DESC'} )
-        conn.set_isolation_level(           0)
-        cur.execute(                        'drop table if exists %(tmp_tbl)s;' % self.T)
-        ndf.to_sql(                         tmp_tbl,routing_eng)
+        self.T.conn.set_isolation_level(           0)
+        self.T.cur.execute(                        'drop table if exists %(tmp_tbl)s;' % self.T)
+        ndf.to_sql(                         tmp_tbl,self.T.eng)
 
         cmd                             =   """
 
@@ -1716,15 +1706,15 @@ class Scrape_Functions:
                                                         and s.%(uid_col)s = t.%(uid_col)s;
 
                                             """ % self.T
-        conn.set_isolation_level(           0)
-        cur.execute(                        cmd)
+        self.T.conn.set_isolation_level(           0)
+        self.T.cur.execute(                        cmd)
 
         PGF.Run.make_column_primary_serial_key(self.T['tmp_tbl_3'],'gid',True)
 
         cmds,table_cols                 =   [],pd.read_sql('select * from %(tmp_tbl_3)s limit 1' % self.T,
-                                                           routing_eng).columns.tolist()
+                                                           self.T.eng).columns.tolist()
         pop_list,src_cols               =   [],pd.read_sql('select * from %(src_tbl)s limit 1' % self.T,
-                                                           routing_eng).columns.tolist()
+                                                           self.T.eng).columns.tolist()
         for it in table_cols:
             self.T.update({'var':it})
             if src_cols.count(it)==0:
@@ -1744,8 +1734,8 @@ class Scrape_Functions:
         self.T.update(                      {  'insert_cols'        :   ','.join(table_cols),
                                                'select_cols'        :   ','.join(['t.'+it for it in table_cols]) })
 
-        conn.set_isolation_level(           0)
-        cur.execute(                        '\n'.join(cmds))
+        self.T.conn.set_isolation_level(           0)
+        self.T.cur.execute(                        '\n'.join(cmds))
 
         cmd                             =   """
 
@@ -1763,8 +1753,8 @@ class Scrape_Functions:
                                                 drop table if exists %(tmp_tbl)s;
 
                                             """ % self.T
-        conn.set_isolation_level(           0)
-        cur.execute(                        cmd)
+        self.T.conn.set_isolation_level(           0)
+        self.T.cur.execute(                        cmd)
 
         cmd                             =   """
                                                 select
@@ -1788,23 +1778,24 @@ class Scrape_Functions:
                                                         from %(src_tbl)s t4
                                                         where t4.%(uid_col)s is not null) as f4
                                             """ % self.T
-        a,b,c                           =   pd.read_sql(cmd,routing_eng).iloc[0,:]
+        a,b,c                           =   self.T.pd.read_sql(cmd,self.T.eng).iloc[0,:]
         assert True == a == b == c == True
 
     def browser(self):
-        from html.HTML_API                  import getTagsByAttr,getAllTag,getInnerElement,getTagContents
-        from html.HTML_API                  import google,safe_url,getInnerHTML,FindAllTags,getSoup
-        from html.webpage_scrape            import scraper
-        # self.br                        =   scraper('phantom').browser
+        from html.HTML_API                      import getTagsByAttr,google,safe_url,getSoup
+        from html.webpage_scrape                import scraper
+        all_imports = locals().keys()
+        for k in all_imports:
+            self.T.update(                      {k                      :   eval(k) })
         return                              scraper('phantom').browser
 
     def match_vend_info_by_uniq_vars(self):
         match_var                       =   'vend_name'
 
-        sl                              =   pd.read_sql("""select vend_id,%(match_var)s,y_vend_id
+        sl                              =   self.T.pd.read_sql("""select vend_id,%(match_var)s,y_vend_id
                                                            from seamless where %(match_var)s is not null
                                                            and y_vend_id is null""" % {'match_var':match_var} ,engine)
-        y                               =   pd.read_sql("""select id,%(match_var)s,sl_vend_id
+        y                               =   self.T.pd.read_sql("""select id,%(match_var)s,sl_vend_id
                                                          from yelp where %(match_var)s is not null
                                                          and sl_vend_id is null""" % {'match_var':match_var} ,engine)
 
@@ -1827,8 +1818,8 @@ class Scrape_Functions:
         assert len(sl_uniq[sl_uniq.y_vend_id!=''])==len(y_uniq[y_uniq.sl_vend_id!=''])
 
         sl_uniq.to_sql(                     self.T['guid'],engine,index=False)
-        conn.set_isolation_level(           0)
-        cur.execute(                        """
+        self.T.conn.set_isolation_level(           0)
+        self.T.cur.execute(                        """
                                                 update seamless s set y_vend_id=t.y_vend_id
                                                 from %(tmp)s t
                                                 where t.vend_id = s.vend_id
@@ -1837,8 +1828,8 @@ class Scrape_Functions:
                                             """ % {'tmp':self.T['guid']} )
 
         y_uniq.to_sql(                      self.T['guid'],engine,index=False)
-        conn.set_isolation_level(           0)
-        cur.execute(                        """
+        self.T.conn.set_isolation_level(           0)
+        self.T.cur.execute(                        """
                                                 update yelp y set sl_vend_id=t.sl_vend_id::bigint
                                                 from %(tmp)s t
                                                 where t.id = y.id
@@ -1854,7 +1845,7 @@ class Scrape_Functions:
                                                     (select count(*) sl_cnt from seamless where y_vend_id is not null) as f1,
                                                     (select count(*) y_cnt from yelp where sl_vend_id is not null) as f2
                                             """
-        assert pd.read_sql(chk,engine).chk[0]==True
+        assert self.T.pd.read_sql(chk,engine).chk[0]==True
         return
 
     def match_distinct_mnv_var(self,tbl='seamless',tbl_id='vend_id',vend_name='vend_name',match_var='vend_name'):
@@ -1881,29 +1872,29 @@ class Scrape_Functions:
              'vend_name':vend_name,
              'match_var':match_var}
 
-        x = pd.read_sql("select * from %(tbl)s"%T,engine)
+        x = self.T.pd.read_sql("select * from %(tbl)s"%T,engine)
 
         x_var_tot = x[match_var].tolist()
         x[match_var+'_cnt'] = x[match_var].map(lambda i: x_var_tot.count(i))
         x_var_id_dict = dict(zip(x[x[match_var+'_cnt']==1][match_var].tolist(),x[x[match_var+'_cnt']==1][tbl_id].tolist()))
         x_var_id_dict_keys = x_var_id_dict.keys()
 
-        mnv  = pd.read_sql("select * from mnv where %(tbl)s_id is null"%self.T,engine)
+        mnv  = self.T.pd.read_sql("select * from mnv where %(tbl)s_id is null"%self.T,engine)
         mnv_var_tot = mnv[match_var].tolist()
         mnv[match_var+'_cnt'] = mnv[match_var].map(lambda i: mnv_var_tot.count(i))
         mnv_x = mnv[ (mnv[match_var].isin(x_var_id_dict_keys)==True)&(mnv[match_var+'_cnt']==1) ].copy()
         mnv_x['%(tbl)s_id'%T] = mnv_x[match_var].map(x_var_id_dict)
 
-        conn.set_isolation_level(0)
-        cur.execute( """drop table if exists tmp;""")
+        self.T.conn.set_isolation_level(0)
+        self.T.cur.execute( """drop table if exists tmp;""")
         mnv_x.to_sql('tmp',engine)
-        conn.set_isolation_level(0)
-        cur.execute("""
+        self.T.conn.set_isolation_level(0)
+        self.T.cur.execute("""
             alter table tmp add column tid serial primary key;
             update tmp set tid = nextval(pg_get_serial_sequence('tmp','tid'));
         """)
-        conn.set_isolation_level(0)
-        cur.execute("""
+        self.T.conn.set_isolation_level(0)
+        self.T.cur.execute("""
             update mnv m
             set %(tbl)s_id = t.%(tbl)s_id
             from tmp t
@@ -1936,6 +1927,8 @@ class To_Class:
     def __repr__(self):
         return repr(self.__dict__)
 
+    def update(self,upd):
+        return self.__init__(upd)
 
 
 
