@@ -1555,7 +1555,7 @@ class Yelp:
                                                 WHERE checked_out           =   '%(guid)s';
                                             """ % self.T
 
-            query_str                   =   t if not query_str else query_str
+            query_str                   =   t #if not query_str else query_str
             d                           =   self.T.pd.read_sql( query_str,self.T.eng )
 
             y_links                     =   d.url.tolist()

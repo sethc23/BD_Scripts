@@ -370,8 +370,8 @@ class Addr_Parsing:
             self.ST_STRIP_AFTER_DICT        =   ST_STRIP_AFTER_DICT
 
 
-    def find_address_idx_matches(self,addr_list):
-        cmd = ('select * from address_idx '+
+    def find_addr_idx_matches(self,addr_list):
+        cmd = ('select * from addr_idx '+
                'where addr = any(array'+str(addr_list)+')')
         return self.T.pd.read_sql(cmd,self.T.eng)
 
@@ -438,7 +438,7 @@ class Addr_Parsing:
         T = { '1':from_label, '2':'idx', '3':str(r[from_label].tolist()) }
         cmd = """
             SELECT %(1)s,a.bldg_street_idx %(2)s,a.street,levenshtein(a.street,%(1)s,1,0,4)
-            from address_idx a,unnest(array[%(3)s]) %(1)s
+            from addr_idx a,unnest(array[%(3)s]) %(1)s
             where soundex(a.street) = any(select soundex(x) from regexp_split_to_table(%(1)s,E'\s+') x)
             and a.one_word is true
             and a.bldg_street_idx is not null
@@ -456,7 +456,7 @@ class Addr_Parsing:
         T = { '1':from_label, '2':'idx', '3':str(r[from_label].tolist()) }
         cmd = """
             SELECT %(1)s,a.bldg_street_idx %(2)s,a.street,levenshtein(a.street,%(1)s,1,1,4) lev,difference(a.street,%(1)s) diff
-            from address_idx a
+            from addr_idx a
             inner join unnest(array[%(3)s]) %(1)s
             on levenshtein(a.street,%(1)s,1,1,4)<=1
             and a.one_word is true
@@ -470,7 +470,7 @@ class Addr_Parsing:
         if show_info==True: print '\n\n\t-- SEARCH lev-variant3 --\n'
         T = { '1':from_label, '2':'idx', '3':str(r[from_label].tolist()) }
         cmd = """SELECT a.bldg_street_idx %(2)s,a.street,levenshtein(a.street,%(1)s,1,0,4) lev,%(1)s
-            from address_idx a
+            from addr_idx a
             inner join unnest(array[%(3)s]) %(1)s
             on levenshtein(a.street,%(1)s,1,1,4)<=1
             where a.bldg_street_idx is not null""".replace('\n',' ') % T
@@ -481,7 +481,7 @@ class Addr_Parsing:
         if show_info==True: print '\n\n\t-- SEARCH lev-variant4 --\n'
         T = { '1':from_label, '2':'idx', '3':str(r[from_label].tolist()) }
         cmd = """SELECT %(1)s,a.bldg_street_idx %(2)s,a.street
-            from address_idx a
+            from addr_idx a
             inner join unnest(array[%(3)s]) %(1)s
             on street ~* %(1)s
             where a.bldg_street_idx is not null
@@ -499,7 +499,7 @@ class Addr_Parsing:
             }
         cmd = """
             SELECT %(1)s,a.bldg_street_idx idx,a.street
-            from address_idx a
+            from addr_idx a
             inner join unnest(array[%(2)s]) %(1)s
             on a.street ~* %(1)s
             where one_word is true
@@ -517,7 +517,7 @@ class Addr_Parsing:
         T = { '1':from_label, '2':'idx', '3':x[from_label].map(str).tolist() }
         cmd = """
             SELECT %(1)s,a.bldg_street_idx %(2)s,a.street
-            from address_idx a
+            from addr_idx a
             inner join unnest(array[%(3)s]) %(1)s
             on a.street = %(1)s
             where bldg_street_idx is not null

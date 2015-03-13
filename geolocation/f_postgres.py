@@ -63,43 +63,6 @@ def copy_select_to_hd5(table):
         df.to_hdf(BASE_SAVE_PATH+t+'_select.h5','table')
         return
 
-def clean_street_names(df,from_label,to_label):
-    def remove_non_ascii(text):
-        return re_sub(r'[^\x00-\x7F]+',' ', text)
-
-    df_ignore = df[df[from_label].map(lambda s: type(s))==NoneType]
-    df_ignore_idx = df_ignore.index.tolist()
-    if len(df_ignore_idx)>0:
-        df = df.ix[df[df.index.isin(df_ignore_idx)==False].index,:]
-
-    df[to_label]=df[from_label].map(lambda s: s.lower().strip())
-    df[to_label]=df[to_label].map(remove_non_ascii)
-
-    # st_strip_before
-    for k,v in ST_STRIP_BEFORE_DICT.iteritems():
-        df[to_label]=df[to_label].map(lambda s: re_sub(k,v,s))
-
-    # st_prefix
-    for k,v in ST_PREFIX_DICT.iteritems():
-        df[to_label]=df[to_label].map(lambda s: re_sub(r'^('+k+r')\s',v+r' ',s)
-                                        if ST_SUFFIX_DICT.values().count(
-                                        re_sub(r'^('+k+r')\s',v+r' ',s)
-                                        ) == 0 else s)
-
-    # st_suffix
-    for k,v in ST_SUFFIX_DICT.iteritems():
-        df[to_label]=df[to_label].map(lambda s: re_sub(r'\s('+k+r')$'   ,r' '+v,s))
-
-    # st_body
-    for k,v in ST_BODY_DICT.iteritems():
-        df[to_label]=df[to_label].map(lambda s: re_sub(k,v,s))
-
-    # st_strip_after
-    for k,v in ST_STRIP_AFTER_DICT.iteritems():
-        df[to_label]=df[to_label].map(lambda s: re_sub(k,v,s))
-
-    return df.append(df_ignore)
-
 def update_remaining_lots():
     import fiona
     from shapely.geometry import mapping
@@ -527,12 +490,12 @@ def make_index(describe=True,commit=False):
     B['nid'] = range(st_pt,end_pt)
     B['one_word'] = B.addr.map(lambda s: True if len(s.split(' '))==1 else False)
 
-    if describe==True: print '\n',len(B.index),'total row count in address_idx'
+    if describe==True: print '\n',len(B.index),'total row count in addr_idx'
 
     if commit==False: return B
-    engine.execute('drop table if exists address_idx')
-    B.to_sql('address_idx',engine,if_exists='append',index=False)
-    engine.execute('ALTER TABLE address_idx ADD PRIMARY KEY (nid)')
+    engine.execute('drop table if exists addr_idx')
+    B.to_sql('addr_idx',engine,if_exists='append',index=False)
+    engine.execute('ALTER TABLE addr_idx ADD PRIMARY KEY (nid)')
     return B
 def create_lot_idx_start_pts():
     cmd = """
@@ -544,7 +507,7 @@ def create_lot_idx_start_pts():
             to_char(bldg_num,'00000')
         )
     ,'00000D00000')
-    from address_idx a
+    from addr_idx a
     where a.addr = bldg_street
     """.replace('\n',' ')
     engine.execute(cmd)
@@ -558,7 +521,7 @@ def create_lot_idx_end_pts():
             to_char(bldg_num_end,'00000')
         )
     ,'00000D00000')
-    from address_idx a
+    from addr_idx a
     where a.addr = bldg_street
     """.replace('\n',' ')
     engine.execute(cmd)
@@ -641,7 +604,7 @@ def add_geoms_to_index():
     def geom_txts_to_collection(geom_txts):
         return "ST_Collect(ARRAY["+geoms_to_text(geom_txts)+'])'
 
-    lion_ways = self.T.gd.read_postgis("select lw.gid,lw.clean_street,lw.streetcode,lw.geom from address_idx a "+
+    lion_ways = self.T.gd.read_postgis("select lw.gid,lw.clean_street,lw.streetcode,lw.geom from addr_idx a "+
                                 "inner join lion_ways lw on lw.clean_street = a.street",engine)
     print len(lion_ways),'total lion ways'
     uniq_streets = lion_ways.clean_street.unique().tolist()
@@ -658,14 +621,14 @@ def add_geoms_to_index():
         %(1)s
         )))) this_line""".replace('\n',' ') % T
         this_line = self.T.pd.read_sql_query(cmd,engine).ix[0,'this_line']
-        this_nid = self.T.pd.read_sql_query("select nid from address_idx where street = '%s' order by nid"%name,engine).ix[0,'nid']
+        this_nid = self.T.pd.read_sql_query("select nid from addr_idx where street = '%s' order by nid"%name,engine).ix[0,'nid']
         t.append({'street':name,
                   'nid':this_nid,
                   'geom':this_line})
     d = self.T.pd.DataFrame(t)
     engine.execute('drop table if exists temp')
     d.to_sql('temp',engine,if_exists='append',index=False)
-    engine.execute('update address_idx a set geom = ST_GeomFromText(t.geom,4326) from temp t where t.nid = a.nid and t.street = a.street')
+    engine.execute('update addr_idx a set geom = ST_GeomFromText(t.geom,4326) from temp t where t.nid = a.nid and t.street = a.street')
     engine.execute('drop table if exists temp')
 
 
@@ -1076,7 +1039,7 @@ def use_USPS_street_abbr_as_nyc_street_names():
 
 def combine_east_west():
     ### Combine East/West Streets
-    a = self.T.gd.read_postgis("select street,geom from address_idx where geom is not null",engine)
+    a = self.T.gd.read_postgis("select street,geom from addr_idx where geom is not null",engine)
 
     ns = num_streets = a[a.street.str.contains('(^e\s[0-9])|(^w\s[0-9])')==True]
     ns['num'] = ns.street.map(lambda s: eval(re_search(r'([0-9]+)',s).groups()[0]))
@@ -1133,13 +1096,13 @@ def combine_east_west():
 
     g = self.T.gd.read_postgis(cmd,engine)
 
-    nid_start = 1+self.T.pd.read_sql_query("select nid from address_idx order by nid desc limit 1",engine).nid.tolist()[0]
+    nid_start = 1+self.T.pd.read_sql_query("select nid from addr_idx order by nid desc limit 1",engine).nid.tolist()[0]
     g['nid'] = range(nid_start,nid_start+len(g))
     g['geom'] = g.geom.map(str)
 
     engine.execute('drop table if exists temp')
     g.to_sql('temp',engine,if_exists='append',index=False)
-    engine.execute('INSERT INTO address_idx (street, nid, geom) select street, nid, st_geomfromtext(geom,4326) from temp')
+    engine.execute('INSERT INTO addr_idx (street, nid, geom) select street, nid, st_geomfromtext(geom,4326) from temp')
     engine.execute('drop table if exists temp')
 
 def compare_lion_ways_content():
@@ -1307,7 +1270,7 @@ class pgSQL_Functions:
                                     st_line_locate_point(line1,z_intersection_point_bin(get_way,ways1)) pt1,
                                     st_line_locate_point(line1,z_intersection_point_bin(get_way,ways2)) pt2
                                 from
-                                    (select geom line1 from address_idx where street = get_way limit 1) as l1
+                                    (select geom line1 from addr_idx where street = get_way limit 1) as l1
                             ) as t
                         ) as t;
                     end;
@@ -1324,8 +1287,8 @@ class pgSQL_Functions:
                 begin
                     select st_intersection(line1,line2) into _geom
                     from
-                        (select geom line1 from address_idx where street = way1 limit 1) as _line1,
-                        (select geom line2 from address_idx where street = way2 limit 1) as _line2;
+                        (select geom line1 from addr_idx where street = way1 limit 1) as _line1,
+                        (select geom line2 from addr_idx where street = way2 limit 1) as _line2;
                     select geometrytype(_geom) into geom_type;
                     if geom_type = 'LINESTRING' then
                         return st_astext(st_line_interpolate_point(_geom,0.5));
@@ -2085,6 +2048,54 @@ class pgSQL_Triggers:
             print cmd
             return
 
+        def z_match_simple(self,tbl,uid_col):
+            a="""
+                DROP FUNCTION if exists z_match_simple_on%(tbl)s() cascade;
+                DROP TRIGGER if exists match_simple_on%(tbl)s ON %(tbl)s;
+
+                CREATE OR REPLACE FUNCTION z_match_simple_on%(tbl)s()
+                RETURNS TRIGGER AS $funct$
+
+                try:
+                    T = TD['new']
+                    p = \"\"\"
+                            UPDATE %(tbl)s t SET
+                                bldg_street_idx = a.bldg_street_idx,
+                                sm = 1
+                            FROM
+                                (SELECT concat(predir,street_name,suftype) addr,bldg_street_idx
+                                    FROM addr_idx WHERE street_name IS NOT NULL) a
+                            WHERE a.bldg_street_idx IS NOT NULL
+                            AND a.addr = concat(##(predir)s,##(street_name)s,##(suftype)s)
+                            AND t.%(uid_col)s = ##(%(uid_col)s)s
+                        \"\"\" ## T
+                    plpy.execute(p)
+                    return
+
+                except plpy.SPIError, e:
+                    plpy.log('SIMPLE MATCH TRIGGER FAILED')
+                    plpy.log("table: " + TD["table_name"] + '; %(uid_col)s:' + str(T["%(uid_col)s"]))
+                    plpy.log(e)
+
+                    return
+
+                $funct$ language "plpythonu";
+
+                CREATE TRIGGER match_simple_on%(tbl)s
+                AFTER UPDATE OR INSERT ON %(tbl)s
+                FOR EACH ROW
+                EXECUTE PROCEDURE z_match_simple_on%(tbl)s();
+
+            """ % {"tbl"                        :   tbl,
+                   "uid_col"                    :   uid_col}
+
+            cmd                                 =   a.replace("##","%")
+            self.T.conn.set_isolation_level(        0)
+            self.T.cur.execute(                     cmd)
+            print cmd
+            return
+
+
     class Destroy:
         def __init__(self,_parent):
             self.T                          =   _parent.T
@@ -2107,6 +2118,7 @@ class pgSQL_Triggers:
                                             """
             self.T.conn.set_isolation_level(0)
             self.T.cur.execute(c)
+
 
 class pgSQL_Tables:
     """

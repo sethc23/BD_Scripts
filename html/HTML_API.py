@@ -70,6 +70,9 @@ def getInnerHTML(html):
 def safe_url(url):
     return quote_plus(url)
 
+def remove_non_ascii(text):
+    return re_sub(r'[^\x00-\x7F]+',' ', text)
+
 class google:
 
     def __init__(self):
