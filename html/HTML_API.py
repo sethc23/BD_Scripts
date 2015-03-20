@@ -16,7 +16,7 @@ from search import GoogleSearch
 def getSoup(x):
     if type(x) == str: return BeautifulSoup(x)
     if type(x) == unicode: return BeautifulSoup(x)
-    else: return BeautifulSoup(x.contents[0])
+    else: return BeautifulSoup(x.prettify())
 
 def FindAllTags(text,tag):
     a=getSoup(text)
@@ -57,7 +57,10 @@ def getTagContents(text, tag, tag_var=""):
     if tag == 'class': return str(soup(tag, id='"' + tag_var + '"')[0].contents)   
     if tag_var == 'text': return soup(tag)[0].contents
 
-def getTagsByAttr(text, tag, attr='',contents=True): # attr = { "class" : "sister" }
+def getTagsByAttr(text, tag, attr='',contents=True):
+    """
+    #  attr = { "class" : "sister" }
+    """
     soup = BeautifulSoup(text)
     if attr=='': a=soup.find_all(tag)
     else: a=soup.find_all(tag, attr)

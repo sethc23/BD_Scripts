@@ -2,6 +2,7 @@
 # from ipdb import set_trace as i_trace; i_trace()
 
 
+
 class To_Class:
     def __init__(self, init=None):
         if init is not None:
@@ -25,22 +26,29 @@ class To_Class:
     def __repr__(self):
         return repr(self.__dict__)
 
+    def update(self,upd):
+        return self.__init__(upd)
+
+    def has_key(self,key):
+        return self.__dict__.has_key(key)
+
 
 
 class Geocoding:
 
-    def __init__(self):
-        from time import sleep
-        import pandas as pd
-
+    def __init__(self,_parent):
+        self.SV                             =   _parent
+        self.T                              =   _parent.T
+        self.GeoCoding                      =   self
+        from pygeocoder                         import Geocoder  # sudo port select python python26
+        self.T.update(                          {'Geocoder'           :   Geocoder })
         # generally             --
         # java version          -- https://developers.google.com/maps/documentation/javascript/geocoding
         # java limits           -- https://developers.google.com/maps/documentation/geocoding/#Limits
         # also, consider geopy  -- https://pypi.python.org/pypi/geopy
 
 
-    def getGPScoord(all_addr,printGPS=True,savePath='tmp_results.txt'):
-        from pygeocoder import Geocoder # sudo port select python python26
+    def getGPScoord(self,all_addr,printGPS=True,savePath='tmp_results.txt'):
 
         if type(all_addr) is list:
             z=all_addr
@@ -107,7 +115,7 @@ class Geocoding:
         if savePath!='': d.to_csv(savePath)
         return d
 
-    def get_reverse_geo(fileWithCoords):
+    def get_reverse_geo(self,fileWithCoords):
         from pygeocoder import Geocoder # sudo port select python python26
         #fileWithAddresses='/Users/admin/Desktop/work_locations.txt'
         f=open(fileWithCoords,'r')
@@ -123,7 +131,7 @@ class Geocoding:
                 sleep(10)
                 pt=0
 
-    def getArcLenBtCoords(lat1, long1, lat2, long2):
+    def getArcLenBtCoords(self,lat1, long1, lat2, long2):
         import math
         #print lat1
         #print long1
@@ -165,7 +173,7 @@ class Geocoding:
         # radius of earth = 3,959 mi
         return arc*3959
 
-    def getTriCoorLocations():
+    def getTriCoorLocations(self):
         f=open('/Users/admin/desktop/test_locations.txt','r')
         x=f.read()
         f.close()
@@ -716,6 +724,7 @@ class GeoLocation:
                                                              "user='postgres' "+
                                                              "host='%s' password='' port=8800" % DB_HOST);
         cur                                 =   conn.cursor()
+        all_imports                         =   locals().keys()
         D                                   =   {'pd'           :   pd,
                                                  'np'           :   np,
                                                  'gd'           :   gd,
@@ -725,8 +734,13 @@ class GeoLocation:
                                                  'os_environ'   :   os_environ,
                                                  'py_path'      :   py_path,
                                                  'guid'         :   str(get_guid().hex)[:7]}
+        for k in all_imports:
+            if not D.has_key(k):
+                D.update(                       {k                      :   eval(k) })
         self.T                              =   To_Class(D)
         self.Addr_Parsing                   =   Addr_Parsing()
+        self.GeoCoding                      =   Geocoding()
+
 
         # BASE_SAVE_PATH = '/Users/admin/Projects/GIS/table_data/'
 

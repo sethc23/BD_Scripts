@@ -1523,12 +1523,12 @@ class Yelp:
             self.T.cur.execute(                    cmd)
             return
 
-        self.T.__init__(                   { 'tbl_name'                     :   'yelp',
+        self.T.update(                     { 'tbl_name'                     :   'yelp',
                                              'tbl_uid'                      :   'uid',
                                              'upd_var'                      :   'hours_updated',
                                              'upd_interval'                 :   update_interval,
                                              'select_vars'                  :   'uid,url',
-                                             'transcation_cnt'              :   grp_size})
+                                             'transaction_cnt'              :   grp_size})
 
         for _iter in range(iterations):
             t                           =   """ UPDATE %(tbl_name)s t
@@ -1661,7 +1661,7 @@ class Yelp:
                 save_comments(              self,br,html,vend_data['url'])
 
         self.T.update(                      {'line_no'                      :   self.T.I.currentframe().f_back.f_lineno,
-                                             'vendor_num'                   :   str(self.T.transaction_cnt * iterations)})
+                                             'vend_num'                     :   str(self.T.transaction_cnt * iterations)})
         msg                             =   ' '.join(['%(line_no)s Yelp@%(user)s<%(guid)s>:',
                                                       '%(vend_num)s Known Vendors Updated.']) % self.T
         print msg
@@ -1673,9 +1673,16 @@ class Yelp:
 class Scrape_Functions:
 
     def __init__(self,_parent):
-        self.SV                     =   _parent
-        self.T                      =   _parent.T
-        self.SF                     =   self
+        self.SV                             =   _parent
+        self.T                              =   _parent.T
+        self.SF                             =   self
+        from html.HTML_API                      import getTagsByAttr,google,safe_url,getSoup
+        all_imports                         =   locals().keys()
+        for k in all_imports:
+            if not self.T.has_key(k):
+                self.T.update(                  {k                      :   eval(k) })
+        from html.webpage_scrape                import scraper
+        self.T.update(                          {'br'                   :   scraper('phantom').browser })
 
     def consolidate_yelp_urls(self):
         df                              =   self.T.pd.read_sql('select url from yelp where url is not null',self.T.eng)
@@ -1803,12 +1810,9 @@ class Scrape_Functions:
         assert True == a == b == c == True
 
     def browser(self):
-        from html.HTML_API                      import getTagsByAttr,google,safe_url,getSoup
-        from html.webpage_scrape                import scraper
-        all_imports = locals().keys()
-        for k in all_imports:
-            self.T.update(                      {k                      :   eval(k) })
-        return                              scraper('phantom').browser
+
+        self.T.update(                          {'br'                   :   scraper('phantom').browser })
+
 
     def match_vend_info_by_uniq_vars(self):
         match_var                       =   'vend_name'
@@ -1950,6 +1954,9 @@ class To_Class:
 
     def update(self,upd):
         return self.__init__(upd)
+
+    def has_key(self,key):
+        return self.__dict__.has_key(key)
 
 
 
