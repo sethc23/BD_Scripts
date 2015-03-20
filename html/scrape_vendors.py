@@ -501,6 +501,9 @@ class Seamless:
                 print self.T.tb_format_exc()
                 print self.T.sys_exc_info()[0]
                 print seamless_link
+                # LAST ERROR:
+                #   BadStatusLine: ''
+                #   <class 'httplib.BadStatusLine'>
                 from ipdb import set_trace as i_trace; i_trace()
 
         # from ipdb import set_trace as i_trace; i_trace()
@@ -924,7 +927,10 @@ class Seamless:
             br                          =   self.T.br
 
             base_url                    =   'http://www.seamless.com/food-delivery/'
-            first_link                  =   sl_links[0]
+            try:
+                first_link              =   sl_links[0]
+            except IndexError:
+                break
             url                         =   base_url+first_link.replace(base_url,'')
             br.open_page(                   url)
 
@@ -956,10 +962,8 @@ class Seamless:
                     self.T.cur.execute(     "update seamless set skipped=true,checked_out=null where sl_link = %s"%current_url)
                     skipped            +=   1
 
-
         self.T.update(                      {'line_no'                  :   self.T.I.currentframe().f_back.f_lineno,
-                                             'current_url'              :   br.get_url(),
-                                             'vendor_num'               :   str(self.T.transaction_cnt * iterations)})
+                                             'vend_num'                 :   str(self.T.transaction_cnt * iterations)})
         msg                             =   ' '.join(['%(line_no)s SL@%(user)s<%(guid)s>:',
                                                       '%(vend_num)s Known Vendors Updated.']) % self.T
         print msg
@@ -1271,7 +1275,7 @@ class Yelp:
                                              'api_res_cnt'          :   len(df)})
 
                 self.T.conn.set_isolation_level(   0)
-                self.T.cur.execute(                """ update %(latt_tbl)s
+                self.T.cur.execute(         """ update %(latt_tbl)s
                                                 set yelp_cnt        =   %(api_res_cnt)s,
                                                 yelp_updated        =   'now'::timestamp with time zone
                                                 where gid           =   %(gid)s;
@@ -1284,9 +1288,12 @@ class Yelp:
                     df['phone']         =   df.phone.map(lambda s: int(s) if str(s)[0].isdigit() else None)
                 else:
                     df['phone']         =   None
-                df['address']           =   df.location.map(lambda s:
+                addr                    =   df.location.map(lambda s:
                                                     None if len(s['address'])==0
                                                     else s['address'][0])
+                addr                    =   self.T.re_findall(r'[(](.*)[)]',addr)[0].strip(',')
+                df['address']           =   self.T.re_sub(r'[^\u0000-\u007F\s]+','', addr)
+
                 df['display_address']   =   df.location.map(lambda s:
                                                     None if s.keys().count('display_address')==0
                                                     else ','.join(s['display_address']))

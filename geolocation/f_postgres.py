@@ -1326,14 +1326,391 @@ class pgSQL_Functions:
                 """.replace('\n','')
             self.T.conn.set_isolation_level(       0)
             self.T.cur.execute(                    cmd)
-        def z_update_with_bbl(self):
-            cmd="""
-                DROP FUNCTION IF EXISTS z_update_with_bbl(integer,text,text);
-                DROP FUNCTION IF EXISTS z_update_with_bbl(integer[],text,text);
+        def z_run_string_functions(self):
+            a="""
 
-                CREATE OR REPLACE FUNCTION z_update_with_bbl(idx integer[],tbl text,gid_col text)
+                -- USE USPS ABBREVIATION GUIDE
+                UPDATE  yelp y SET street_name = f2.repl
+                from    (
+                        select  distinct on (f1.street_name) f1.uid,
+                                regexp_replace(upper(f1.street_name),upper(u.usps_abbr),upper(u.pattern)) repl
+                        from
+                            usps u,
+                            (select uid,street_name from yelp where geom is null and street_name is not null) f1
+                        where u.usps_abbr ilike f1.street_name
+                        and u.pattern is not null
+                        ) f2
+                WHERE f2.uid = y.uid
+
+
+                -- USE STRING DISTANCE
+                UPDATE yelp y SET street_name = f2.jaro_b
+                FROM    (
+                        select (z).* from
+                            (
+                            select z_update_by_string_dist(array_agg(y.uid),array_agg(y.street_name),'pad_adr','street_name') z
+                            from yelp y where geom is null and street_name is not null
+                            ) f1
+                        ) f2
+                WHERE   f2.jaro > 0.8 and f2.jaro != 1.0
+                        and f2.idx = y.uid
+
+
+            """
+        def z_update_by_crossing_with_snd(self):
+            cmd="""
+
+                DROP FUNCTION IF EXISTS z_update_by_crossing_with_snd(integer[],text,text);
+
+                CREATE OR REPLACE FUNCTION z_update_by_crossing_with_snd(   _idx             integer[],
+                                                                            tbl             text,
+                                                                            gid_col         text)
+                RETURNS text AS $$
+
+                from traceback                      import format_exc       as tb_format_exc
+                from sys                            import exc_info         as sys_exc_info
+
+                # <<  WITH BLDG. NUMBER  >>  #
+
+                try:
+
+                    T = {   'tbl'       :   tbl,
+                            'gid_col'   :   gid_col,
+                            'idx_arr'   :   str(_idx).replace("u'","'").replace("'",'').strip('[]')     }
+
+                    p = \"\"\"  WITH upd AS (
+                                    SELECT  distinct on (s.uid)
+                                            f.uid::bigint src_gid,
+                                            s.to_num,s.to_predir,s.to_street_name,s.to_suftype,s.to_sufdir
+                                    FROM    snd s,
+                                            (   select ##(gid_col)s uid,concat_ws(' ',num,predir,street_name,suftype,sufdir ) concat_addr
+                                                from ##(tbl)s where ##(gid_col)s = any ( array[##(idx_arr)s] )   ) f
+                                    WHERE   concat_ws(' ',s.from_num,s.from_predir,s.from_street_name,s.from_suftype,s.from_sufdir ) = f.concat_addr
+                                    )
+                                UPDATE ##(tbl)s t set
+                                        num         =   u.to_num,
+                                        predir      =   u.to_predir,
+                                        street_name =   u.to_street_name,
+                                        suftype     =   u.to_suftype,
+                                        sufdir      =   u.to_sufdir
+                                FROM    upd u
+                                WHERE   u.src_gid   =   t.##(gid_col)s::bigint
+                                RETURNING t.##(gid_col)s
+                        \"\"\" ## T
+
+
+                    res                         =   plpy.execute(p)
+
+                    plpy.log(res)
+
+                    if len(res)>0:
+                        res                     =   map(lambda s: s['##(gid_col)s' ## T],res)
+                        idx                     =   [ it for it in idx if res.count(it)==0 ]
+
+                except:
+                    plpy.log(                       "f(x) z_update_with_parsed_info FAILED")
+                    plpy.log(                       tb_format_exc() )
+                    plpy.log(                       sys_exc_info()[0] )
+                    return "error"
+
+
+
+                #  <<  WITHOUT BLDG. NUMBER  >>  #
+                try:
+
+                    T.update(  {   'idx_arr'   :   str(_idx).replace("u'","'").replace("'",'').strip('[]'),     } )
+
+                    p = \"\"\"  WITH upd AS (
+                                    SELECT  distinct on (s.uid)
+                                            f.uid::bigint src_gid,
+                                            s.to_predir,s.to_street_name,s.to_suftype,s.to_sufdir
+                                    FROM    snd s,
+                                            (   select ##(gid_col)s uid,concat_ws(' ',predir,street_name,suftype,sufdir ) concat_addr
+                                                from ##(tbl)s where ##(gid_col)s = any ( array[##(idx_arr)s] )   ) f
+                                    WHERE   concat_ws(' ',s.from_predir,s.from_street_name,s.from_suftype,s.from_sufdir ) = f.concat_addr
+                                    )
+                                UPDATE ##(tbl)s t set
+                                        predir      =   u.to_predir,
+                                        street_name =   u.to_street_name,
+                                        suftype     =   u.to_suftype,
+                                        sufdir      =   u.to_sufdir
+                                FROM    upd u
+                                WHERE   u.src_gid   =   t.##(gid_col)s::bigint
+                                RETURNING t.##(gid_col)s
+                        \"\"\" ## T
+
+                    res = plpy.execute(p)
+                    plpy.log(res)
+                    plpy.log(p)
+                except:
+                    plpy.log("f(x) z_update_with_parsed_info FAILED")
+                    plpy.log(                       tb_format_exc())
+                    plpy.log(                       sys_exc_info()[0])
+                    return "error"
+
+                return 'ok'
+
+
+                $$ LANGUAGE plpythonu;
+
+            """.replace('##','%')
+            # print cmd
+            self.T.conn.set_isolation_level(        0)
+            self.T.cur.execute(                     cmd)
+            return
+
+        def z_update_by_string_dist(self):
+            cmd="""
+
+                DROP TYPE IF EXISTS string_dist_results cascade;
+                CREATE TYPE string_dist_results as (
+                    idx integer,
+                    orig_str text,
+                    jaro double precision,
+                    jaro_b text,
+                    leven integer,
+                    leven_b text,
+                    nysiis text,
+                    rating_codex text
+                );
+
+                DROP FUNCTION IF EXISTS z_update_by_string_dist(integer[],text,text,
+                                                                boolean,boolean,boolean,boolean);
+
+                CREATE OR REPLACE FUNCTION z_update_by_string_dist( idx             integer[],
+                                                                    string_set      text[],
+                                                                    compare_tbl     text,
+                                                                    compare_col     text,
+                                                                    jaro            boolean default true,
+                                                                    leven           boolean default true,
+                                                                    nysiis          boolean default true,
+                                                                    rating_codex    boolean default true,
+                                                                    usps_repl_first boolean default true)
+                RETURNS SETOF string_dist_results AS $$
+
+                    from jellyfish                      import cjellyfish as J
+                    from traceback                      import format_exc       as tb_format_exc
+                    from sys                            import exc_info         as sys_exc_info
+
+                    class string_dist_results:
+
+                        def __init__(self,upd=None):
+                            if upd:
+                                self.__dict__.update(       upd)
+
+
+                    T = {   'tbl'           :   compare_tbl,
+                            'col'           :   compare_col,    }
+
+
+                    try:
+
+                        p = "select ##(col)s from ##(tbl)s where ##(col)s is not null;" ## T
+                        res = plpy.execute(p)
+                        if len(res)==0:
+                            plpy.log("string_dist_results: NO DATA AVAILABLE FROM ##(tbl)s IN ##(tbl)s" ## T)
+                            return
+                        else:
+                            res = map(lambda s: s[compare_col],res)
+
+                        for i in range(len(idx)):
+                            _word               =   string_set[i]
+                            if not _word:
+                                yield(              None)
+                            else:
+                                t               =   {   'idx'               :   idx[i],
+                                                        'orig_str'          :   _word   }
+                                if jaro:
+                                    t.update(       dict(zip(['jaro','jaro_b'],
+                                                        sorted(map(lambda s: (J.jaro_distance(_word,s),s),res ) )[-1:][0])))
+                                if leven:
+                                    t.update(       dict(zip(['leven','leven_b'],
+                                                        sorted(map(lambda s: (J.levenshtein_distance(_word,s),s),res ) )[0:][0])))
+                                if nysiis:
+                                    t.update(       {   'nysiis'            :   J.nysiis(_word)                 })
+
+                                if rating_codex:
+                                    t.update(       {   'rating_codex'      :   J.match_rating_codex(_word)     })
+
+                                r               =   string_dist_results(t)
+                                yield(              r)
+
+                        return
+
+                    except Exception as e:
+                        plpy.log(                       tb_format_exc())
+                        plpy.log(                       sys_exc_info()[0])
+                        plpy.log(                       e)
+                        return
+
+                $$ LANGUAGE plpythonu;
+            """.replace('##','%')
+            self.T.conn.set_isolation_level(        0)
+            self.T.cur.execute(                     cmd)
+            return
+        def z_update_with_geom_from_coords(self):
+            """
+
+            Usage:
+
+                SELECT z_update_geom_from_coords(13277,'yelp','uid','latitude','longitude')
+                SELECT z_update_geom_from_coords(uid_grp[1:5],'yelp','uid','latitude','longitude')
+
+            """
+            cmd="""
+                DROP FUNCTION IF EXISTS z_update_with_geom_from_coords(integer,text,text,text,text);
+
+                CREATE OR REPLACE FUNCTION z_update_with_geom_from_coords(  idx         integer,
+                                                                            tbl         text,
+                                                                            gid_col     text,
+                                                                            lat_col     text,
+                                                                            lon_col     text)
+                RETURNS text AS $$
+
+                    T = {   'idx'       :   str(idx),
+                            'tbl'       :   tbl,
+                            'gid_col'   :   gid_col,
+                            'lat_col'   :   lat_col,
+                            'lon_col'   :   lon_col,
+                            'search_rad':   0.75     }
+
+                    p = \"\"\"
+
+                            WITH upd AS (
+                                SELECT uid,bbl,geom
+                                FROM
+                                    (
+                                    SELECT  uid,p.bbl bbl,p.geom geom,
+                                            ST_Distance_Spheroid(
+                                                    p.geom,
+                                                    txt_pt,
+                                                    'SPHEROID["WGS 84",6378137,298.257223563]')  dist
+                                    FROM
+                                        pluto p,
+                                        (SELECT uid,st_geomfromtext(concat_ws('','POINT (',lon,' ',lat,')'),4326) txt_pt
+                                        from
+                                            (
+                                            select ##(gid_col)s uid,##(lat_col)s lat,##(lon_col)s lon
+                                            from ##(tbl)s where ##(gid_col)s = ##(idx)s
+                                            ) f2
+                                        ) f3
+                                    WHERE st_dwithin(p.geom::geography,txt_pt::geography,##(search_rad)f*1609.34)
+                                    ) f4
+                                order by dist
+                                limit 1
+                                )
+
+                            UPDATE ##(tbl)s t SET
+                                bbl = u.bbl,
+                                geom= pc.geom
+                            FROM upd u,pluto_centroids pc
+                            WHERE u.uid = t.##(gid_col)s
+                            and u.bbl = pc.bbl
+                            RETURNING u.uid ##(gid_col)s;
+
+                        \"\"\"
+
+                    res,cnt = 0,10
+                    while res==0:
+                        res = len(plpy.execute(p ## T))
+                        T.update({'search_rad':T['search_rad']+0.05})
+                        cnt -= 1
+                        if res>0 or cnt==0:
+                            break
+
+                    return 'ok'
+
+                $$ LANGUAGE plpythonu;
+
+                -- UID ARRAY FUNCTION
+
+                DROP FUNCTION IF EXISTS z_update_with_geom_from_coords(integer[],text,text,text,text);
+                CREATE OR REPLACE FUNCTION z_update_with_geom_from_coords(  idx         integer[],
+                                                                            tbl         text,
+                                                                            gid_col     text,
+                                                                            lat_col     text,
+                                                                            lon_col     text)
+                RETURNS text AS $$
+
+                    T = {   'idx_arr'   :   str(idx).replace("u'","'").replace("'",'').strip('[]'),
+                            'tbl'       :   tbl,
+                            'gid_col'   :   gid_col,
+                            'lat_col'   :   lat_col,
+                            'lon_col'   :   lon_col,
+                            'search_rad':   0.0175     }
+
+                    p = \"\"\"
+
+                            WITH upd AS (
+                                SELECT *
+                                FROM
+                                    (
+                                    SELECT  uid,bbl,geom,dist,
+                                            min(dist) over (partition by uid) as min_thing
+                                    FROM
+                                        (
+                                        SELECT  uid,p.bbl bbl,p.geom geom,
+                                                ST_Distance_Spheroid(
+                                                        p.geom,
+                                                        txt_pt,
+                                                        'SPHEROID["WGS 84",6378137,298.257223563]')  dist
+                                        FROM
+                                            pluto p,
+                                            (SELECT uid,st_geomfromtext(concat_ws('','POINT (',lon,' ',lat,')'),4326) txt_pt
+                                            from
+                                                (
+                                                select ##(gid_col)s uid,##(lat_col)s lat,##(lon_col)s lon
+                                                from ##(tbl)s where ##(gid_col)s = any ( array[##(idx_arr)s] )
+                                                ) f2
+                                            ) f3
+                                        WHERE st_dwithin(p.geom::geography,txt_pt::geography,##(search_rad)f*1609.34)
+                                        ) f4
+                                    ) f5
+                                WHERE dist = min_thing
+                                )
+
+                            UPDATE ##(tbl)s t SET
+                                bbl = u.bbl,
+                                geom= pc.geom
+                            FROM upd u,pluto_centroids pc
+                            WHERE u.uid = t.##(gid_col)s
+                            and u.bbl = pc.bbl
+                            RETURNING u.uid ##(gid_col)s;
+
+                        \"\"\"
+                    cnt = 10
+                    while len(idx)>0:
+                        res = plpy.execute(p ## T)
+
+                        for it in res:
+                            z=idx.pop(  idx.index( it[ '##(gid_col)s' ## T ] )  )
+
+                        cnt -= 1
+                        if len(idx)==0 or cnt==0:
+                            break
+
+                        T.update({  'idx_arr'       :   str(idx).replace("u'","'").replace("'",'').strip('[]'),
+                                    'search_rad'    :   T['search_rad']+0.005    })
+
+
+                    return 'ok'
+
+                $$ LANGUAGE plpythonu;
+            """.replace('##','%')
+            self.T.conn.set_isolation_level(        0)
+            self.T.cur.execute(                     cmd)
+            return
+        def z_update_with_geom_from_parsed(self):
+            cmd="""
+                DROP FUNCTION IF EXISTS z_update_with_geom_from_parsed(integer,text,text);
+                DROP FUNCTION IF EXISTS z_update_with_geom_from_parsed(integer[],text,text);
+
+                CREATE OR REPLACE FUNCTION z_update_with_geom_from_parsed(idx integer[],tbl text,gid_col text)
                 RETURNS text
                 AS $$
+
+                    from traceback                      import format_exc       as tb_format_exc
+                    from sys                            import exc_info         as sys_exc_info
 
                     T = {   'idx'       :   str(idx),
                             'tbl'       :   tbl,
@@ -1341,28 +1718,34 @@ class pgSQL_Functions:
                             'idx_arr'   :   str(idx).replace("u'","'").replace("'",'').strip('[]'),     }
 
                     p = \"\"\"  WITH upd AS (
-                                    SELECT  bbl,f.uid::bigint src_gid
+                                    SELECT  p.billbbl,f.uid::bigint src_gid
                                     FROM    pad_adr p,
-                                            (   select uid,num,concat( predir,street_name,suftype,sufdir ) concat_addr
+                                            (   select ##(gid_col)s uid,num,concat_ws(' ',predir,street_name,suftype,sufdir ) concat_addr
                                                 from ##(tbl)s where ##(gid_col)s = any ( array[##(idx_arr)s] )   ) f
-                                    WHERE   concat( p.predir,p.street_name,p.suftype,p.sufdir ) = f.concat_addr
-                                    AND     f.num::double precision between p.min_num and p.max_num
-                                    AND     parity = (case when mod(f.num::integer,2)=1 THEN '1' ELSE '2' END)
+                                    WHERE   concat_ws(' ',p.predir,p.street_name,p.suftype,p.sufdir ) = f.concat_addr
+                                    AND     (p.min_num <= f.num::double precision and f.num::double precision <= p.max_num)
+                                    AND     p.parity::integer = (case when mod((f.num::double precision)::integer,2)=1 THEN 1 ELSE 2 END)
+                                    AND     p.stnum_w_letter is false
+
+                                            -- parity=2 means even, parity=1 means odd
                                     )
                                 UPDATE ##(tbl)s t set
-                                    bbl            = u.bbl
-                                FROM  upd u
-                                WHERE u.src_gid = t.##(gid_col)s::bigint
+                                        bbl         =   u.billbbl,
+                                        geom        =   pc.geom
+                                FROM    upd u, pluto_centroids pc
+                                WHERE   u.src_gid   =   t.##(gid_col)s::bigint
+                                AND     u.billbbl   =   pc.bbl
 
                         \"\"\" ## T
 
                     try:
-
                         plpy.execute(p)
                         return 'ok'
                     except:
                         plpy.log("f(x) z_update_with_parsed_info FAILED")
                         plpy.log(p)
+                        plpy.log(                       tb_format_exc())
+                        plpy.log(                       sys_exc_info()[0])
                         return 'error'
 
                 $$ LANGUAGE plpythonu;
@@ -1371,24 +1754,140 @@ class pgSQL_Functions:
             self.T.conn.set_isolation_level(        0)
             self.T.cur.execute(                     cmd)
             return
+        def z_update_with_geocode_info(self):
+            """
+
+            Usage:
+
+                select z_update_with_geocode_info('yelp','uid','address','postal_code')
+                select z_update_with_geocode_info('seamless','id','address','zipcode')
+
+            """
+            cmd="""
+                DROP FUNCTION IF EXISTS z_update_with_geocode_info(text,text,text,text);
+
+                CREATE OR REPLACE FUNCTION z_update_with_geocode_info(  tbl      text,  gid_col text,
+                                                                        addr_col text,  zip_col text)
+                RETURNS text AS $$
+
+                    T = {   'tbl'       :   tbl,
+                            'gid_col'   :   gid_col,
+                            'addr_col'  :   addr_col,
+                            'zip_col'   :   zip_col,   }
+
+                    p = \"\"\"
+
+                            WITH upd AS (
+                                SELECT (z).*  --,arr_uid,arr_addr
+                                FROM
+                                    (
+                                    select z_get_geocode_info(array_agg(uid),array_agg(address)) z
+                                                --,array_agg(uid) arr_uid,array_agg(address) arr_addr
+                                    from
+                                        (
+                                        select ##(gid_col)s uid,concat_ws(', ',##(addr_col)s ,'New York, NY',##(zip_col)s) address
+                                        from ##(tbl)s
+                                        where street_name is null and geom is null and gc_addr is null
+                                        and ##(addr_col)s  is not null and address != ''
+                                        and ##(zip_col)s  is not null
+                                        order by ##(gid_col)s
+                                        ) f1
+                                    ) f2
+                                )
+                            UPDATE ##(tbl)s t SET
+                                gc_lat = u.lat,
+                                gc_lon = u.lon,
+                                gc_addr = u.std_addr,
+                                gc_zip = u.zipcode,
+                                gc_full_addr = u.form_addr
+                            FROM upd u
+                            WHERE u.addr_valid is true
+                            and u.idx = t.##(gid_col)s;
+
+                        \"\"\" ## T
+
+                    #plpy.log(p)
+                    plpy.execute(p)
+                    return 'ok'
+
+                $$ LANGUAGE plpythonu;
+            """.replace('##','%')
+            self.T.conn.set_isolation_level(        0)
+            self.T.cur.execute(                     cmd)
+            return
+        def z_update_yelp_address_from_valid_display_addr(self):
+            cmd="""
+                DROP FUNCTION IF EXISTS z_update_yelp_address_from_valid_display_addr();
+
+                CREATE OR REPLACE FUNCTION z_update_yelp_address_from_valid_display_addr()
+                RETURNS VOID AS $$
+                begin
+
+                    WITH upd as (
+                        select src_gid uid, orig_addr new_addr
+                        from z_parse_NY_addrs('
+                            select uid::bigint gid,repl address,postal_code::bigint zipcode from
+                                (select
+                                    uid,
+                                    regexp_replace(trim(leading address||'', '' from display_address),''^([0-9]+[^,]+)(.*)$'',''\\1'',''g'') repl,
+                                    regexp_matches(trim(leading address||'', '' from display_address),''^([0-9]+[^,]+)(.*)$'') matches,
+                                    postal_code
+                                from yelp
+                                where street_name is null and geom is null and address is not null and postal_code is not null) f
+                            where length(f.repl)>0
+                            order by uid
+                            ') z
+                        where z.num is not null and z.num != '0' and z.num ~ '^([0-9]+|[.][0-9]+|[0-9]+[.][0-9]+)$'
+                        and (z.suftype is not null or ( z.name ilike '%broadway%'
+                                                        or z.name ilike '%bowery%'
+                                                        or z.name ilike '%slip%' )   )
+
+                        )
+                    UPDATE yelp y set address = u.new_addr
+                    FROM upd u
+                    WHERE y.uid = u.uid;
+
+                end;
+                $$ LANGUAGE plpgsql;
+
+            """
+            self.T.conn.set_isolation_level(        0)
+            self.T.cur.execute(                     cmd)
+            return
         def z_update_with_parsed_info(self):
             cmd="""
-                DROP FUNCTION IF EXISTS z_update_with_parsed_info(integer,text,text,text,text[]);
-                DROP FUNCTION IF EXISTS z_update_with_parsed_info(integer[],text,text,text,text[]);
+                DROP FUNCTION IF EXISTS z_update_with_parsed_info(integer[],text,text,text,text,text[],boolean);
 
                 CREATE OR REPLACE FUNCTION z_update_with_parsed_info(idx integer[],tbl text,
                                                                      gid_col text,addr_col text,
-                                                                     zip_col text, update_cols text[])
+                                                                     zip_col text, update_cols text[],
+                                                                     validity_check boolean default false)
                 RETURNS text
                 AS $$
 
+                from traceback                      import format_exc       as tb_format_exc
+                from sys                            import exc_info         as sys_exc_info
 
                 T = {   'tbl'       :   tbl,
                         'gid_col'   :   gid_col,
                         'addr_col'  :   addr_col,
                         'zip_col'   :   zip_col,
                         'update'    :   ','.join( ['##s = u.##s' ## (it,it) for it in update_cols] ),
-                        'idx_arr'   :   str(idx).replace("u'","'").replace("'",'').strip('[]'),}
+                        'idx_arr'   :   str(idx).replace("u'","'").replace("'",'').strip('[]'),
+                        'and_valid' :   '',}
+
+                if validity_check:
+                    T['and_valid']  =   ' '.join(["AND u.num ~ '^([0-9]+|[.][0-9]+|[0-9]+[.][0-9]+)$'",
+                                                  "AND u.num != '0'"
+                                                  "AND u.street_name is not null",
+                                                  "AND (",
+                                                    "u.suftype is not null",
+                                                    "or (",
+                                                        "u.street_name ilike '####broadway####'",
+                                                        "or u.street_name ilike '####bowery####'"
+                                                        "or u.street_name ilike '####slip####'",
+                                                    ")",
+                                                  ")"])
 
                 error_occurred      =   False
 
@@ -1406,16 +1905,23 @@ class pgSQL_Functions:
                             UPDATE ##(tbl)s t set
                                 ##(update)s
                             FROM  upd u
-                            WHERE u.src_gid::bigint = t.##(gid_col)s::bigint
+                            WHERE u.src_gid = t.##(gid_col)s::bigint
+                            ##(and_valid)s
+                            RETURNING u.src_gid
 
                     \"\"\" ## T
 
                 try:
-                    plpy.execute(p)
+                    res = plpy.execute(p)
+                    #plpy.log(res)
+                    #t = str([it['src_gid'] for it in res[0]])
+                    #plpy.log(t)
 
                 except:
-                    plpy.log("f(x) z_update_with_parsed_info FAILED")
-                    plpy.log("##(gid_col)s =  ##(idx)s" ## T)
+                    plpy.log(                       "f(x) z_update_with_parsed_info FAILED")
+                    #plpy.log(                       "##(gid_col)s =  ##(idx_arr)s" ## T)
+                    plpy.log(                       tb_format_exc())
+                    plpy.log(                       sys_exc_info())
                     error_occurred = True
 
                 if error_occurred:
@@ -1479,7 +1985,8 @@ class pgSQL_Functions:
                 RETURNS %(fct_return)s
                 AS $$
 
-                    #plpy.log('starting parser')
+                    from traceback                      import format_exc       as tb_format_exc
+                    from sys                            import exc_info         as sys_exc_info
 
                     query_str = args[0]
                     qs,res = query_str.lower().replace('\\n',' ').replace('####','##').replace("''","'").split(' '),[]
@@ -1507,16 +2014,11 @@ class pgSQL_Functions:
                     for it in drop_idx:
                         z=qs.pop(it)
 
-
-
                     query_str = ' '.join(qs)
-
-                    #plpy.log(query_str)
 
                     stop=False
 
                     pt=0
-                    #plpy.log("START")
                     while stop==False:
                         pt+=1
 
@@ -1556,17 +2058,23 @@ class pgSQL_Functions:
                                 ) as f3
                         \"\"\" ## query_dict
                         #plpy.log(q)
-                        q_res = plpy.execute(q)
-                        #plpy.log(q)
+                        try:
+                            q_res = plpy.execute(q)
+                            #plpy.log(q)
 
-                        res.extend(q_res)
+                            res.extend(q_res)
 
-                        if len(q_res)<q_lim or len(res)==q_max:
-                            #plpy.log('exit 1623')
-                            stop=True
+                            if len(q_res)<q_lim or len(res)==q_max:
+                                #plpy.log('exit 1623')
+                                stop=True
+                                break
+                            else:
+                                q_offset = q_offset + q_lim
+                        except:
+                            plpy.log(                       "z_parse_NY_addrs FAILED")
+                            plpy.log(                       tb_format_exc())
+                            plpy.log(                       sys_exc_info()[0])
                             break
-                        else:
-                            q_offset = q_offset + q_lim
 
 
                     return res
@@ -1588,6 +2096,15 @@ class pgSQL_Functions:
                                                                         orig_addr text,
                                                                         src_gid bigint)
                 RETURNS parsed_addr AS $$
+
+                    function nocase (s)
+                        s = string.gsub(s, "%a", function (c)
+                                                    return string.format("[%s%s]", string.lower(c),
+                                                                        string.upper(c))
+                                    end)
+                        return s
+                    end
+
                     --log("start")
                     local some_src_cols = {"building","house_num","predir","qual","pretype","name","suftype","sufdir",
                                             "city","state","postcode","box","unit",}
@@ -1632,33 +2149,21 @@ class pgSQL_Functions:
                             s1,e1 = orig_addr:find(tmp_pt["num"])
                         end
                         if e1==nil then
-                            log("1555")
-                            log(tmp_pt["num"])
-                            log(tmp_pt["name"])
-                            log(orig_addr)
-                            log(tmp_pt["pretype"])
-                            log(src_gid)
+                            log("orig_addr: "..orig_addr)
+                            log("GID: "..tostring(src_gid))
                             if true then return end
                         end
                         if not orig_addr then
-                            log("1566")
-                            log(tmp_pt["num"])
-                            log(tmp_pt["name"])
-                            log(orig_addr)
-                            log(tmp_pt["pretype"])
-                            log(src_gid)
+                            log("orig_addr: "..orig_addr)
+                            log("GID: "..tostring(src_gid))
                             if true then return end
                         end
 
                         s2,e2 = orig_addr:find(tmp_pt["name"])
 
                         if s2==nil then
-                            log("1578")
-                            log(tmp_pt["num"])
-                            log(tmp_pt["name"])
-                            log(orig_addr)
-                            log(tmp_pt["pretype"])
-                            log(tostring(src_gid))
+                            log("orig_addr: "..orig_addr)
+                            log("GID: "..tostring(src_gid))
                             if true then return end
                         end
                         --log("1575")
@@ -1716,8 +2221,10 @@ class pgSQL_Functions:
                         end
                     end
 
-                    -- Return Abbreviated Street Names Back to Original Name, e.g., 'W' for West St., 'S' for South St.
+
                     if tmp_pt["name"] then
+
+                    -- Return Abbreviated Street Names Back to Original Name, e.g., 'W' for West St., 'S' for South St.
                         if #tmp_pt["name"]==1 then
                             if      tmp_pt["name"]=='N' then tmp_pt["name"]='NORTH'
                             elseif  tmp_pt["name"]=='E' then tmp_pt["name"]='EAST'
@@ -1725,7 +2232,21 @@ class pgSQL_Functions:
                             elseif  tmp_pt["name"]=='W' then tmp_pt["name"]='WEST'
                             end
                         end
+                    -- Return null result if street name i_contains 'and'
+                        local a = tmp_pt["name"]
+                        if (   a:find("^(.*)[%s]AND[%s](.*)$")
+                            or a:find("^AND[%s].*$")
+                            or a:find("^.*[%s]AT[%s].*$")
+                            or a:find("^.*[%s]&[%s].*$")
+                            or a:find("^[0-9]+.*[%s]+.*[%s]+[0-9]+.*$")
+                            ) then
+                           return nil
+                        end
+
                     end
+
+
+
 
                     return tmp_pt
 
@@ -1886,13 +2407,16 @@ class pgSQL_Functions:
                     end
 
                     local cnt = addr:find( "^([0-9]*)([%-]*)([a-zA-Z0-9]*)%s([a-zA-Z0-9]*)(.*)" )
+
                     local no_num_cnt = addr:find("^([0-9]+)(.*)")
                     -- when first character not digit, EAST 76 STREET --> num=E 76,NAME=NEW YORK
                     -- when first character not digit, MARGINAL STREET --> NAME=ST NEW YORK
-                    --
+
+                    local no_num_but_avenue_cnt = addr:find("^([1]?[0-9][A-Z]?[A-Z]?[A-Z]? AVEN?U?E?)(.*)")
+                    -- e.g., "5TH AVE CENTRAL PARK S"
 
 
-                    if ( cnt == 0 or cnt == nil or no_num_cnt == nil ) then
+                    if ( cnt == 0 or cnt == nil or no_num_cnt == nil or no_num_but_avenue_cnt~=nil ) then
                         addr = "0|"..addr
                     else
                         addr = addr:gsub("^([0-9]*)([%-]*)([a-zA-Z0-9]*)[%s]*([a-zA-Z0-9]*)[%s]*(.*)",
@@ -2110,8 +2634,7 @@ class pgSQL_Functions:
             return
         def z_update_addr_idx_from_gc_info(self):
             pass
-        def z_update_geom_from_bbl(self):
-            pass
+
         def z_get_geocode_info(self):
             cmd="""
                 DROP TYPE IF EXISTS geocode_results cascade;
@@ -2153,6 +2676,8 @@ class pgSQL_Functions:
                         r                           =   Geocoder.geocode(it)
                         return 'ok',r
                     except GeocoderError as e:
+                        return 'failed',[]
+                    except:
                         plpy.log(                       tb_format_exc())
                         plpy.log(                       sys_exc_info()[0])
                         plpy.log(                       e)
@@ -2165,7 +2690,6 @@ class pgSQL_Functions:
                         it                          =   addr_queries[j]
                         status,results              =   get_gc_info(it)
                         _out                        =   None
-
 
                         if not results:
                             _out                    =   None
@@ -2254,6 +2778,7 @@ class pgSQL_Triggers:
         self.T                              =   _parent.T
         self.Create                         =   self.Create(self)
         self.Destroy                        =   self.Destroy(self)
+        self.Operate                        =   self.Operate(self)
 
     class Create:
         def __init__(self,_parent):
@@ -2405,9 +2930,9 @@ class pgSQL_Triggers:
                 CREATE OR REPLACE FUNCTION z_parse_address_on_gid_addr_zip_on_%(tbl)s_in_%(addr_col)s()
                 RETURNS TRIGGER AS $funct$
 
-                from traceback                      import format_exc       as tb_format_exc
-                from sys                            import exc_info         as sys_exc_info
-                import                                  inspect             as I
+                #from traceback                      import format_exc       as tb_format_exc
+                #from sys                            import exc_info         as sys_exc_info
+                #import                                  inspect             as I
 
                 #try:
 
@@ -2421,73 +2946,26 @@ class pgSQL_Triggers:
                     return text_var
 
 
-                if (    (       TD["new"]["sm"] == 1      or      TD["new"]["pa"] == '1'  ) or
-                        (   not TD["new"]["%(addr_col)s"]   or not  TD["new"]["%(zip_col)s"]) or
-                            not len(str( TD["new"]["%(zip_col)s"])) == 5    ):
-                    plpy.log("A-LINE: " + str(I.currentframe().f_back.f_lineno))
-                    plpy.log(TD["new"]["sm"] == '1')
-                    plpy.log(TD["new"]["pa"] == '1')
-                    plpy.log(not TD["new"]["%(addr_col)s"])
-                    plpy.log(not  TD["new"]["%(zip_col)s"])
-                    plpy.log(not len(str( TD["new"]["%(zip_col)s"])) == 5)
+                p = \"\"\"  SELECT  z_update_with_parsed_info(  array_agg(t.%(gid_col)s),
+                                                                '%(tbl)s',
+                                                                '%(gid_col)s','%(addr_col)s',
+                                                                '%(zip_col)s',
+                                                                array['num','predir','street_name','suftype','sufdir'])
+                            FROM    %(tbl)s t
+                            WHERE   t.%(addr_col)s is not null
+                            AND     t.%(zip_col)s is not null
+                            AND     t.bbl is null
+                            AND     t.geom is null
+                    \"\"\"
 
-                    return 'SKIP'
+                plpy.execute(p)
 
-                T = TD["new"]
-                T["tbl"] = TD["table_name"]
-
-                T["%(addr_col)s"] = adjust_single_quote(text_var=T["%(addr_col)s"],
-                                                        repl_var="%(addr_col)s")
-
-
-                if T["%(addr_col)s"] and T["%(zip_col)s"]:
-                    p = \"\"\"  select  bldg,box,unit,num,predir,name street_name,suftype,sufdir,
-                                        tbl,gid
-                                from    z_parse_NY_addrs('
-                                                        select
-                                                            ''##(%(gid_col)s)s''::bigint gid,
-                                                            ''##(%(addr_col)s)s''::text address,
-                                                            ''##(%(zip_col)s)s''::bigint zipcode
-                                                        '),
-                                        (select '##(tbl)s' tbl) f2,
-                                        (select '##(%(gid_col)s)s'::bigint gid) f3
-                        \"\"\" ## T
-
-                    res = plpy.execute(p)[0]
-
-
-                    res["street_name"] = adjust_single_quote( text_var=res["street_name"],
-                                                              repl_var='street_name')
-                    res["street_name"] =  res["street_name"].replace("''","'")
-                    res["gid"] = str(res["gid"])
-                    plpy.log(str(res))
-
-                    p = \"\"\"  update ##(tbl)s t set
-                                    bldg = '##(bldg)s',
-                                    box = '##(box)s',
-                                    unit = '##(unit)s',
-                                    num = '##(num)s',
-                                    predir = '##(predir)s',
-                                    street_name = '##(street_name)s',
-                                    suftype = '##(suftype)s',
-                                    sufdir = '##(sufdir)s',
-                                    pa = '1'
-                                where %(gid_col)s::bigint = '##(gid)s'::bigint
-                        \"\"\"
-                    plpy.log(p)
-                    plpy.log(res)
-                    plpy.log(p ## res)
-
-                    plpy.execute(p ## res)
-                    return 'ok'
-
-
+                return 'ok'
 
                 $funct$ language "plpythonu";
 
                 CREATE TRIGGER parse_address_on_gid_addr_zip_on_%(tbl)s_in_%(addr_col)s
                 AFTER UPDATE OR INSERT ON %(tbl)s
-                FOR EACH ROW
                 EXECUTE PROCEDURE z_parse_address_on_gid_addr_zip_on_%(tbl)s_in_%(addr_col)s();
 
             """ % {"tbl"                        :   tbl,
@@ -2642,6 +3120,18 @@ class pgSQL_Triggers:
             self.T.conn.set_isolation_level(0)
             self.T.cur.execute(c)
 
+    class Operate:
+        def __init__(self,_parent):
+            self.T                              =   _parent.T
+            self.Operate                        =   self
+        def disable(self,tbl,trigger_name):
+            cmd = "ALTER TABLE %(tbl)s DISABLE TRIGGER %(trig)s;" % {'tbl':tbl,'trig':trigger_name}
+            self.T.conn.set_isolation_level(        0)
+            self.T.cur.execute(                     cmd)
+        def enable(self,tbl,trigger_name):
+            cmd = "ALTER TABLE %(tbl)s ENABLE TRIGGER %(trig)s;" % {'tbl':tbl,'trig':trigger_name}
+            self.T.conn.set_isolation_level(        0)
+            self.T.cur.execute(                     cmd)
 
 class pgSQL_Tables:
     """
@@ -3475,10 +3965,10 @@ class pgSQL_Tables:
 
                     -- special streets where 'EAST' and 'WEST' don't refer to an end of a street
                     ('custom_addr_pre_filter',
-                        '([0-9]+)%|(WEST)%s(END)%s(AV)(.*)$',
+                        '([0-9]+)%|(WE?S?T?)%s(END)%s(AV)(.*)$',
                         '%1|%2QQQQ%3 %4%5','','1'),
                     ('custom_addr_pre_filter',
-                        '([0-9]+)%|(EAST)%s(RIVER)%s(DR)(.*)$',
+                        '([0-9]+)%|(EA?S?T?)%s(RIVER)%s(DR)(.*)$',
                         '%1|%2QQQQ%3 %4%5','','1'),
 
                     -- "ADAM CLAYTON POWELL JR BOULEVARD"
@@ -3793,9 +4283,692 @@ class pgSQL_Tables:
             def snd(self,table_name='snd',drop_prev=True):
                 from f_nyc_data import load_parsed_snd_datafile_into_db
                 load_parsed_snd_datafile_into_db(table_name,drop_prev)
+                a="""
 
-            def pad_adr(self):
-                pass
+                delete from snd where primary_name = variation;
+
+                alter table snd
+                    add column from_num integer,
+                    add column from_predir text,
+                    add column from_street_name text,
+                    add column from_suftype text,
+                    add column from_sufdir text,
+                    add column to_num integer,
+                    add column to_predir text,
+                    add column to_street_name text,
+                    add column to_suftype text,
+                    add column to_sufdir text;
+
+
+
+                delete from snd
+                where variation ilike any (array[ '%%NORTHBOUND%%','%%NB%%','%%SOUTHBOUND%%','%%SB%%',
+                                                '%%ENTRANCE%%','%% BRDG%%','%% EXIT%%','%% TRAIN%%','RT %%','%% RT%%',
+                                                'RTE %%','%% RTE%%','%% US %%','US %%','%% RTE%%','%%INTERSTATE %%',
+                                                '%%I-95%%','%%I %% 95%%','%% COMPLEX%%','%% PROJECTS%%','ROUTE %%',
+                                                '%%PATH %%','%%PATH-%%','%% HOUSES%%','%% EXTENSION%%']);
+
+                WITH upd AS (
+                    SELECT  src_gid,predir,name street_name,suftype,sufdir
+                    FROM    z_parse_NY_addrs('
+                                            select
+                                                uid::bigint gid,
+                                                variation::text address,
+                                                ''11111''::bigint zipcode
+                                            FROM snd
+                                            ')
+                      )
+                UPDATE snd t set
+                    from_predir = u.predir,
+                    from_street_name = u.street_name,
+                    from_suftype = u.suftype,
+                    from_sufdir = u.sufdir
+                FROM  upd u
+                WHERE u.src_gid = t.uid::bigint;
+
+
+                delete from snd
+                where primary_name ilike any (array[ '%%NORTHBOUND%%','%%NB%%','%%SOUTHBOUND%%','%%SB%%',
+                                                '%%ENTRANCE%%','%% BRDG%%','%% EXIT%%','%% TRAIN%%','RT %%','%% RT%%',
+                                                'RTE %%','%% RTE%%','%% US %%','US %%','%% RTE%%','%%INTERSTATE %%',
+                                                '%%I-95%%','%%I %% 95%%','%% COMPLEX%%','%% PROJECTS%%','ROUTE %%',
+                                                '%%PATH %%','%%PATH-%%','%% HOUSES%%','%% RECREATION CTR%%',
+                                                '%% EXTENSION%%']);
+
+                WITH upd AS (
+                    SELECT  src_gid,predir,name street_name,suftype,sufdir
+                    FROM    z_parse_NY_addrs('
+                                            select
+                                                uid::bigint gid,
+                                                primary_name::text address,
+                                                ''11111''::bigint zipcode
+                                            FROM snd
+                                            ')
+                      )
+                UPDATE snd t set
+                    to_predir = u.predir,
+                    to_street_name = u.street_name,
+                    to_suftype = u.suftype,
+                    to_sufdir = u.sufdir
+                FROM  upd u
+                WHERE u.src_gid = t.uid::bigint
+
+
+                INSERT INTO snd (from_num,from_predir,from_street_name,from_suftype,from_sufdir,
+                                to_num,to_predir,to_street_name,to_suftype,to_sufdir)
+                VALUES (0,null,'ROCKEFELLER','CTR',null,
+                        45,null,'ROCKEFELLER','PLZ',null);
+
+                INSERT INTO snd (from_predir,from_street_name,from_suftype,from_sufdir,
+                                to_predir,to_street_name,to_suftype,to_sufdir)
+                VALUES (null,'ROCKEFELLER','CTR',null,
+                        null,'ROCKEFELLER','PLZ',null);
+
+                INSERT INTO snd (from_predir,from_street_name,from_suftype,from_sufdir,
+                                to_predir,to_street_name,to_suftype,to_sufdir)
+                VALUES ('W','59','ST',null,
+                        null,'CENTRAL','PARK','S');
+
+
+                """
+
+            def pad(self):
+                # CREATE/ADJUST PAD TABLES
+
+                # CLEAN UP TABLE SPACE
+                a="""
+                drop table if exists pad_adr;
+                drop table if exists pad_bbl;
+                drop table if exists tmp_addr_idx_pad;
+                drop table if exists addr_idx_wl;
+                """
+                SV.T.conn.set_isolation_level(        0)
+                SV.T.cur.execute(                     a)
+
+                # CREATE PAD BBL
+                df2 = SV.T.pd.read_csv(os_path.join(dl_dir,'bobabbl.txt'))
+                t=df2.columns.tolist()
+                new_cols = [it.replace('"','') for it in t]
+                df2.columns = new_cols
+                df2[df2.boro==1].to_sql('pad_bbl',SV.T.eng,index=False)
+                a="""
+
+                alter table pad_bbl add column lobbl numeric,add column hibbl numeric,add column billbbl numeric;
+
+                update pad_bbl set
+                billboro=trim(both ' ' from billboro),
+                billblock=trim(both ' ' from billblock),
+                billlot=trim(both ' ' from billlot);
+
+                update pad_bbl set billboro=null where billboro='';
+                update pad_bbl set billblock=null where billblock='';
+                update pad_bbl set billlot=null where billlot='';
+
+                update pad_bbl set
+                lobbl =
+                regexp_replace( to_char(loboro::integer,'0')||
+                                to_char(loblock::integer,'00000')||
+                                to_char(lolot::integer,'0000'),'[[:space:]]','','g')::numeric,
+                hibbl =
+                regexp_replace( to_char(hiboro::integer,'0')||
+                                to_char(hiblock::integer,'00000')||
+                                to_char(hilot::integer,'0000'),'[[:space:]]','','g')::numeric;
+
+
+                update pad_bbl set
+                billbbl =
+                regexp_replace(to_char(billboro::integer,'0')||to_char(billblock::integer,'00000')||to_char(billlot::integer,'0000'),'[[:space:]]','','g')::numeric
+                where billboro is not null and billblock is not null and billlot is not null;
+
+                """
+                SV.T.conn.set_isolation_level(        0)
+                SV.T.cur.execute(                     a)
+
+                # CREATE PAD DB
+                df = SV.T.pd.read_csv(os_path.join(dl_dir,'bobaadr.txt'))
+                df[df.boro==1].to_sql('pad_adr',SV.T.eng,index=False)
+                a="""
+                    alter table pad_adr
+                        add column bbl numeric,
+                        add column billbbl numeric,
+                        add column stnum_w_letter boolean,
+                        add column street_name text;
+
+                    update pad_adr set bbl =
+                    regexp_replace(to_char(boro,'0')||to_char(block,'00000')||to_char(lot,'0000'),'[[:space:]]','','g')::numeric,
+                    lhnd=trim(both ' ' from lhnd),
+                    hhnd=trim(both ' ' from hhnd),
+                    stname=trim(both ' ' from stname);
+
+                    delete from pad_adr where lhnd = '' and hhnd = '';
+                    delete from pad_adr where lhnd ilike '% AIR%';
+                    update pad_adr set stname = regexp_replace(stname,'[[:space:]]{2,}',' ','g');
+                    update pad_adr set zipcode = regexp_replace(zipcode,'[[:space:]]{2,}',' ','g');
+                    update pad_adr set zipcode = null where zipcode = ' ';
+
+                    update pad_adr p1 set zipcode = f2.zipcode
+                    from
+                        (select distinct on (p2.bbl) p2.bbl,p2.zipcode from
+                            pad_adr p2,
+                            (select distinct on (bbl) bbl from pad_adr where zipcode is null) f1
+                        where p2.bbl = f1.bbl
+                        and p2.zipcode is not null ) f2
+                    where p1.zipcode is null
+                    and p1.bbl = f2.bbl;
+
+                    update pad_adr p1 set zipcode = f2.zipcode from
+                    --select * from pad_adr p1,
+                        (select distinct on (p2.bbl) p2.bbl,p2.zipcode from
+                            pluto p2,
+                            (select distinct on (bbl) bbl from pad_adr where zipcode is null) f1
+                        where p2.bbl = f1.bbl
+                        and p2.zipcode is not null ) f2
+                    where p1.zipcode is null
+                    and p1.bbl = f2.bbl;
+                    """
+                SV.T.conn.set_isolation_level(        0)
+                SV.T.cur.execute(                     a)
+                assert SV.T.pd.read_sql(""" select count(*)=0 only_known_addr_remaining from pad_adr
+                                            where zipcode is null
+                                            and not lhnd ilike '## AIR##'
+                                            and not bbl = '1002230997' -- 2400 READE STREET
+                                         """.replace('##','%%'),SV.T.eng).only_known_addr_remaining[0] == True
+
+                a="""
+
+                    delete from pad_adr where zipcode is null
+                    and ( lhnd ilike '## AIR##' );
+
+                    update pad_adr set stnum_w_letter = false;
+
+                    update pad_adr p set stnum_w_letter = true
+                    from
+                        (select distinct on (lhnd) lhnd,regexp_replace(lhnd,'[0-9]*','','g') repls
+                        from pad_adr) f
+                    where f.repls != '' and f.lhnd = p.lhnd;
+
+                    update pad_adr p set stnum_w_letter = true
+                    from
+                        (select distinct on (hhnd) hhnd,regexp_replace(hhnd,'[0-9]*','','g') repls
+                        from pad_adr) f
+                    where f.repls != '' and f.hhnd = p.hhnd;
+
+                    """.replace('##','%%')
+                SV.T.conn.set_isolation_level(        0)
+                SV.T.cur.execute(                     a)
+
+                ## PROVE THAT ONLY ADDR REMAINING IN pad_adr ARE VALID TYPES
+                assert SV.T.pd.read_sql(""" select count(*)=0 has_only_valid_addr from pad_adr
+                                            where addrtype = any (array['B','G','N','X','U'])
+                                            or lhnd = ''
+                                            or hhnd = ''
+                                            or stname is null or stname = ' ' or stname = ''
+                                            """,SV.T.eng).has_only_valid_addr[0] == True
+
+                ## PROVE THAT ALL pluto_bbl EXIST IN pad_bbl_billbbl
+                assert SV.T.pd.read_sql(""" select count(*)=0 no_pluto_bbl_not_in_pad_bbl_billbbl
+                                            from pluto p,
+                                            (select array_agg(billbbl) all_pad_billbbl from pad_bbl) f
+                                            where not p.bbl = any(all_pad_billbbl)
+                                 """,SV.T.eng).no_pluto_bbl_not_in_pad_bbl_billbbl[0] == True
+
+                ## PROVE THAT ALL pad_bbl_billbbl EXIST IN pluto_bbl
+                assert SV.T.pd.read_sql(""" select count(*)=0 no_pad_bbl_billbbl_not_in_pluto_bbl
+                                            from pad_bbl p,
+                                            (select array_agg(bbl) all_pluto_bbl from pluto) f
+                                            where not p.billbbl = any(all_pluto_bbl)
+                                 """,SV.T.eng).no_pad_bbl_billbbl_not_in_pluto_bbl[0] == True
+
+                ## CLEAN UP PLUTO JUST TO BE SAFE
+                reset_pluto_bbl="""
+                    update pluto set bbl =
+                    regexp_replace( '1'||
+                                    to_char(block::integer,'00000')||
+                                    to_char(lot::integer,'0000'),'[[:space:]]','','g')::numeric(10)
+                    """
+                SV.T.conn.set_isolation_level(        0)
+                SV.T.cur.execute(                     reset_pluto_bbl)
+
+                # cross_copy_bbl_if_existing_in_pluto
+
+                prepare_to_cross_copy="""
+
+                    update pad_adr set billbbl = null;
+
+                    update pad_adr a set billbbl = a.bbl
+                    from (select array_agg(distinct bbl) all_pluto_bbl from pluto where bbl is not null) f
+                    where a.billbbl is null and array[a.bbl] && all_pluto_bbl; --59187 rows affected
+
+                    delete from pad_adr p
+                    using (select array_agg(block) pluto_blocks from pluto) f1
+                    where p.billbbl is null
+                    and not p.block = any(pluto_blocks); --577 rows affected, 571 ms execution time.
+
+
+                    alter table  pad_adr add column tmp boolean default false;
+                    update pad_adr set tmp = true where billbbl is null;
+                """
+                SV.T.conn.set_isolation_level(        0)
+                SV.T.cur.execute(                     prepare_to_cross_copy)
+
+                cross_match_bbls="""
+                    update pad_adr p set billbbl = (select billbbl from pad_bbl where lobbl=_bbl or hibbl=_bbl)
+                    from
+                        (select uid,bbl from pad_adr where billbbl is null) a,
+                        (select array_agg(lobbl) all_lo,array_agg(hibbl) all_hi,array_agg(billbbl) all_bill from pad_bbl) b,
+                        (
+                        select distinct _bbl
+                        from
+                            (
+                            select unnest(array_cat(array_agg(distinct lobbl),
+                                                    array_cat(array_agg(distinct hibbl),
+                                                    array_agg(distinct billbbl)))) _bbl
+                            from
+                                (
+                                select lobbl,hibbl,billbbl
+                                from pad_bbl,
+                                (select array_agg(fa1.bbl) null_bbls
+                                    from (select bbl from pad_adr
+                                            where billbbl is null
+                                            order by uid limit 10) fa1) f1
+                                where
+                                (array[lobbl] && null_bbls
+                                or array[hibbl] && null_bbls
+                                or array[billbbl] && null_bbls)
+                                ) f2
+                            ) f3
+                        where _bbl is not null
+                        ) f5
+                    where a.bbl = _bbl
+                    and (array[_bbl] && all_lo
+                    or array[_bbl] && all_hi
+                    or array[_bbl] && all_bill )
+                    and p.uid = a.uid;
+                    """
+                cnt="select count(*) cnt from pad_adr where billbbl is null;"
+                pts_left = SV.T.pd.read_sql(cnt,SV.T.eng).cnt[0]
+                pt = 0
+                while pts_left>0:
+                    pts_left_a = SV.T.pd.read_sql(cnt,SV.T.eng).cnt[0]
+                    SV.T.conn.set_isolation_level(        0)
+                    SV.T.cur.execute(                     cross_match_bbls)
+                    pt+=10
+                    print pt
+                    pts_left_b = SV.T.pd.read_sql(cnt,SV.T.eng).cnt[0]
+                    if pts_left_b==0 or pts_left_a==pts_left_b:
+                        break
+
+                cross_match_bbls_2="""
+                update pad_adr p set billbbl = _bbl
+                from
+                    (select array_agg(bbl) pluto_bbls from pluto where bbl is not null) f0,
+                    (
+                    select f1.uid uid,f1.tmp tmp,unnest(  array_cat(array_agg(distinct lobbl),
+                                        array_cat(array_agg(distinct hibbl),
+                                        array_agg(distinct billbbl)))) _bbl
+                    from
+                        pad_bbl,
+                            (
+                            select uid,bbl tmp,array_agg(bbl) null_bbls
+                            from (select distinct bbl,uid from pad_adr where billbbl is null order by uid offset %d limit 10) af1
+                            group by uid,tmp
+                            ) f1
+                        where
+                        (array[lobbl] && null_bbls
+                        or array[hibbl] && null_bbls
+                        or array[billbbl] && null_bbls)
+                    group by f1.uid,f1.tmp
+                    ) f2
+                where _bbl!=f2.tmp and _bbl is not null
+                and array[_bbl] && pluto_bbls
+                and p.uid = f2.uid
+                returning f2.uid uid
+                """
+
+                cnt="select count(distinct bbl) cnt from pad_adr where billbbl is null;"
+                pts_left = SV.T.pd.read_sql(cnt,SV.T.eng).cnt[0]
+                pt,_offset = 0,0
+                while pts_left>0:
+                    pts_left_a = SV.T.pd.read_sql(cnt,SV.T.eng).cnt[0]
+                    res = SV.T.pd.read_sql(  cross_match_bbls_2 % _offset  ,SV.T.eng)
+                    updates = len(res)
+                    if updates==0:
+                        _offset += 10
+                        if _offset>=pts_left_a:
+                            break
+                    elif updates<10:
+                        _offset += 10-updates
+                    print updates
+                    pts_left_b = SV.T.pd.read_sql(cnt,SV.T.eng).cnt[0]
+
+
+                a="""   select * from pad_adr p, (select array_agg(distinct block) bbl_blocks
+                        from pad_adr where billbbl is null) f1
+                        where array[p.block] && bbl_blocks"""
+                df = SV.T.pd.read_sql(a,SV.T.eng)
+                df['billbbl'] = df.billbbl.fillna(value=0).astype(int)
+                g = df.groupby('block')
+
+                def update_resp_dict(locs,src):
+                    D={}
+                    _billbbl = 0
+                    for it in locs:
+                        _uid = src.ix[it,'uid']
+                        if it==0:
+                            n = range(1,len(src))
+                        elif it==src.index.tolist()[-1:]:
+                            n = range(len(src)-1)
+                            n.reverse()
+                        else:
+                            n=range(it,len(src)-1)
+                        for i in n:
+                            if src.ix[i,'billbbl']:
+                                _billbbl = src.ix[i,'billbbl']
+                                break
+                        D.update({ _uid : _billbbl })
+                    return D
+
+                D={}
+                t=list(g.groups.iteritems())
+                for k,v in g.groups.iteritems():
+                    grp = g.get_group(k).sort('min_num')
+                    odds = grp[grp.parity=='1'].copy().reset_index(drop=True)
+                    evens = grp[grp.parity=='2'].copy().reset_index(drop=True)
+                    assert len(odds)+len(evens)==len(grp)
+
+                    odd_blanks,even_blanks = list(odds.billbbl==0),list(evens.billbbl==0)
+
+                    pt,i_odd,odd_idx = 0,[],odds.index.tolist()
+                    for j in range(odd_blanks.count(True)):
+                        pt = odd_blanks.index(True,pt)
+                        i_odd.append( pt )
+                        pt += 1
+
+                    pt,i_even,even_idx = 0,[],evens.index.tolist()
+                    for j in range(even_blanks.count(True)):
+                        pt = even_blanks.index(True,pt)
+                        i_even.append( pt )
+                        pt += 1
+
+                    odd_locs = [odd_idx[it] for it in i_odd]
+                    if odd_locs:
+                        D.update(update_resp_dict(odd_locs,odds))
+
+                    even_locs = [even_idx[it] for it in i_even]
+                    if even_locs:
+                        D.update(update_resp_dict(even_locs,evens))
+
+                assert len(D.keys())==len(df[df.billbbl==0])
+
+                ndf = SV.T.pd.DataFrame(columns=['_uid','_billbbl'],data={'_uid':D.keys(),'_billbbl':D.values()})
+                ndf.head()
+                ndf = ndf[ndf._billbbl!=0].copy().reset_index(drop=True)
+                SV.T.conn.set_isolation_level(        0)
+                SV.T.cur.execute('drop table if exists tmp')
+                ndf.to_sql('tmp',SV.T.eng,index=False)
+                SV.T.conn.set_isolation_level(        0)
+                SV.T.cur.execute("""update pad_adr p set billbbl = t._billbbl::numeric
+                                    from tmp t where p.uid = t._uid;
+                                    drop table if exists tmp;""")
+
+                print "Had to look up blocks by hand for remaining 20 BBLs"
+
+
+                # CREATE TMP_IDX
+                a="""
+
+                drop table if exists tmp_addr_idx_pad;
+
+                create table tmp_addr_idx_pad as
+                    select
+                        predir,
+                        name street_name,
+                        suftype,
+                        sufdir
+                    from z_parse_ny_addrs(
+                        'select distinct on (stname) uid::bigint gid,''0 ''||stname address, zipcode::bigint from pad_adr
+                        where
+                        stnum_w_letter is false
+                        ');
+
+                select z_make_column_primary_serial_key('tmp_addr_idx_pad','gid',true);
+
+                """
+                SV.T.conn.set_isolation_level(        0)
+                SV.T.cur.execute(                     a)
+
+                # Copy Parsed_Address to pad_adr
+                # -- run until count is zero
+                a="""
+                update pad_adr t set street_name = f1.parsed_addr
+                from
+                (select src_gid,concat_ws(' ',predir,name,suftype,sufdir) parsed_addr
+                from z_parse_ny_addrs('select uid::bigint gid,''0 ''||stname address, zipcode::bigint from pad_adr
+                                        where stnum_w_letter is false and street_name is null
+                                        ')) f1
+                where f1.src_gid::bigint = t.uid::bigint;
+                """
+                SV.T.conn.set_isolation_level(        0)
+                SV.T.cur.execute(            a)
+                cnt_str = "select count(*) cnt from pad_adr where stnum_w_letter is false and street_name is null"
+                cnt = cnt_a = cnt_b = SV.T.pd.read_sql(cnt_str,SV.T.eng).cnt[0]
+                while cnt>0 and cnt_a!=cnt_b:
+                    cnt_a=SV.T.pd.read_sql(cnt_str,SV.T.eng).cnt[0]
+                    SV.T.conn.set_isolation_level(        0)
+                    SV.T.cur.execute(            a)
+                    cnt = cnt_b = SV.T.pd.read_sql(cnt_str,SV.T.eng).cnt[0]
+
+                assert SV.T.pd.read_sql(""" select count(*)=0 all_addr_in_idx_found_in_pad_adr from
+                                            tmp_addr_idx_pad t,
+                                            (select array_agg(distinct street_name) all_parsed from pad_adr) f1
+                                            where not concat_ws(' ',t.predir,t.street_name,t.suftype,t.sufdir) = any (all_parsed)
+                                            """,SV.T.eng).all_addr_in_idx_found_in_pad_adr[0] == True
+
+                # Add Min/Max address_num (where stnum_w_letter is False) to tmp_addr_idx
+                a="""
+
+                alter table tmp_addr_idx_pad
+                    add column min_num double precision,
+                    add column max_num double precision;
+
+                update tmp_addr_idx_pad tp set min_num = f1.lhnd
+                from
+                    (
+                    select
+                        t.gid t_gid,
+                        concat_ws(' ',t.predir,t.street_name,t.suftype,t.sufdir) parsed_addr,
+                        p.street_name,p.lhnd::double precision lhnd,
+                        min(p.lhnd::double precision) over (partition by p.street_name) as min_thing
+                    from    pad_adr p,
+                            tmp_addr_idx_pad t
+                    where
+                        p.stnum_w_letter is false
+                        and concat_ws(' ',t.predir,t.street_name,t.suftype,t.sufdir) = p.street_name
+                     ) f1
+                where f1.lhnd = f1.min_thing
+                and tp.gid = f1.t_gid
+                AND PARITY MATCHES;
+
+                update tmp_addr_idx_pad tp set max_num = f1.hhnd
+                from
+                    (
+                    select
+                        t.gid t_gid,
+                        concat_ws(' ',t.predir,t.street_name,t.suftype,t.sufdir) parsed_addr,
+                        p.street_name,p.hhnd::double precision hhnd,
+                        max(p.hhnd::double precision) over (partition by p.street_name) as max_thing
+                    from    pad_adr p,
+                            tmp_addr_idx_pad t
+                    where
+                        p.stnum_w_letter is false
+                        and concat_ws(' ',t.predir,t.street_name,t.suftype,t.sufdir) = p.street_name
+                     ) f1
+                where f1.hhnd = f1.max_thing
+                and tp.gid = f1.t_gid
+                AND PARITY MATCHES;
+
+                """
+                SV.T.conn.set_isolation_level(        0)
+                SV.T.cur.execute(            a)
+
+                # Create addr_idx_wl from pad_adr (where stnum_w_letter is True & lhnd == hhnd)
+                a="""
+                drop table if exists addr_idx_wl;
+
+                create table addr_idx_wl as
+                select * from pad_adr
+                where stnum_w_letter is true
+                and lhnd = hhnd;
+                """
+                SV.T.conn.set_isolation_level(        0)
+                SV.T.cur.execute(                     a)
+
+                # (1/2) Add to addr_idx_wl (where lhnd != hhnd)
+                # -- Create Entry for Each Address in Letter Ranges, e.g., 357A to 357F
+                a="""
+
+                insert into addr_idx_wl (boro,lhnd,hhnd,stname,zipcode,bbl)
+
+                    select  1,
+                            concat(base_str,(z).alpha_range) lhnd,
+                            concat(base_str,(z).alpha_range) hhnd,
+                            p.stname,
+                            p.zipcode,
+                            p.bbl
+                    --select uid,base_str,lhnd,hhnd,no_num_l,no_num_r,concat(base_str,(z).alpha_range) hhnd
+                    from
+                        pad_adr p,
+                        (
+                        select uid,regexp_replace(lhnd,no_num_l,'','g') base_str,
+                            lhnd,hhnd,no_num_l,no_num_r,z_make_rows_with_alpha_range(uid,only_num_l,no_num_l,no_num_r,false) z
+                        from
+                            (
+                            select uid,lhnd,hhnd,
+                                regexp_replace(hhnd,'[^0-9]*','','g') only_num_l,
+                                regexp_replace(lhnd,'[0-9]*','','g') no_num_l,
+                                regexp_replace(hhnd,'[0-9]*','','g') no_num_r
+                            from pad_adr
+                            where stnum_w_letter is true
+                            and lhnd != hhnd
+                            order by stname
+                            ) f1
+                        where f1.no_num_l != ''
+                        and length(no_num_r)=1
+                        and f1.no_num_l != '-'
+                        ) f2
+                    where p.uid = f2.uid;
+
+                """
+                SV.T.conn.set_isolation_level(        0)
+                SV.T.cur.execute(                     a)
+
+                # (2/2) Add to addr_idx_wl (where lhnd != hhnd)
+                # -- Add Remaining Ranges that didn't explicitly start with range letter
+                a="""
+                insert into addr_idx_wl (boro,lhnd,hhnd,stname,zipcode,bbl)
+                select '1' boro,(z).alpha_range lhnd,(z).alpha_range hhnd,STNAME,ZIPCODE,BBL
+                from
+                    (
+                    select  f2.stname STNAME,f2.zipcode ZIPCODE,f2.bbl BBL,f2.uid UID,
+                            z_make_rows_with_alpha_range(f2.uid,f2.lhnd,
+                                                        f2.start_r,f2.no_num_r,True) z,
+                            no_num_l,no_num_r
+                    from
+                        (
+                        select stname,zipcode,bbl,uid,lhnd,hhnd,'A'::text start_r,
+                            regexp_replace(lhnd,'[0-9]*','','g') no_num_l,
+                            regexp_replace(hhnd,'[0-9]*','','g') no_num_r
+                        from
+                            pad_adr p,
+                            (select array_agg(distinct concat(bbl,stname)) all_wl from addr_idx_wl) f1
+                        where stnum_w_letter is true
+                        and not concat(bbl,stname) = any (all_wl)
+                        order by stname
+                        ) f2
+                    where f2.no_num_r = any (array['A','B','C','D','E','F','G','H','I','J','K','L','M'])
+                    ) f3
+                    where UID=(z).uid;
+
+
+                """
+                SV.T.conn.set_isolation_level(        0)
+                SV.T.cur.execute(                     a)
+
+
+                # Handle Leftovers (where stnum_w_letter is True & lhnd != hhnd & not eq any addr_idx_wl)
+                # -- addresses with (a) only numbers, (b) greater specificity than needed, and (c) numbers between current endpoints (in tmp_addr_idx)
+                #          can be discarded at this point (b/c just a quick index).
+                # -- currently leaves only
+                #         F D R DRIVE --> added to tmp_addr_idx
+                #         EAST 119 STREET --> added to addr_idx_wl
+                #         WEST 48 STREET --> added to addr_idx_wl
+                a="""
+                insert into tmp_addr_idx_pad (street_name,suftype,min_num,max_num)
+                values
+                ('F D R','DR',107.01,107.99),
+                ('F D R','DR',108.01,108.99),
+                ('F D R','DR',109.01,109.99),
+                ('F D R','DR',110.01,110.99);
+
+
+                insert into addr_idx_wl (boro,lhnd,hhnd,stname,zipcode,bbl)
+                values
+                ('1','247 REAR','247 REAR','EAST 119 STREET','10035','1017840120'),
+                ('1','249 REAR','249 REAR','EAST 119 STREET','10035','1017840120'),
+                ('1','501 REAR','501 REAR','WEST 48 STREET','10036','1010770029'),
+                ('1','503 REAR','503 REAR','WEST 48 STREET','10036','1010770029');
+
+                """
+                SV.T.conn.set_isolation_level(        0)
+                SV.T.cur.execute(                     a)
+
+                a="""
+
+                -- UPDATE MIN/MAX BLDG NUMBERS
+                update pad_adr set min_num = lhnd::double precision,max_num = hhnd::double precision
+                where stnum_w_letter is false;
+
+                alter table pad_adr add column tmp_addr text;
+                update pad_adr set tmp_addr = concat_ws(' ',min_num::integer,stname) where stnum_w_letter is false;
+
+                select z_update_with_parsed_info(array_agg(p.uid),'pad_adr','uid','tmp_addr','zipcode',
+                                                    array['street_name','predir','suftype','sufdir'])
+                from pad_adr p where stnum_w_letter is false;
+
+                alter table pad_adr drop column if exists tmp_addr;
+
+                -- MAKE LINKAGE B/T pad_adr AND pluto
+                --    (having already asserted all pad_bbl.billbbl exist in pluto)
+                update pad_adr a set billbbl = b.billbbl
+                    from pad_bbl b where
+                    b.lobbl = a.bbl
+                    or b.hibbl = a.bbl
+                    or b.billbbl = a.bbl;
+
+                -- ADD GEOM/BBL BASE ON MATCHES WITH PLUTO
+                select z_update_with_geom_from_parsed(array_agg(p.uid),'pad_adr','uid')
+                from pad_adr p where stnum_w_letter is false;
+
+                """
+                SV.T.conn.set_isolation_level(        0)
+                SV.T.cur.execute(                     a)
+
+
+                a="""
+                select count(*) from pad_adr where
+                stnum_w_letter is false
+                and
+                    (street_name is null
+                    or (suftype is null and
+                        not (
+                            street_name ilike '%broadway%'
+                            or street_name ilike '%bowery%'
+                            or street_name ilike '%slip%'
+                            )
+                        )
+                    or min_num is null
+                    or max_num is null)
+                """
 
 
 class To_Class:

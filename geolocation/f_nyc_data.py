@@ -593,3 +593,62 @@ def load_parsed_snd_datafile_into_db(table_name='snd',drop_prev=True):
 
     return
 
+def get_latest_links_from_nyc_bytes():
+    py_path.append(os_path.join(os_environ['BD'],'html'))
+    from scrape_vendors import Scrape_Vendors
+    SV = Scrape_Vendors()
+    T                               =   SV.T
+    rss_feed = 'http://www.nyc.gov/html/dcp/rss/products_rss.xml'
+
+    BASE_URL = 'http://www.nyc.gov/html/dcp/html/bytes/'
+    nyc_bytes_url = BASE_URL + 'applbyte.shtml'
+    br = SV.T.br
+    br.open_page(nyc_bytes_url)
+    html                            =   SV.T.codecs_enc(br.source(),'utf8','ignore')
+    h = SV.T.getSoup( SV.T.getSoup(html).decode_contents(eventual_encoding='ascii') )
+    data_sets = SV.T.getTagsByAttr(html,'table',{'cellpadding':"5"},contents=False)
+    j,end='',False
+    cols = ['Data_Set','Date','link']
+    df = SV.T.pd.DataFrame(columns=cols)
+    for _set in data_sets:
+        top_row = _set.findAll('tr')[0]
+        bot_row = _set.findAll('tr')[-1:][0]
+        d={}
+        for col in top_row.findAll('td'):
+            if col.getText().strip(' \n'):
+                title=col.getText().strip(' \n').encode(errors='ignore')
+                d.update({'Data_Set':title})
+                break
+
+        for col in bot_row.findAll('td'):
+            if col.getText():
+                txt = col.getText()
+                if txt.count('Date of Data')>0:
+                    txt = txt[txt.rfind('...'):].lstrip('.')
+                    d.update({'Date':txt})
+
+            for l in col.findAll('a'):
+                if l.has_attr('href'):
+                    d.update({'link':l.get('href')})
+                    df = df.append(d,ignore_index=True)
+
+    df['file_type'] = df.link.map(lambda s: 'link' if s.find('http')==0 else s[s.rfind('.')+1:] if s.find('?')==-1
+                                  else s[ s[:s.rfind('?')].rfind('.')+1:s.rfind('?')])
+    df['link'] = df.link.map(lambda s: s if s.find('http')==0 else
+                  os_path.normpath(os_path.join(BASE_URL,s)))
+    df['link'] = df.link.map(lambda s: s.replace('http:/www.','http://www.'))
+
+    return df
+
+def download_pad(df):
+    """
+    Usage:      df = get_latest_links_from_nyc_bytes()
+                download_pad(df)
+    """
+    pad_info = df[(df.Data_Set=='PAD')].copy()
+    data_dl_link = pad_info[pad_info.file_type=='zip'].link.tolist()[0]
+    dl_path = os_path.join(os_environ['BD'],'geolocation/NYC/pad',data_dl_link[data_dl_link.rfind('/')+1:])
+    dl_dir = dl_path[:dl_path.rfind('.')]
+    cmd = 'wget --output-document=%s %s' % (dl_path,data_dl_link)
+    # !$cmd
+    # !unzip $dl_path -u -d $dl_dir
