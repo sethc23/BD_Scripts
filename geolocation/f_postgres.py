@@ -1210,11 +1210,12 @@ class pgSQL_Functions:
             self.T.cur.execute(                    cmd)
 
         def get_geocode_info(self,addr_queries):
-            T                           =   {'req'                  :   addr_queries}
-            cmd                         =   """select z_get_geocode_info( '%(req)s' );
-                                            """ % T
-            self.T.conn.set_isolation_level(       0)
-            self.T.cur.execute(                    cmd)
+            print 'NEED TO FIX'
+            # T                           =   {'req'                  :   addr_queries}
+            # cmd                         =   """select z_get_geocode_info( '%(req)s' );
+            #                                 """ % T
+            # self.T.conn.set_isolation_level(       0)
+            # self.T.cur.execute(                    cmd)
 
     class Make:
 
@@ -1325,6 +1326,112 @@ class pgSQL_Functions:
                 """.replace('\n','')
             self.T.conn.set_isolation_level(       0)
             self.T.cur.execute(                    cmd)
+        def z_update_with_bbl(self):
+            cmd="""
+                DROP FUNCTION IF EXISTS z_update_with_bbl(integer,text,text);
+                DROP FUNCTION IF EXISTS z_update_with_bbl(integer[],text,text);
+
+                CREATE OR REPLACE FUNCTION z_update_with_bbl(idx integer[],tbl text,gid_col text)
+                RETURNS text
+                AS $$
+
+                    T = {   'idx'       :   str(idx),
+                            'tbl'       :   tbl,
+                            'gid_col'   :   gid_col,
+                            'idx_arr'   :   str(idx).replace("u'","'").replace("'",'').strip('[]'),     }
+
+                    p = \"\"\"  WITH upd AS (
+                                    SELECT  bbl,f.uid::bigint src_gid
+                                    FROM    pad_adr p,
+                                            (   select uid,num,concat( predir,street_name,suftype,sufdir ) concat_addr
+                                                from ##(tbl)s where ##(gid_col)s = any ( array[##(idx_arr)s] )   ) f
+                                    WHERE   concat( p.predir,p.street_name,p.suftype,p.sufdir ) = f.concat_addr
+                                    AND     f.num::double precision between p.min_num and p.max_num
+                                    AND     parity = (case when mod(f.num::integer,2)=1 THEN '1' ELSE '2' END)
+                                    )
+                                UPDATE ##(tbl)s t set
+                                    bbl            = u.bbl
+                                FROM  upd u
+                                WHERE u.src_gid = t.##(gid_col)s::bigint
+
+                        \"\"\" ## T
+
+                    try:
+
+                        plpy.execute(p)
+                        return 'ok'
+                    except:
+                        plpy.log("f(x) z_update_with_parsed_info FAILED")
+                        plpy.log(p)
+                        return 'error'
+
+                $$ LANGUAGE plpythonu;
+
+            """.replace('##','%')
+            self.T.conn.set_isolation_level(        0)
+            self.T.cur.execute(                     cmd)
+            return
+        def z_update_with_parsed_info(self):
+            cmd="""
+                DROP FUNCTION IF EXISTS z_update_with_parsed_info(integer,text,text,text,text[]);
+                DROP FUNCTION IF EXISTS z_update_with_parsed_info(integer[],text,text,text,text[]);
+
+                CREATE OR REPLACE FUNCTION z_update_with_parsed_info(idx integer[],tbl text,
+                                                                     gid_col text,addr_col text,
+                                                                     zip_col text, update_cols text[])
+                RETURNS text
+                AS $$
+
+
+                T = {   'tbl'       :   tbl,
+                        'gid_col'   :   gid_col,
+                        'addr_col'  :   addr_col,
+                        'zip_col'   :   zip_col,
+                        'update'    :   ','.join( ['##s = u.##s' ## (it,it) for it in update_cols] ),
+                        'idx_arr'   :   str(idx).replace("u'","'").replace("'",'').strip('[]'),}
+
+                error_occurred      =   False
+
+                p = \"\"\"  WITH upd AS (
+                                SELECT  src_gid,bldg,box,unit,num,predir,name street_name,suftype,sufdir
+                                FROM    z_parse_NY_addrs('
+                                                        select
+                                                            ##(gid_col)s::bigint gid,
+                                                            ##(addr_col)s::text address,
+                                                            ##(zip_col)s::bigint zipcode
+                                                        FROM ##(tbl)s
+                                                        WHERE ##(gid_col)s = any ( array[##(idx_arr)s] )
+                                                        ')
+                                )
+                            UPDATE ##(tbl)s t set
+                                ##(update)s
+                            FROM  upd u
+                            WHERE u.src_gid::bigint = t.##(gid_col)s::bigint
+
+                    \"\"\" ## T
+
+                try:
+                    plpy.execute(p)
+
+                except:
+                    plpy.log("f(x) z_update_with_parsed_info FAILED")
+                    plpy.log("##(gid_col)s =  ##(idx)s" ## T)
+                    error_occurred = True
+
+                if error_occurred:
+                    return 'Finished, but errors logged'
+                else:
+                    return
+
+
+
+
+                $$ LANGUAGE plpythonu;
+
+            """.replace('##','%')
+            self.T.conn.set_isolation_level(        0)
+            self.T.cur.execute(                     cmd)
+            return
         def z_parse_NY_addrs(self):
             T = {'fct_name'                 :   'z_parse_NY_addrs',
                  'fct_args_types'           :   [ ['IN','query_str','text'],],
@@ -1837,6 +1944,7 @@ class pgSQL_Functions:
                                     to_number(concat(s.bldg_street_idx,'.',to_char(s.num::integer,'00000')),'00000.00000')
                                     between l.lot_idx_start and l.lot_idx_end
                                     );
+                                and s.bbl is null
 
 
                         -- COPY BBL VALUE WHERE A MATCH EXISTS BUT THE NEW ADDRESS HAS STREET NUMBER EXCEEDING THE DB IDX
@@ -2000,7 +2108,10 @@ class pgSQL_Functions:
             self.T.cur.execute(                     cmd)
             print cmd
             return
-
+        def z_update_addr_idx_from_gc_info(self):
+            pass
+        def z_update_geom_from_bbl(self):
+            pass
         def z_get_geocode_info(self):
             cmd="""
                 DROP TYPE IF EXISTS geocode_results cascade;
@@ -2423,13 +2534,15 @@ class pgSQL_Triggers:
                             %(tbl)s t,
                             (SELECT regexp_replace(concat(  predir,
                                                             street_name,
-                                                            suftype),'\\s','','g') addr,
+                                                            suftype,
+                                                            sufdir),'\\s','','g') addr,
                                     bldg_street_idx
                                 FROM addr_idx WHERE street_name IS NOT NULL) a
                         WHERE a.bldg_street_idx IS NOT NULL
                         AND a.addr ilike regexp_replace(concat( '##(predir)s',
                                                                 '##(street_name)s',
-                                                                '##(suftype)s'),'\\s','','g')
+                                                                '##(suftype)s',
+                                                                '##(sufdir)s'),'\\s','','g')
                         AND t.%(uid_col)s = ##(%(uid_col)s)s
                         \"\"\" ## T
 
@@ -3269,10 +3382,6 @@ class pgSQL_Tables:
             #                10277, 10278, 10279, 10280, 10281, 10282,
             #                10285, 10286, 10292]
 
-        def nyc_snd(self,table_name='snd',drop_prev=True):
-            from f_nyc_data import load_parsed_snd_datafile_into_db
-            load_parsed_snd_datafile_into_db(table_name,drop_prev)
-
         def regex_repl(self):
             """
 
@@ -3676,7 +3785,17 @@ class pgSQL_Tables:
                         or gid = 36230;
             """
 
+        class NYC:
 
+            def __init__(self,_parent):
+                self.T                          =   _parent.T
+
+            def snd(self,table_name='snd',drop_prev=True):
+                from f_nyc_data import load_parsed_snd_datafile_into_db
+                load_parsed_snd_datafile_into_db(table_name,drop_prev)
+
+            def pad_adr(self):
+                pass
 
 
 class To_Class:

@@ -512,7 +512,7 @@ class Seamless:
         get results from seamless address search and update pgsql -- worked 2014.11.16
         """
         def get_sl_addr_search_results(self,src):
-            br                          =   self.SV.SF.browser()
+            br                          =   self.T.br
             only_delivery               =   True
 
             #------------goto main page, identify PDF-page url, goto PDF-page url
@@ -779,7 +779,7 @@ class Seamless:
 
         base_url                        =   'http://www.seamless.com/food-delivery/'
 
-        br                              =   self.SV.SF.browser()
+        br                              =   self.T.br
 
         stop                            =   False
         for it in x:
@@ -921,7 +921,7 @@ class Seamless:
             query_str                   =   t #if not query_str else query_str
             d                           =   self.T.pd.read_sql(query_str,self.T.eng)
             sl_links                    =   d.sl_link.tolist()
-            br                          =   self.SV.SF.browser()
+            br                          =   self.T.br
 
             base_url                    =   'http://www.seamless.com/food-delivery/'
             first_link                  =   sl_links[0]
@@ -1102,7 +1102,7 @@ class Yelp:
         p                               =   map(lambda s: str(s[0].title()+', New York, NY '+str(s[1])),
                                                 zip(s.address,s.zipcode))
 
-        br                              =   self.SV.SF.browser()
+        br                              =   self.T.br
 
         d_cols                          =   ['vend_name','url','phone']
         base_url                        =   'http://www.yelp.com'
@@ -1559,7 +1559,7 @@ class Yelp:
             d                           =   self.T.pd.read_sql( query_str,self.T.eng )
 
             y_links                     =   d.url.tolist()
-            br                          =   self.SV.SF.browser()
+            br                          =   self.T.br
             comment_sort_opts           =   '?sort_by=date_desc&start=0'
 
             for it in y_links:
