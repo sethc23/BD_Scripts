@@ -84,7 +84,7 @@ class Scrape_Vendors:
                                                  'guid'                 :   str(get_guid().hex)[:7],
                                                  'today'                :   dt.datetime.now(),
                                                  'oldest_comments'      :   str(9*30),                      # in days
-                                                 'transcation_cnt'      :   '100',
+                                                 'transaction_cnt'      :   '100',
                                                  'growl_notice'         :   True,
                                                  'debug'                :   True,}
         D.update(                               {'tmp_tbl'              :   'tmp_' + D['guid'] } )
@@ -716,7 +716,7 @@ class Seamless:
                                                 where address is null
                                                 or sl_updated is null
                                                 or age('now'::timestamp with time zone,sl_updated) > interval '1 day'
-                                                limit %(transcation_cnt)s
+                                                limit %(transaction_cnt)s
                                             """ % self.T
         src                             =   src if not query_str else query_str
         get_sl_addr_search_results(         self,src )
@@ -757,7 +757,7 @@ class Seamless:
                                                     AND t2.inactive     is   false
                                                     GROUP BY t2.%(upd_var)s,t2.%(tbl_uid)s
                                                     ORDER BY t2.%(upd_var)s ASC,t2.%(tbl_uid)s ASC
-                                                    LIMIT %(transcation_cnt)s
+                                                    LIMIT %(transaction_cnt)s
                                                     ) as f1
                                                 WHERE all_ids && array[t.%(tbl_uid)s];
 
@@ -889,7 +889,7 @@ class Seamless:
                                              'upd_var'                  :   'upd_vend_content',
                                              'upd_interval'             :   update_interval,
                                              'select_vars'              :   'id,sl_link',
-                                             'transcation_cnt'          :   grp_size })
+                                             'transaction_cnt'          :   grp_size })
 
         for _iter in range(iterations):
             t                           =   """ UPDATE %(tbl_name)s t
@@ -910,7 +910,7 @@ class Seamless:
                                                     AND t2.skipped      is   false
                                                     GROUP BY t2.%(upd_var)s,t2.%(tbl_uid)s
                                                     ORDER BY t2.%(upd_var)s ASC,t2.%(tbl_uid)s ASC
-                                                    LIMIT %(transcation_cnt)s
+                                                    LIMIT %(transaction_cnt)s
                                                     ) as f1
                                                 WHERE all_ids && array[t.%(tbl_uid)s];
 
@@ -1093,7 +1093,7 @@ class Yelp:
         t                               =   """ select gid,address,zipcode
                                                 from scrape_lattice
                                                 where yelp_updated > '2014-11-24 18:22:59.045361-05'::timestamp with time zone;
-                                                limit %(transcation_cnt)s
+                                                limit %(transaction_cnt)s
                                             """ % self.T
 
         query_str                       =   t if not query_str else query_str
@@ -1235,7 +1235,7 @@ class Yelp:
                                                 where yelp_updated is null
                                                 or age('now'::timestamp with time zone,yelp_updated)
                                                 > interval '1 day'
-                                                limit %(transcation_cnt)s
+                                                limit %(transaction_cnt)s
                                             """ % self.T
 
         query_str                       =   t if not query_str else query_str
@@ -1547,7 +1547,7 @@ class Yelp:
                                                     )
                                                     GROUP BY t2.%(upd_var)s,t2.%(tbl_uid)s
                                                     ORDER BY t2.%(upd_var)s ASC,t2.%(tbl_uid)s ASC
-                                                    LIMIT %(transcation_cnt)s
+                                                    LIMIT %(transaction_cnt)s
                                                     ) as f1
                                                 WHERE all_ids && array[t.%(tbl_uid)s];
 
