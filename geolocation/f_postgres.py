@@ -1234,33 +1234,131 @@ class pgSQL_Functions:
 
 
             """
-            T = {'tbl'      :   '%(tbl)s',
-                 'uid_col'  :   '%(uid_col)s',
-                 'T'        :   '% T'}
-            cmd=""" CREATE OR REPLACE FUNCTION public.z_make_column_primary_serial_key(
+            cmd=""" CREATE OR REPLACE FUNCTION z_make_column_primary_serial_key(
                         table_name text,
                         col_name text,
                         new_col boolean)
                     RETURNS text AS
-                    $BODY$
+                    $$
 
                         T = {'tbl':table_name,'uid_col':col_name}
                         if new_col:
-                            p0 = "ALTER TABLE %(tbl)s ADD COLUMN %(uid_col)s SERIAL;" %(T)s
+                            p0 = "ALTER TABLE %(tbl)s ADD COLUMN %(uid_col)s SERIAL;" % T
                             e = plpy.execute(p0)
 
+                        p2 = \"\"\"
 
-                        p1 = "UPDATE %(tbl)s SET %(uid_col)s = nextval(pg_get_serial_sequence('%(tbl)s','%(uid_col)s'))" %(T)s
-                        e = plpy.execute(p1)
+                                ALTER TABLE %(tbl)s ADD PRIMARY KEY (%(uid_col)s);
 
-                        p2 = "ALTER TABLE %(tbl)s ADD PRIMARY KEY (%(uid_col)s)" %(T)s
+
+                            \"\"\" % T
+                        e = plpy.execute(p2)
+
+                        from time import sleep
+                        sleep(2)
+
+                        p2 = \"\"\"
+
+
+
+                                UPDATE %(tbl)s SET %(uid_col)s =
+                                    nextval(pg_get_serial_sequence('%(tbl)s','%(uid_col)s'));
+
+                            \"\"\" % T
+
+                        plpy.log(p2)
                         e = plpy.execute(p2)
 
                         return 'ok'
 
-                    $BODY$
+                    $$
                     LANGUAGE plpythonu
-                """ % T
+                """
+            cmd="""
+                    DROP FUNCTION IF EXISTS z_make_column_primary_serial_key(text,text,boolean);
+
+                    CREATE OR REPLACE FUNCTION z_make_column_primary_serial_key(
+                        IN tbl text,
+                        IN uid_col text,
+                        IN new_col boolean)
+                    RETURNS VOID AS
+                    $$
+                    DECLARE
+                        _seq text;
+                    BEGIN
+
+                        IF (new_col=True)
+                        THEN execute format('alter table %I add column %s serial primary key;',tbl,uid_col);
+                        END IF;
+
+                                --UPDATE %(tbl)s SET %(uid_col)s =
+                                --    nextval(pg_get_serial_sequence('%(tbl)s','%(uid_col)s'));
+
+
+                        execute format('alter table %I add primary key (%s);',tbl,uid_col);
+                        _seq = format('%I_%s',tbl,uid_col);
+                        execute format('alter table %I alter column %s set default z_next_free(''%s'',''%s'',''%s'')',
+                                                   tbl,            uid_col,                    tbl,uid_col,_seq);
+                        --execute format('alter table %I alter column %s set default
+                        --                    nextval(pg_get_serial_sequence(''%I'',''%s''));',
+                        --                ,tbl,uid_col,tbl,uid_col);
+
+                    END;
+                    $$
+                    LANGUAGE plpgsql
+                """
+            self.T.conn.set_isolation_level(       0)
+            self.T.cur.execute(                    cmd)
+        def z_next_free(self):
+            cmd="""
+                --DROP FUNCTION z_next_free(text, text, text);
+
+                CREATE OR REPLACE FUNCTION z_next_free( table_name text,
+                                                        uid_col text,
+                                                        _seq text)
+                RETURNS integer AS
+                $BODY$
+                stop=False
+                T = {'tbl':table_name,'uid_col':uid_col,'_seq':_seq}
+                p = \"\"\"
+
+                            select count(column_name) c
+                            from INFORMATION_SCHEMA.COLUMNS
+                            where table_name = '%(tbl)s'
+                            and column_name = '%(uid_col)s';
+
+                    \"\"\" % T
+                cnt = plpy.execute(p)[0]['c']
+
+                if cnt==0:
+                    p = "create sequence %(tbl)s_%(uid_col)s_seq start with 1;"%T
+                    t = plpy.execute(p)
+                    p = "alter table %(tbl)s alter column %(uid_col)s set DEFAULT z_next_free('%(tbl)s'::text, 'uid'::text, '%(tbl)s_uid_seq'::text);"%T
+                    t = plpy.execute(p)
+                stop=False
+                while stop==False:
+                    p = "SELECT nextval('%(tbl)s_%(uid_col)s_seq') next_val"%T
+                    try:
+                        t = plpy.execute(p)[0]['next_val']
+                    except plpy.spiexceptions.UndefinedTable:
+                        p = "select max(%(uid_col)s) from %(tbl)s;" % T
+                        max_num = plpy.execute(p)[0]['max']
+                        T.update({'max_num':str(max_num)})
+                        p = "create sequence %(tbl)s_%(uid_col)s_seq start with %(max_num)s;" % T
+                        t = plpy.execute(p)
+                        p = "SELECT nextval('%(tbl)s_%(uid_col)s_seq') next_val"%T
+                        t = plpy.execute(p)[0]['next_val']
+                    T.update({'next_val':t})
+                    p = "SELECT count(%(uid_col)s) cnt from %(tbl)s where %(uid_col)s=%(next_val)s"%T
+                    chk = plpy.execute(p)[0]['cnt']
+                    if chk==0:
+                        stop=True
+                        break
+                return T['next_val']
+
+                $BODY$
+                LANGUAGE plpythonu
+            """
             self.T.conn.set_isolation_level(       0)
             self.T.cur.execute(                    cmd)
         def z_get_way_between_ways(self):
@@ -4385,7 +4483,7 @@ class pgSQL_Tables:
                 SV.T.conn.set_isolation_level(        0)
                 SV.T.cur.execute(                     a)
 
-                # CREATE PAD BBL
+                # CREATE PAD_BBL
                 df2 = SV.T.pd.read_csv(os_path.join(dl_dir,'bobabbl.txt'))
                 t=df2.columns.tolist()
                 new_cols = [it.replace('"','') for it in t]
@@ -4424,14 +4522,14 @@ class pgSQL_Tables:
                 SV.T.conn.set_isolation_level(        0)
                 SV.T.cur.execute(                     a)
 
-                # CREATE PAD DB
+                # CREATE PAD_ADR AND START CLEAN (I.E., ENSURE ALL ADDRESSES HAVE ZIPCODE)
                 df = SV.T.pd.read_csv(os_path.join(dl_dir,'bobaadr.txt'))
                 df[df.boro==1].to_sql('pad_adr',SV.T.eng,index=False)
                 a="""
                     alter table pad_adr
                         add column bbl numeric,
                         add column billbbl numeric,
-                        add column stnum_w_letter boolean,
+                        add column stnum_w_letter boolean default false,
                         add column street_name text;
 
                     update pad_adr set bbl =
@@ -4474,12 +4572,11 @@ class pgSQL_Tables:
                                             and not bbl = '1002230997' -- 2400 READE STREET
                                          """.replace('##','%%'),SV.T.eng).only_known_addr_remaining[0] == True
 
+                # SEPARATE ADDRESSES WHERE STREET NUMBER HAS LETTERS
                 a="""
 
                     delete from pad_adr where zipcode is null
                     and ( lhnd ilike '## AIR##' );
-
-                    update pad_adr set stnum_w_letter = false;
 
                     update pad_adr p set stnum_w_letter = true
                     from
@@ -4519,7 +4616,7 @@ class pgSQL_Tables:
                                             where not p.billbbl = any(all_pluto_bbl)
                                  """,SV.T.eng).no_pad_bbl_billbbl_not_in_pluto_bbl[0] == True
 
-                ## CLEAN UP PLUTO JUST TO BE SAFE
+                ## CLEAN UP PLUTO BBL JUST TO BE SAFE
                 reset_pluto_bbl="""
                     update pluto set bbl =
                     regexp_replace( '1'||
@@ -4551,6 +4648,7 @@ class pgSQL_Tables:
                 SV.T.conn.set_isolation_level(        0)
                 SV.T.cur.execute(                     prepare_to_cross_copy)
 
+                # CROSS MATCH BBL (I.E., WHERE BBL ON ONE ADDRESS HOSTS ADDRESS FOR OTHER SURROUNDING STREETS)
                 cross_match_bbls="""
                     update pad_adr p set billbbl = (select billbbl from pad_bbl where lobbl=_bbl or hibbl=_bbl)
                     from
@@ -4713,7 +4811,6 @@ class pgSQL_Tables:
 
                 print "Had to look up blocks by hand for remaining 20 BBLs"
 
-
                 # CREATE TMP_IDX
                 a="""
 
@@ -4737,17 +4834,16 @@ class pgSQL_Tables:
                 SV.T.conn.set_isolation_level(        0)
                 SV.T.cur.execute(                     a)
 
-                # Copy Parsed_Address to pad_adr
-                # -- run until count is zero
+                # INSERT PARSED INFO ONTO PAD_ADR
                 a="""
-                update pad_adr t set street_name = f1.parsed_addr
-                from
-                (select src_gid,concat_ws(' ',predir,name,suftype,sufdir) parsed_addr
-                from z_parse_ny_addrs('select uid::bigint gid,''0 ''||stname address, zipcode::bigint from pad_adr
-                                        where stnum_w_letter is false and street_name is null
-                                        ')) f1
-                where f1.src_gid::bigint = t.uid::bigint;
-                """
+                    update pad_adr t set street_name = f1.parsed_addr
+                    from
+                    (select src_gid,concat_ws(' ',predir,name,suftype,sufdir) parsed_addr
+                    from z_parse_ny_addrs('select uid::bigint gid,''0 ''||stname address, zipcode::bigint from pad_adr
+                                            where stnum_w_letter is false and street_name is null
+                                            ')) f1
+                    where f1.src_gid::bigint = t.uid::bigint;
+                    """
                 SV.T.conn.set_isolation_level(        0)
                 SV.T.cur.execute(            a)
                 cnt_str = "select count(*) cnt from pad_adr where stnum_w_letter is false and street_name is null"
@@ -4764,7 +4860,7 @@ class pgSQL_Tables:
                                             where not concat_ws(' ',t.predir,t.street_name,t.suftype,t.sufdir) = any (all_parsed)
                                             """,SV.T.eng).all_addr_in_idx_found_in_pad_adr[0] == True
 
-                # Add Min/Max address_num (where stnum_w_letter is False) to tmp_addr_idx
+                # ADD MIN/MAX ADDRESS NUMBERS (where stnum_w_letter is False) to tmp_addr_idx
                 a="""
 
                 alter table tmp_addr_idx_pad
@@ -4813,12 +4909,12 @@ class pgSQL_Tables:
 
                 # Create addr_idx_wl from pad_adr (where stnum_w_letter is True & lhnd == hhnd)
                 a="""
-                drop table if exists addr_idx_wl;
+                    drop table if exists addr_idx_wl;
 
-                create table addr_idx_wl as
-                select * from pad_adr
-                where stnum_w_letter is true
-                and lhnd = hhnd;
+                    create table addr_idx_wl as
+                    select * from pad_adr
+                    where stnum_w_letter is true
+                    and lhnd = hhnd;
                 """
                 SV.T.conn.set_isolation_level(        0)
                 SV.T.cur.execute(                     a)
@@ -4827,7 +4923,7 @@ class pgSQL_Tables:
                 # -- Create Entry for Each Address in Letter Ranges, e.g., 357A to 357F
                 a="""
 
-                insert into addr_idx_wl (boro,lhnd,hhnd,stname,zipcode,bbl)
+                    insert into addr_idx_wl (boro,lhnd,hhnd,stname,zipcode,bbl)
 
                     select  1,
                             concat(base_str,(z).alpha_range) lhnd,
@@ -4865,30 +4961,29 @@ class pgSQL_Tables:
                 # (2/2) Add to addr_idx_wl (where lhnd != hhnd)
                 # -- Add Remaining Ranges that didn't explicitly start with range letter
                 a="""
-                insert into addr_idx_wl (boro,lhnd,hhnd,stname,zipcode,bbl)
-                select '1' boro,(z).alpha_range lhnd,(z).alpha_range hhnd,STNAME,ZIPCODE,BBL
-                from
-                    (
-                    select  f2.stname STNAME,f2.zipcode ZIPCODE,f2.bbl BBL,f2.uid UID,
-                            z_make_rows_with_alpha_range(f2.uid,f2.lhnd,
-                                                        f2.start_r,f2.no_num_r,True) z,
-                            no_num_l,no_num_r
+                    insert into addr_idx_wl (boro,lhnd,hhnd,stname,zipcode,bbl)
+                    select '1' boro,(z).alpha_range lhnd,(z).alpha_range hhnd,STNAME,ZIPCODE,BBL
                     from
                         (
-                        select stname,zipcode,bbl,uid,lhnd,hhnd,'A'::text start_r,
-                            regexp_replace(lhnd,'[0-9]*','','g') no_num_l,
-                            regexp_replace(hhnd,'[0-9]*','','g') no_num_r
+                        select  f2.stname STNAME,f2.zipcode ZIPCODE,f2.bbl BBL,f2.uid UID,
+                                z_make_rows_with_alpha_range(f2.uid,f2.lhnd,
+                                                            f2.start_r,f2.no_num_r,True) z,
+                                no_num_l,no_num_r
                         from
-                            pad_adr p,
-                            (select array_agg(distinct concat(bbl,stname)) all_wl from addr_idx_wl) f1
-                        where stnum_w_letter is true
-                        and not concat(bbl,stname) = any (all_wl)
-                        order by stname
-                        ) f2
-                    where f2.no_num_r = any (array['A','B','C','D','E','F','G','H','I','J','K','L','M'])
-                    ) f3
-                    where UID=(z).uid;
-
+                            (
+                            select stname,zipcode,bbl,uid,lhnd,hhnd,'A'::text start_r,
+                                regexp_replace(lhnd,'[0-9]*','','g') no_num_l,
+                                regexp_replace(hhnd,'[0-9]*','','g') no_num_r
+                            from
+                                pad_adr p,
+                                (select array_agg(distinct concat(bbl,stname)) all_wl from addr_idx_wl) f1
+                            where stnum_w_letter is true
+                            and not concat(bbl,stname) = any (all_wl)
+                            order by stname
+                            ) f2
+                        where f2.no_num_r = any (array['A','B','C','D','E','F','G','H','I','J','K','L','M'])
+                        ) f3
+                        where UID=(z).uid;
 
                 """
                 SV.T.conn.set_isolation_level(        0)
@@ -4903,71 +4998,72 @@ class pgSQL_Tables:
                 #         EAST 119 STREET --> added to addr_idx_wl
                 #         WEST 48 STREET --> added to addr_idx_wl
                 a="""
-                insert into tmp_addr_idx_pad (street_name,suftype,min_num,max_num)
-                values
-                ('F D R','DR',107.01,107.99),
-                ('F D R','DR',108.01,108.99),
-                ('F D R','DR',109.01,109.99),
-                ('F D R','DR',110.01,110.99);
+                    insert into tmp_addr_idx_pad (street_name,suftype,min_num,max_num)
+                    values
+                    ('F D R','DR',107.01,107.99),
+                    ('F D R','DR',108.01,108.99),
+                    ('F D R','DR',109.01,109.99),
+                    ('F D R','DR',110.01,110.99);
 
 
-                insert into addr_idx_wl (boro,lhnd,hhnd,stname,zipcode,bbl)
-                values
-                ('1','247 REAR','247 REAR','EAST 119 STREET','10035','1017840120'),
-                ('1','249 REAR','249 REAR','EAST 119 STREET','10035','1017840120'),
-                ('1','501 REAR','501 REAR','WEST 48 STREET','10036','1010770029'),
-                ('1','503 REAR','503 REAR','WEST 48 STREET','10036','1010770029');
-
-                """
-                SV.T.conn.set_isolation_level(        0)
-                SV.T.cur.execute(                     a)
-
-                a="""
-
-                -- UPDATE MIN/MAX BLDG NUMBERS
-                update pad_adr set min_num = lhnd::double precision,max_num = hhnd::double precision
-                where stnum_w_letter is false;
-
-                alter table pad_adr add column tmp_addr text;
-                update pad_adr set tmp_addr = concat_ws(' ',min_num::integer,stname) where stnum_w_letter is false;
-
-                select z_update_with_parsed_info(array_agg(p.uid),'pad_adr','uid','tmp_addr','zipcode',
-                                                    array['street_name','predir','suftype','sufdir'])
-                from pad_adr p where stnum_w_letter is false;
-
-                alter table pad_adr drop column if exists tmp_addr;
-
-                -- MAKE LINKAGE B/T pad_adr AND pluto
-                --    (having already asserted all pad_bbl.billbbl exist in pluto)
-                update pad_adr a set billbbl = b.billbbl
-                    from pad_bbl b where
-                    b.lobbl = a.bbl
-                    or b.hibbl = a.bbl
-                    or b.billbbl = a.bbl;
-
-                -- ADD GEOM/BBL BASE ON MATCHES WITH PLUTO
-                select z_update_with_geom_from_parsed(array_agg(p.uid),'pad_adr','uid')
-                from pad_adr p where stnum_w_letter is false;
+                    insert into addr_idx_wl (boro,lhnd,hhnd,stname,zipcode,bbl)
+                    values
+                    ('1','247 REAR','247 REAR','EAST 119 STREET','10035','1017840120'),
+                    ('1','249 REAR','249 REAR','EAST 119 STREET','10035','1017840120'),
+                    ('1','501 REAR','501 REAR','WEST 48 STREET','10036','1010770029'),
+                    ('1','503 REAR','503 REAR','WEST 48 STREET','10036','1010770029');
 
                 """
                 SV.T.conn.set_isolation_level(        0)
                 SV.T.cur.execute(                     a)
 
-
+                # ** BELOW NEEDS TO BE INTEGRATED WITH ABOVE
                 a="""
-                select count(*) from pad_adr where
-                stnum_w_letter is false
-                and
-                    (street_name is null
-                    or (suftype is null and
-                        not (
-                            street_name ilike '%broadway%'
-                            or street_name ilike '%bowery%'
-                            or street_name ilike '%slip%'
+                    -- UPDATE MIN/MAX BLDG NUMBERS
+                    update pad_adr set min_num = lhnd::double precision,max_num = hhnd::double precision
+                    where stnum_w_letter is false;
+
+                    -- ADD PARSED INFO
+                    alter table pad_adr add column tmp_addr text;
+                    update pad_adr set tmp_addr = concat_ws(' ',min_num::integer,stname) where stnum_w_letter is false;
+
+                    select z_update_with_parsed_info(array_agg(p.uid),'pad_adr','uid','tmp_addr','zipcode',
+                                                        array['street_name','predir','suftype','sufdir'])
+                    from pad_adr p where stnum_w_letter is false;
+
+                    alter table pad_adr drop column if exists tmp_addr;
+
+                    -- MAKE LINKAGE B/T pad_adr AND pluto
+                    --    (having already asserted all pad_bbl.billbbl exist in pluto)
+                    update pad_adr a set billbbl = b.billbbl
+                        from pad_bbl b where
+                        b.lobbl = a.bbl
+                        or b.hibbl = a.bbl
+                        or b.billbbl = a.bbl;
+
+                    -- ADD GEOM/BBL BASE ON MATCHES WITH PLUTO
+                    select z_update_with_geom_from_parsed(array_agg(p.uid),'pad_adr','uid')
+                    from pad_adr p where stnum_w_letter is false;
+
+                """
+                SV.T.conn.set_isolation_level(        0)
+                SV.T.cur.execute(                     a)
+
+                # ** THIS SHOULD BE AN ASSERTION
+                a="""
+                    select count(*) from pad_adr where
+                    stnum_w_letter is false
+                    and
+                        (street_name is null
+                        or (suftype is null and
+                            not (
+                                street_name ilike '%broadway%'
+                                or street_name ilike '%bowery%'
+                                or street_name ilike '%slip%'
+                                )
                             )
-                        )
-                    or min_num is null
-                    or max_num is null)
+                        or min_num is null
+                        or max_num is null)
                 """
 
 
