@@ -491,10 +491,10 @@ class Seamless:
         if rating!=-1:
 
             try:
-                review_url              =   self.T.getTagsByAttr(html, 'a',
-                                                          {'class':'showRatingsTab'},
-                                                          contents=False)[0].attrs['href']
+                review_url              =   self.T.getTagsByAttr(html, 'a',{'class':'showRatingsTab'},contents=False)[0].attrs['href']
                 br.open_page(               review_url)
+                br.wait_for_page(           timeout_seconds=120)
+                html                    =   br.source()
                 self.SL.save_comments(      br,html,seamless_link)
 
             except Exception, err:
