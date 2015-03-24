@@ -510,7 +510,8 @@ class Seamless:
 
         return
     #   seamless: 1 of 3
-    def scrape_sl_1_search_results(self,query_limit='',grp_size=100,iterations=10,update_interval='3 days'):
+    def scrape_sl_1_search_results(self,query_limit='',grp_size=100,iterations=10,
+                                   update_interval='3 days',until_end=False):
         """
         get results from seamless address search and update pgsql -- worked 2014.11.16
         """
@@ -534,6 +535,9 @@ class Seamless:
             for i in range(len(d)):
                 street,zipcode,gid      =   d.ix[i,['address','zipcode','gid']].astype(str)
                 address                 =   street.title() + ', New York, NY, ' + zipcode
+
+                # <html class="ng-scope" id="ng-app" ng-app="ghs.app" ng-controller="SiteController as site"
+                # br.browser.find_element_by_class_name('homeBanner-back-btn').click()
 
                 new_addr_element        =   br.window.find_element_by_name("singleAddressEntry")
                 if new_addr_element.is_displayed():
@@ -711,6 +715,8 @@ class Seamless:
                 addresses.find_elements_by_tag_name('option')[last_option].click()
                 br.wait_for_page(           timeout_seconds=120)
 
+            return len(d)
+
         print self.T['guid']
 
         self.T.update(                      {'tbl_name'                 :   'scrape_lattice',
@@ -729,8 +735,7 @@ class Seamless:
                                                                             """ % self.T
         self.T.update(                      {'query_limit'              :   q_lim   })
 
-        for _iter in range(iterations):
-            qry                         =   """ UPDATE %(tbl_name)s t
+        qry                             =   """ UPDATE %(tbl_name)s t
                                                     SET %(checkout_var)s    =   null
                                                     WHERE %(checkout_var)s  =   '%(guid)s';
 
@@ -755,7 +760,16 @@ class Seamless:
                                                 WHERE %(checkout_var)s       =   '%(guid)s';
                                             """ % self.T
 
-            get_sl_addr_search_results(         self,qry )
+        if until_end:
+            stop_iter                   =   False
+            while stop_iter==False:
+                qry_res_cnt             =   get_sl_addr_search_results(self,qry )
+                if qry_res_cnt<self.T.transaction_cnt:
+                    stop_iter           =   True
+                    break
+        else:
+            for _iter in range(iterations):
+                get_sl_addr_search_results(         self,qry )
 
         self.T.br.quit()
         self.T.update(                      {'line_no'                  :   self.T.I.currentframe().f_back.f_lineno})
@@ -919,44 +933,11 @@ class Seamless:
         br.quit()
         return True
     #   seamless: 3 of 3
-    def scrape_sl_3_known_vendor_pages(self,grp_size=100,iterations=10,update_interval='3 days'):
-        print self.T['guid']
-        self.T.update(                      {'tbl_name'                 :   'seamless',
-                                             'tbl_uid'                  :   'id',
-                                             'upd_var'                  :   'upd_vend_content',
-                                             'upd_interval'             :   update_interval,
-                                             'select_vars'              :   'id,sl_link',
-                                             'transaction_cnt'          :   grp_size })
+    def scrape_sl_3_known_vendor_pages(self,query_limit='',grp_size=100,iterations=10,
+                                       update_interval='3 days',until_end=False):
 
-        for _iter in range(iterations):
-            t                           =   """ UPDATE %(tbl_name)s t
-                                                    SET checked_out     =   null
-                                                    WHERE checked_out   =   '%(guid)s';
-
-                                                UPDATE %(tbl_name)s t
-                                                SET checked_out         =   '%(guid)s'
-                                                FROM (
-                                                    SELECT array_agg(%(tbl_uid)s) all_ids from %(tbl_name)s t2
-                                                    WHERE ( t2.checked_out is null )
-                                                    AND (
-                                                        t2.%(upd_var)s  is   null
-                                                        OR age('now'::timestamp with time zone,
-                                                               t2.%(upd_var)s) > interval '%(upd_interval)s'
-                                                    )
-                                                    AND t2.inactive     is   false
-                                                    AND t2.skipped      is   false
-                                                    GROUP BY t2.%(upd_var)s,t2.%(tbl_uid)s
-                                                    ORDER BY t2.%(upd_var)s ASC,t2.%(tbl_uid)s ASC
-                                                    LIMIT %(transaction_cnt)s
-                                                    ) as f1
-                                                WHERE all_ids && array[t.%(tbl_uid)s];
-
-                                                SELECT %(select_vars)s from %(tbl_name)s
-                                                WHERE checked_out       =   '%(guid)s';
-                                            """ % self.T
-
-            query_str                   =   t #if not query_str else query_str
-            d                           =   self.T.pd.read_sql(query_str,self.T.eng)
+        def get_sl_vendor_page_info( self,qry ):
+            d                           =   self.T.pd.read_sql(qry,self.T.eng)
             sl_links                    =   d.sl_link.tolist()
             br                          =   self.T.br
 
@@ -964,7 +945,7 @@ class Seamless:
             try:
                 first_link              =   sl_links[0]
             except IndexError:
-                break
+                return 0
             url                         =   base_url+first_link.replace(base_url,'')
             br.open_page(                   url)
 
@@ -995,6 +976,56 @@ class Seamless:
                     self.T.conn.set_isolation_level(   0)
                     self.T.cur.execute(     "update seamless set skipped=true,checked_out=null where sl_link = %s"%current_url)
                     skipped            +=   1
+
+            return len(d)
+
+        print self.T['guid']
+        self.T.update(                      {'tbl_name'                 :   'seamless',
+                                             'tbl_uid'                  :   'id',
+                                             'upd_var'                  :   'upd_vend_content',
+                                             'upd_interval'             :   update_interval,
+                                             'select_vars'              :   'id,sl_link',
+                                             'transaction_cnt'          :   grp_size })
+
+        qry                         =   """ UPDATE %(tbl_name)s t
+                                                SET checked_out     =   null
+                                                WHERE checked_out   =   '%(guid)s';
+
+                                            UPDATE %(tbl_name)s t
+                                            SET checked_out         =   '%(guid)s'
+                                            FROM (
+                                                SELECT array_agg(%(tbl_uid)s) all_ids from %(tbl_name)s t2
+                                                WHERE ( t2.checked_out is null )
+                                                AND (
+                                                    t2.%(upd_var)s  is   null
+                                                    OR age('now'::timestamp with time zone,
+                                                           t2.%(upd_var)s) > interval '%(upd_interval)s'
+                                                )
+                                                AND t2.inactive     is   false
+                                                AND t2.skipped      is   false
+                                                GROUP BY t2.%(upd_var)s,t2.%(tbl_uid)s
+                                                ORDER BY t2.%(upd_var)s ASC,t2.%(tbl_uid)s ASC
+                                                LIMIT %(transaction_cnt)s
+                                                ) as f1
+                                            WHERE all_ids && array[t.%(tbl_uid)s];
+
+                                            SELECT %(select_vars)s from %(tbl_name)s
+                                            WHERE checked_out       =   '%(guid)s';
+                                        """ % self.T
+
+        if until_end:
+            stop_iter                   =   False
+            while stop_iter==False:
+                qry_res_cnt             =   get_sl_vendor_page_info(self,qry )
+                if qry_res_cnt<self.T.transaction_cnt:
+                    stop_iter           =   True
+                    break
+        else:
+            for _iter in range(iterations):
+                get_sl_vendor_page_info(         self,qry )
+
+
+
 
         self.T.update(                      {'line_no'                  :   self.T.I.currentframe().f_back.f_lineno,
                                              'vend_num'                 :   str(self.T.transaction_cnt * iterations)})
@@ -1119,7 +1150,8 @@ class Yelp:
 
     # YELP FUNCTIONS
     #   yelp:     0 of 2
-    def scrape_yelp_0_search_results(self,query_limit='',grp_size=100,iterations=10,update_interval='3 days'):
+    def scrape_yelp_0_search_results(self,query_limit='',grp_size=100,iterations=10,
+                                     update_interval='3 days',until_end=False):
         """
         get results from yelp address search and update pgsql
         """
@@ -1238,6 +1270,7 @@ class Yelp:
                                                 """ % self.T
                         self.T.conn.set_isolation_level(0)
                         self.T.cur.execute(     cmd)
+            return len(p)
 
         print self.T['guid']
 
@@ -1286,17 +1319,22 @@ class Yelp:
                                                     WHERE %(checkout_var)s       =   '%(guid)s';
                                                 """ % self.T
 
-            get_y_addr_search_results(          self,qry)
-
-
-
+        if until_end:
+            stop_iter                   =   False
+            while stop_iter==False:
+                qry_res_cnt             =   get_y_addr_search_results(self,qry)
+                if qry_res_cnt<self.T.transaction_cnt:
+                    stop_iter           =   True
+                    break
+        else:
+            for _iter in range(iterations):
+                get_y_addr_search_results(  self,qry)
 
         self.T.br.quit()
-        self.T.update(                      {'line_no'                  :   self.T.I.currentframe().f_back.f_lineno})
-        msg                             =   '%(line_no)s Yelp@%(user)s<%(guid)s>: Search Results Scraped.' % self.T
+        self.T.update(                          {'line_no'                  :   self.T.I.currentframe().f_back.f_lineno})
+        msg                             =       '%(line_no)s Yelp@%(user)s<%(guid)s>: Search Results Scraped.' % self.T
         print msg
-        self.T.SYS_r._growl(                       msg)
-        br.quit()
+        self.T.SYS_r._growl(                    msg)
         return True
     #   yelp:     1 of 2
     def scrape_yelp_1_api(self,query_str='',scrape_lattice='scrape_lattice'):
@@ -1529,7 +1567,8 @@ class Yelp:
         br.quit()
         return
     #   yelp:     2 of 2
-    def scrape_yelp_2_vendor_pages(self,grp_size=100,iterations=10,update_interval='3 days'):
+    def scrape_yelp_2_vendor_pages(self,query_limit='',grp_size=100,iterations=10,
+                                   update_interval='3 days',until_end=False):
         """
         use yelp.url to get hours from each page and update pgsql
         """
@@ -1602,46 +1641,8 @@ class Yelp:
                                             """ % self.T
             self.T.cur.execute(                    cmd)
             return
-
-        self.T.update(                     { 'tbl_name'                     :   'yelp',
-                                             'tbl_uid'                      :   'uid',
-                                             'upd_var'                      :   'hours_updated',
-                                             'upd_interval'                 :   update_interval,
-                                             'select_vars'                  :   'uid,url',
-                                             'transaction_cnt'              :   grp_size})
-
-        for _iter in range(iterations):
-            t                           =   """ UPDATE %(tbl_name)s t
-                                                    SET checked_out         =   null
-                                                    WHERE checked_out       =   '%(guid)s';
-
-                                                UPDATE %(tbl_name)s t
-                                                SET checked_out             =   '%(guid)s'
-                                                FROM (
-                                                    SELECT array_agg(%(tbl_uid)s) all_ids from %(tbl_name)s t2
-                                                    WHERE ( t2.checked_out is null )
-                                                    AND (
-
-                                                        t2.%(upd_var)s      is   null
-                                                        OR age('now'::timestamp with time zone,
-                                                               t2.%(upd_var)s) > interval '%(upd_interval)s'
-
-                                                        --tmp = True
-                                                        --AND address is null
-
-                                                    )
-                                                    GROUP BY t2.%(upd_var)s,t2.%(tbl_uid)s
-                                                    ORDER BY t2.%(upd_var)s ASC,t2.%(tbl_uid)s ASC
-                                                    LIMIT %(transaction_cnt)s
-                                                    ) as f1
-                                                WHERE all_ids && array[t.%(tbl_uid)s];
-
-                                                SELECT * from %(tbl_name)s
-                                                WHERE checked_out           =   '%(guid)s';
-                                            """ % self.T
-
-            query_str                   =   t #if not query_str else query_str
-            df                          =   self.T.pd.read_sql( query_str,self.T.eng )
+        def get_y_vendor_page_info( self,qry ):
+            df                          =   self.T.pd.read_sql( qry,self.T.eng )
 
             br                          =   self.T.br
             comment_sort_opts           =   '?sort_by=date_desc&start=0'
@@ -1784,6 +1785,57 @@ class Yelp:
 
                 # Save Comments To Separate Table
                 save_comments(              self,br,html,vend_data['url'])
+
+            return len(df)
+
+        self.T.update(                     { 'tbl_name'                     :   'yelp',
+                                             'tbl_uid'                      :   'uid',
+                                             'upd_var'                      :   'hours_updated',
+                                             'upd_interval'                 :   update_interval,
+                                             'select_vars'                  :   'uid,url',
+                                             'transaction_cnt'              :   grp_size})
+
+        qry                             =   """ UPDATE %(tbl_name)s t
+                                                    SET checked_out         =   null
+                                                    WHERE checked_out       =   '%(guid)s';
+
+                                                UPDATE %(tbl_name)s t
+                                                SET checked_out             =   '%(guid)s'
+                                                FROM (
+                                                    SELECT array_agg(%(tbl_uid)s) all_ids from %(tbl_name)s t2
+                                                    WHERE ( t2.checked_out is null )
+                                                    AND (
+
+                                                        t2.%(upd_var)s      is   null
+                                                        OR age('now'::timestamp with time zone,
+                                                               t2.%(upd_var)s) > interval '%(upd_interval)s'
+
+                                                        --tmp = True
+                                                        --AND address is null
+
+                                                    )
+                                                    GROUP BY t2.%(upd_var)s,t2.%(tbl_uid)s
+                                                    ORDER BY t2.%(upd_var)s ASC,t2.%(tbl_uid)s ASC
+                                                    LIMIT %(transaction_cnt)s
+                                                    ) as f1
+                                                WHERE all_ids && array[t.%(tbl_uid)s];
+
+                                                SELECT * from %(tbl_name)s
+                                                WHERE checked_out           =   '%(guid)s';
+                                            """ % self.T
+
+        if until_end:
+            stop_iter                   =   False
+            while stop_iter==False:
+                qry_res_cnt             =   get_y_vendor_page_info( self,qry )
+                if qry_res_cnt<self.T.transaction_cnt:
+                    stop_iter           =   True
+                    break
+        else:
+            for _iter in range(iterations):
+                get_y_vendor_page_info(     self,qry )
+
+
 
         self.T.update(                      {'line_no'                      :   self.T.I.currentframe().f_back.f_lineno,
                                              'vend_num'                     :   str(self.T.transaction_cnt * iterations)})

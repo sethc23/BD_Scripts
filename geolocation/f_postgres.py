@@ -3241,6 +3241,7 @@ class pgSQL_Triggers:
                 CREATE OR REPLACE FUNCTION z_yelp_set_trigger_on_addr_not_provided()
                 RETURNS TRIGGER AS $funct$
 
+                from os                             import system           as os_cmd
                 #from traceback                      import format_exc       as tb_format_exc
                 #from sys                            import exc_info         as sys_exc_info
 
@@ -3249,6 +3250,8 @@ class pgSQL_Triggers:
                         TD["new"]["address"] != 'not_provided'):
                         return
                     else:
+                        os_cmd('curl http://0.0.0.0:14401?table=
+
                         TD["new"]["trigger_step"] = 'get_geom_from_coords'
                         return "MODIFY"
 
