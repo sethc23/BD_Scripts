@@ -1797,11 +1797,14 @@ class pgSQL_Functions:
                                     FROM
                                         pluto p,
                                         (SELECT uid,st_geomfromtext(concat_ws('','POINT (',lon,' ',lat,')'),4326) txt_pt
-                                        from
+                                        FROM
                                             (
                                             select ##(gid_col)s uid,##(lat_col)s lat,##(lon_col)s lon
                                             from ##(tbl)s where ##(gid_col)s = ##(idx)s
+                                            and ##(lat_col)s is not null
+                                            and ##(lon_col)s is not null
                                             ) f2
+                                        WHERE lat is not null and lon is not null
                                         ) f3
                                     WHERE st_dwithin(p.geom::geography,txt_pt::geography,##(search_rad)f*1609.34)
                                     ) f4
@@ -1819,15 +1822,20 @@ class pgSQL_Functions:
 
                         \"\"\"
 
-                    res,cnt = 0,10
+                    res,cnt,stopped = 0,10,False
                     while res==0:
                         res = len(plpy.execute(p ## T))
+                        plpy.log(res)
                         T.update({'search_rad':T['search_rad']+0.005})
                         cnt -= 1
                         if res>0 or cnt<=0:
+                            stopped = True
                             break
 
-                    return 'ok'
+                    if stopped==True:
+                        return 'nothing updated'
+                    else:
+                        return 'ok'
 
                 $$ LANGUAGE plpythonu;
 
@@ -1915,8 +1923,72 @@ class pgSQL_Functions:
         def z_update_with_geom_from_parsed(self):
             cmd="""
                 DROP FUNCTION IF EXISTS z_update_with_geom_from_parsed(integer,text,text);
-                DROP FUNCTION IF EXISTS z_update_with_geom_from_parsed(integer[],text,text);
 
+                CREATE OR REPLACE FUNCTION z_update_with_geom_from_parsed(idx integer,tbl text,gid_col text)
+                RETURNS text
+                AS $$
+
+                    from traceback                      import format_exc       as tb_format_exc
+                    from sys                            import exc_info         as sys_exc_info
+
+                    T = {   'idx'       :   str(idx),
+                            'tbl'       :   tbl,
+                            'gid_col'   :   gid_col,
+                            'idx'       :   str(idx),     }
+
+                    p = \"\"\"  WITH upd AS (
+                                    SELECT  p.billbbl,f.uid::bigint src_gid
+                                    FROM    pad_adr p,
+                                            (   select ##(gid_col)s uid,num,concat_ws(' ',predir,street_name,suftype,sufdir ) concat_addr
+                                                from ##(tbl)s where ##(gid_col)s = ##(idx)s   ) f
+                                    WHERE   concat_ws(' ',p.predir,p.street_name,p.suftype,p.sufdir ) = f.concat_addr
+                                        -- street number within range
+                                    AND     (
+                                            -- <<
+                                            -- street number within range
+                                            (   (p.min_num is not null AND p.max_num is not null)
+                                                AND (p.min_num <= f.num::double precision and f.num::double precision <= p.max_num)
+                                                AND p.parity::integer = (case when mod((f.num::double precision)::integer,2)=1 THEN 1 ELSE 2 END)
+
+                                                    -- parity=2 means even, parity=1 means odd
+                                            )
+                                            OR
+                                            -- street number equals min_max num
+                                            (   (p.min_num is null OR p.max_num is null)
+                                                AND (p.min_num = f.num::double precision OR p.max_num = f.num::double precision)
+                                            )
+                                            -- >>
+                                            )
+                                    )
+
+                                UPDATE ##(tbl)s t set
+                                        bbl         =   u.billbbl,
+                                        geom        =   pc.geom
+                                FROM    upd u, pluto_centroids pc
+                                WHERE   u.src_gid   =   t.##(gid_col)s::bigint
+                                AND     u.billbbl   =   pc.bbl
+                                RETURNING u.src_gid uid
+
+                        \"\"\" ## T
+
+                    try:
+                        res = plpy.execute(p)
+                        if len(res)>0:
+                            return 'OK'
+                        else:
+                            return 'nothing updated'
+                    except:
+                        plpy.log("f(x) z_update_with_parsed_info FAILED")
+                        plpy.log(p)
+                        plpy.log(                       tb_format_exc())
+                        plpy.log(                       sys_exc_info()[0])
+                        return 'ERROR'
+
+                $$ LANGUAGE plpythonu;
+
+
+
+                DROP FUNCTION IF EXISTS z_update_with_geom_from_parsed(integer[],text,text);
                 CREATE OR REPLACE FUNCTION z_update_with_geom_from_parsed(idx integer[],tbl text,gid_col text)
                 RETURNS text
                 AS $$
@@ -2079,8 +2151,94 @@ class pgSQL_Functions:
             self.T.conn.set_isolation_level(        0)
             self.T.cur.execute(                     cmd)
             return
+
         def z_update_with_parsed_info(self):
             cmd="""
+                DROP FUNCTION IF EXISTS z_update_with_parsed_info(integer,text, text,text, text,text[], boolean);
+                CREATE OR REPLACE FUNCTION z_update_with_parsed_info(idx integer,tbl text,
+                                                                     gid_col text,addr_col text,
+                                                                     zip_col text,
+                                                                     update_cols text[] default array['num','predir','street_name','suftype','sufdir'],
+                                                                     validity_check boolean default true)
+                RETURNS text AS $$
+
+                from traceback                      import format_exc       as tb_format_exc
+                from sys                            import exc_info         as sys_exc_info
+
+                T = {   'tbl'       :   tbl,
+                        'gid_col'   :   gid_col,
+                        'addr_col'  :   addr_col,
+                        'zip_col'   :   zip_col,
+                        'update'    :   ','.join( ['##s = u.##s' ## (it,it) for it in update_cols] ),
+                        'idx'       :   str(idx),
+                        'and_valid' :   '',}
+
+                if validity_check:
+                    T['and_valid']  =   ' '.join(["AND u.num ~ '^([0-9]+|[.][0-9]+|[0-9]+[.][0-9]+)$'",
+                                                  "AND u.num != '0'"
+                                                  "AND u.street_name is not null",
+                                                  "AND (",
+                                                    "u.suftype is not null",
+                                                    "or (",
+                                                        "u.street_name ilike '####broadway####'",
+                                                        "or u.street_name ilike '####bowery####'"
+                                                        "or u.street_name ilike '####slip####'",
+                                                    ")",
+                                                  ")"])
+
+                p = \"\"\"  WITH upd AS (
+                                SELECT  src_gid,bldg,box,unit,num,predir,name street_name,suftype,sufdir
+                                FROM    z_parse_NY_addrs('
+                                                        select
+                                                            ##(gid_col)s::bigint gid,
+                                                            ##(addr_col)s::text address,
+                                                            ##(zip_col)s::bigint zipcode
+                                                        FROM ##(tbl)s
+                                                        WHERE ##(gid_col)s = ##(idx)s
+                                                        ')
+                                )
+
+                            UPDATE ##(tbl)s t set
+                                ##(update)s
+                            FROM  upd u
+                            WHERE u.src_gid = t.##(gid_col)s::bigint
+                            ##(and_valid)s
+                            RETURNING u.src_gid
+
+                    \"\"\" ## T
+
+                try:
+                    res = plpy.execute(p)
+
+                    if len(res)>0:
+                        if res[0]['src_gid']==idx:
+                            return 'OK'
+                    else:
+                        return None
+                    #plpy.log(res)
+
+                # except UndefinedColumn as e:
+                #
+                #     new_col_q = \"\"\"
+                #                     select regexp_replace('"+e+"',
+                #                         '(column [[:alnum:]]+[[:period:]])([^%s])([%s][does not exist]',
+                #                         '%1')
+                #                 \"\"\"
+                #     T.update({ 'new_col': plpy.execute(new_col_q) })
+                #
+                #     ps1 = 'alter table ##(tbl)s add column %(new_col)s %(new_col_info)s' % T
+                except:
+                    plpy.log(tbl)
+                    plpy.log(                       "f(x) z_update_with_parsed_info FAILED")
+                    plpy.log(                       tb_format_exc())
+                    plpy.log(                       sys_exc_info())
+                    return 'WHAT2'
+                    # return '\\n\\n'.join([ 'ERROR:'] + **tb_format_exc() + **sys_exc_info() ])
+
+
+                $$ LANGUAGE plpythonu;
+
+                -- << INTEGER [] >> --
                 DROP FUNCTION IF EXISTS z_update_with_parsed_info(integer[],text,text,text,text,text[],boolean);
 
                 CREATE OR REPLACE FUNCTION z_update_with_parsed_info(idx integer[],tbl text,
@@ -3176,7 +3334,7 @@ class pgSQL_Triggers:
             self.T.conn.set_isolation_level(       0)
             self.T.cur.execute(                    a)
             return
-        def z_update_with_geom_from_coords(self,tbl,uid_col):
+        def NOT_USING_z_update_with_geom_from_coords(self,tbl,uid_col):
             a="""
                 DROP FUNCTION if exists z_update_with_geom_from_coords_on_%(tbl)s() cascade;
                 DROP TRIGGER if exists update_with_geom_from_coords_on_%(tbl)s ON %(tbl)s;
@@ -3233,6 +3391,118 @@ class pgSQL_Triggers:
             self.T.conn.set_isolation_level(        0)
             self.T.cur.execute(                     cmd)
             return
+
+        def z_trigger_when_first_parsed(self,tbl,uid_col,addr_col):
+            cmd="""
+                DROP FUNCTION if exists z_trigger_when_first_parsed_on_%(tbl)s_in_%(addr_col)s() cascade;
+                DROP TRIGGER if exists trigger_when_first_parsed_on_%(tbl)s_in_%(addr_col)s ON %(tbl)s;
+
+                CREATE OR REPLACE FUNCTION z_trigger_when_first_parsed_on_%(tbl)s_in_%(addr_col)s()
+                RETURNS TRIGGER AS $funct$
+
+                from os                             import system           as os_cmd
+                from traceback                      import format_exc       as tb_format_exc
+                from sys                            import exc_info         as sys_exc_info
+
+                try:
+                    T = TD["new"]
+                    if (T["%(addr_col)s"] == 'not_provided' or
+                        T["%(addr_col)s"] == '' or
+                        T["trigger_step"] != 'new_address.1.parsed'):
+                        return
+                    else:
+                        cmd = ''.join([ "curl -X POST ",
+                                        "'",
+                                        '&'.join([  "http://0.0.0.0:14401?",
+                                                    "table=%(tbl)s",
+                                                    "trigger=new_address.1.parsed.",
+                                                    "uid_col=%(uid_col)s",
+                                                    "addr_col=%(addr_col)s",
+                                                    "idx=##s" ## T['%(uid_col)s'] ]),
+                                        "'",
+                                        #" > /dev/null 2>&1",
+                                        " &",
+                                         ])
+                        plpy.log(cmd)
+                        os_cmd(cmd)
+                        plpy.execute("update %(tbl)s set trigger_step = 'new_address.1.parsed.ngx' where %(uid_col)s =##s" ## T['%(uid_col)s'] )
+                        return
+
+                except plpy.SPIError:
+                    plpy.log('set_trigger_when_new_addr_on_%(tbl)s_in_%(addr_col)s FAILED')
+                    plpy.log(tb_format_exc())
+                    plpy.log(sys_exc_info()[0])
+                    return
+
+
+                $funct$ language "plpythonu";
+
+                CREATE TRIGGER trigger_when_first_parsed_on_%(tbl)s_in_%(addr_col)s
+                AFTER UPDATE OR INSERT ON %(tbl)s
+                FOR EACH ROW
+                EXECUTE PROCEDURE z_trigger_when_first_parsed_on_%(tbl)s_in_%(addr_col)s();
+            """ % { "tbl"                        :   tbl,
+                    "uid_col"                    :   uid_col,
+                    "addr_col"                   :   addr_col }
+            self.T.conn.set_isolation_level(        0)
+            self.T.cur.execute(                     cmd.replace('##','%'))
+            return
+        def z_trigger_when_new_addr(self,tbl,uid_col,addr_col):
+            cmd="""
+                DROP FUNCTION if exists z_trigger_when_new_addr_on_%(tbl)s_in_%(addr_col)s() cascade;
+                DROP TRIGGER if exists set_trigger_when_new_addr_on_%(tbl)s_in_%(addr_col)s ON %(tbl)s;
+
+                CREATE OR REPLACE FUNCTION z_trigger_when_new_addr_on_%(tbl)s_in_%(addr_col)s()
+                RETURNS TRIGGER AS $funct$
+
+                from os                             import system           as os_cmd
+                from traceback                      import format_exc       as tb_format_exc
+                from sys                            import exc_info         as sys_exc_info
+
+                try:
+                    T = TD["new"]
+                    if (T["%(addr_col)s"] == 'not_provided' or
+                        T["%(addr_col)s"] == '' or
+                        T["trigger_step"] != 'new_address.1'):
+                        return
+                    else:
+                        cmd = ''.join([ "curl -X POST ",
+                                        "'",
+                                        '&'.join([  "http://0.0.0.0:14401?",
+                                                    "table=%(tbl)s",
+                                                    "trigger=new_address.1",
+                                                    "uid_col=%(uid_col)s",
+                                                    "addr_col=%(addr_col)s",
+                                                    "idx=##s" ## T['%(uid_col)s'] ]),
+                                        "'",
+                                        #" > /dev/null 2>&1",
+                                        " &",
+                                         ])
+                        plpy.log(cmd)
+                        os_cmd(cmd)
+                        plpy.execute("update %(tbl)s set trigger_step = 'new_address.1.ngx' where %(uid_col)s =##s" ## T['%(uid_col)s'] )
+                        return
+
+                except plpy.SPIError:
+                    plpy.log('set_trigger_when_new_addr_on_%(tbl)s_in_%(addr_col)s FAILED')
+                    plpy.log(tb_format_exc())
+                    plpy.log(sys_exc_info()[0])
+                    return
+
+
+                $funct$ language "plpythonu";
+
+                CREATE TRIGGER trigger_when_new_addr_on_%(tbl)s_in_%(addr_col)s
+                AFTER UPDATE OR INSERT ON %(tbl)s
+                FOR EACH ROW
+                EXECUTE PROCEDURE z_trigger_when_new_addr_on_%(tbl)s_in_%(addr_col)s();
+            """ % { "tbl"                        :   tbl,
+                    "uid_col"                    :   uid_col,
+                    "addr_col"                   :   addr_col }
+            self.T.conn.set_isolation_level(        0)
+            self.T.cur.execute(                     cmd.replace('##','%'))
+            return
+
         def z_yelp_set_trigger_on_addr_not_provided(self):
             cmd="""
                 DROP FUNCTION if exists z_yelp_set_trigger_on_addr_not_provided() cascade;
@@ -3242,30 +3512,32 @@ class pgSQL_Triggers:
                 RETURNS TRIGGER AS $funct$
 
                 from os                             import system           as os_cmd
-                #from traceback                      import format_exc       as tb_format_exc
-                #from sys                            import exc_info         as sys_exc_info
+                from traceback                      import format_exc       as tb_format_exc
+                from sys                            import exc_info         as sys_exc_info
 
                 try:
                     if (TD["new"]["address"] == TD["old"]["address"] or
                         TD["new"]["address"] != 'not_provided'):
                         return
                     else:
-                        os_cmd('curl http://0.0.0.0:14401?table=
-
-                        TD["new"]["trigger_step"] = 'get_geom_from_coords'
-                        return "MODIFY"
+                        cmd = ''.join([ "curl 'http://0.0.0.0:14401?table=yelp&trigger=get_geom_from_coords&",
+                                        "idx_col=uid&idx=%s'" % TD['new']['uid'],
+                                        ])
+                        plpy.log(cmd)
+                        os_cmd(cmd)
+                        return
 
                 except plpy.SPIError:
                     plpy.log('z_yelp_set_trigger_on_addr_not_provided FAILED')
-                    #plpy.log(tb_format_exc())
-                    #plpy.log(sys_exc_info()[0])
+                    plpy.log(tb_format_exc())
+                    plpy.log(sys_exc_info()[0])
                     return
-                return
+
 
                 $funct$ language "plpythonu";
 
                 CREATE TRIGGER yelp_set_trigger_on_addr_not_provided
-                BEFORE UPDATE OR INSERT ON yelp
+                AFTER UPDATE OR INSERT ON yelp
                 FOR EACH ROW
                 EXECUTE PROCEDURE z_yelp_set_trigger_on_addr_not_provided();
             """

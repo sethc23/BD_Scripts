@@ -771,10 +771,11 @@ class Seamless:
             for _iter in range(iterations):
                 get_sl_addr_search_results(         self,qry )
 
-        self.T.br.quit()
+
         self.T.update(                      {'line_no'                  :   self.T.I.currentframe().f_back.f_lineno})
         msg                             =   '%(line_no)s SL@%(user)s<%(guid)s>: Search Results Scraped.' % self.T
         self.T.SYS_r._growl(                msg )
+        self.T.br.quit()
         return True
     #   seamless: 2 of 3
     def scrape_sl_2_previously_closed_vendors(self,query_str=''):
@@ -930,7 +931,7 @@ class Seamless:
         msg                             =   '%(line_no)s SL@%(user)s<%(guid)s>: Prev. Closed Updated.' % self.T
         print msg
         self.T.SYS_r._growl(                       msg)
-        br.quit()
+        self.T.br.quit()
         return True
     #   seamless: 3 of 3
     def scrape_sl_3_known_vendor_pages(self,query_limit='',grp_size=100,iterations=10,
@@ -987,6 +988,15 @@ class Seamless:
                                              'select_vars'              :   'id,sl_link',
                                              'transaction_cnt'          :   grp_size })
 
+        query_limit                     =   't2.address is null and t2.geom is null'
+
+        q_lim                           =   query_limit if query_limit else """
+                                                                        t2.%(upd_var)s is null
+                                                                        OR age(now(),t2.%(upd_var)s) >
+                                                                        interval '%(upd_interval)s'
+                                                                            """ % self.T
+        self.T.update(                      {'query_limit'                  :   q_lim   })
+
         qry                         =   """ UPDATE %(tbl_name)s t
                                                 SET checked_out     =   null
                                                 WHERE checked_out   =   '%(guid)s';
@@ -997,9 +1007,9 @@ class Seamless:
                                                 SELECT array_agg(%(tbl_uid)s) all_ids from %(tbl_name)s t2
                                                 WHERE ( t2.checked_out is null )
                                                 AND (
-                                                    t2.%(upd_var)s  is   null
-                                                    OR age('now'::timestamp with time zone,
-                                                           t2.%(upd_var)s) > interval '%(upd_interval)s'
+
+                                                    %(query_limit)s
+
                                                 )
                                                 AND t2.inactive     is   false
                                                 AND t2.skipped      is   false
@@ -1024,16 +1034,13 @@ class Seamless:
             for _iter in range(iterations):
                 get_sl_vendor_page_info(         self,qry )
 
-
-
-
         self.T.update(                      {'line_no'                  :   self.T.I.currentframe().f_back.f_lineno,
                                              'vend_num'                 :   str(self.T.transaction_cnt * iterations)})
         msg                             =   ' '.join(['%(line_no)s SL@%(user)s<%(guid)s>:',
                                                       '%(vend_num)s Known Vendors Updated.']) % self.T
         print msg
         self.T.SYS_r._growl(                msg)
-        br.quit()
+        self.T.br.quit()
         return True
     def quick_geom_upsert(self):
         cmd = """
@@ -1146,7 +1153,6 @@ class Yelp:
         self.SV                             =   _parent
         self.T                              =   _parent.T
         self.Yelp                           =   self
-
 
     # YELP FUNCTIONS
     #   yelp:     0 of 2
@@ -1330,11 +1336,12 @@ class Yelp:
             for _iter in range(iterations):
                 get_y_addr_search_results(  self,qry)
 
-        self.T.br.quit()
+
         self.T.update(                          {'line_no'                  :   self.T.I.currentframe().f_back.f_lineno})
         msg                             =       '%(line_no)s Yelp@%(user)s<%(guid)s>: Search Results Scraped.' % self.T
         print msg
         self.T.SYS_r._growl(                    msg)
+        self.T.br.quit()
         return True
     #   yelp:     1 of 2
     def scrape_yelp_1_api(self,query_str='',scrape_lattice='scrape_lattice'):
@@ -1564,7 +1571,7 @@ class Yelp:
 
         print msg
         self.T.SYS_r._growl(                       msg)
-        br.quit()
+        self.T.br.quit()
         return
     #   yelp:     2 of 2
     def scrape_yelp_2_vendor_pages(self,query_limit='',grp_size=100,iterations=10,
@@ -1666,24 +1673,39 @@ class Yelp:
                         vend_data.update(   {'address'      :   'not_provided'})
 
                 if not THIS.city:
-                    vend_data.update(       {'city'         :   self.T.getTagsByAttr(html, 'span',
-                                                                    {'itemprop':'addressLocality'},
-                                                                    contents=False)[0].getText() })
+                    try:
+                        city            =   self.T.getTagsByAttr(html, 'span',
+                                                                        {'itemprop':'addressLocality'},
+                                                                        contents=False)[0].getText()
+                        vend_data.update(   {'city'         :    city})
+                    except:
+                        pass
+
                 if not THIS.state_code:
-                    vend_data.update(       {'state_code'   :   self.T.getTagsByAttr(html, 'span',
-                                                                    {'itemprop':'addressRegion'},
-                                                                    contents=False)[0].getText() })
+                    try:
+                        state_code      =   self.T.getTagsByAttr(html, 'span',
+                                                                        {'itemprop':'addressRegion'},
+                                                                        contents=False)[0].getText()
+                        vend_data.update(   {'state_code'   :    state_code})
+                    except:
+                        pass
+
                 if not THIS.postal_code:
-                    vend_data.update(       {'postal_code'  :   self.T.getTagsByAttr(html, 'span',
-                                                                    {'itemprop':'postalCode'},
-                                                                    contents=False)[0].getText() })
+                    try:
+                        postal_code     =   self.T.getTagsByAttr(html, 'span',
+                                                                 {'itemprop':'postalCode'},
+                                                                 contents=False)[0].getText()
+                        vend_data.update(   {'postal_code'  :    postal_code})
+                    except IndexError:
+                        vend_data.update(   {'postal_code'  :   0})
 
                 if THIS.phone==0 or not THIS.phone:
                     try:
-                        vend_data.update(   {'phone'        :   int(self.T.re_sub(r'[^\u0000-\u007F]+','',
-                                                                    self.T.getTagsByAttr(html, 'span',
-                                                                         {'itemprop':'telephone'},
-                                                                         contents=False)[0].getText())) })
+                        phone           =   self.T.getTagsByAttr(html, 'span',
+                                                                 {'itemprop':'telephone'},
+                                                                 contents=False)[0].getText()
+                        phone           =   int(self.T.re_sub(r'[^\u0000-\u007F]+','',phone))
+                        vend_data.update(   {'phone'        :    phone})
                     except IndexError:
                         vend_data.update(   {'phone'        :   0 })
 
@@ -1795,6 +1817,15 @@ class Yelp:
                                              'select_vars'                  :   'uid,url',
                                              'transaction_cnt'              :   grp_size})
 
+        # query_limit                     =   't2.address is null and t2.geom is null'
+
+        q_lim                           =   query_limit if query_limit else """
+                                                                        t2.%(upd_var)s is null
+                                                                        OR age(now(),t2.%(upd_var)s) >
+                                                                        interval '%(upd_interval)s'
+                                                                            """ % self.T
+        self.T.update(                      {'query_limit'                  :   q_lim   })
+
         qry                             =   """ UPDATE %(tbl_name)s t
                                                     SET checked_out         =   null
                                                     WHERE checked_out       =   '%(guid)s';
@@ -1806,12 +1837,7 @@ class Yelp:
                                                     WHERE ( t2.checked_out is null )
                                                     AND (
 
-                                                        t2.%(upd_var)s      is   null
-                                                        OR age('now'::timestamp with time zone,
-                                                               t2.%(upd_var)s) > interval '%(upd_interval)s'
-
-                                                        --tmp = True
-                                                        --AND address is null
+                                                        %(query_limit)s
 
                                                     )
                                                     GROUP BY t2.%(upd_var)s,t2.%(tbl_uid)s
@@ -1843,7 +1869,7 @@ class Yelp:
                                                       '%(vend_num)s Known Vendors Updated.']) % self.T
         print msg
         self.T.SYS_r._growl(                msg)
-        br.quit(                            )
+        self.T.br.quit()
         return True
 
 
