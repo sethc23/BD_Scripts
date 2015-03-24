@@ -1424,6 +1424,113 @@ class pgSQL_Functions:
                 """.replace('\n','')
             self.T.conn.set_isolation_level(       0)
             self.T.cur.execute(                    cmd)
+
+        def z_attempt_to_add_range_from_addr(self):
+            """
+
+            USAGE:
+
+                select z_attempt_to_add_range_from_addr(num,predir,street_name,suftype,sufdir)
+                from yelp where uid = 18486;
+            """
+            cmd="""
+
+                drop function if exists z_attempt_to_add_range_from_addr(text,text,text,text,text) cascade;
+
+                CREATE OR REPLACE FUNCTION z_attempt_to_add_range_from_addr(    IN new_street_num text,
+                                                                                IN predir text,
+                                                                                IN street_name text,
+                                                                                IN suftype text,
+                                                                                IN sufdir text)
+                RETURNS text AS $$
+
+                    if int(new_street_num) ## 2==0:
+                        parity = '2'
+                    else:
+                        parity = '1'
+
+                    T = {   'num'           :   new_street_num,
+                            'parity'        :   parity,
+                            'predir'        :   predir,
+                            'name'          :   street_name,
+                            'suftype'       :   suftype,
+                            'sufdir'        :   sufdir}
+
+                    p1 =    \"\"\"
+                                select uid,max_num,min_num
+                                from
+                                    (select f1.uid,f1.max_num
+                                        from
+                                        (
+                                        select
+                                            uid,max_num,
+                                            max(max_num) over (partition by block) as max_thing
+                                        from pad_adr p
+                                        where street_name = '##(name)s'
+                                        and   predir = '##(predir)s'
+                                        and   parity = '##(parity)s'
+                                        and   min_num < ##(num)s
+                                        order by min_num
+                                        ) f1
+                                    where f1.max_num=f1.max_thing) f2,
+                                    (select min_num
+                                    from
+                                        (
+                                        select block,billbbl,min_num,min(min_num) over (partition by block) as min_thing
+                                        from pad_adr
+                                        where street_name = '##(name)s'
+                                        and   predir = '##(predir)s'
+                                        and   parity = '##(parity)s'
+                                        and   min_num > ##(num)s
+                                        order by min_num
+                                        ) f3
+                                    where f3.min_num=f3.min_thing
+                                    limit 1) f4
+                            \"\"\" ## T
+
+                    e1                      =   plpy.execute(p1)[0]
+                    start_num               =   int(e1['max_num'])
+                    end_num                 =   int(e1['min_num'])
+                    for j in range(start_num+1,end_num+1):
+                        if ((j ## 2==0) == (start_num ## 2==0)):
+                            low_num         =   j
+                            break
+                    high_num = [it for it in range(low_num,end_num) if ((it ## 2==0) == (start_num ## 2==0))][-1:][0]
+
+                    T.update(  {'uid'       :   e1['uid'],
+                                'min_num'   :   low_num,
+                                'max_num'   :   high_num    } )
+
+                    p2 =    \"\"\"
+                                insert into pad_adr
+                                    (
+                                    block,lot,bin,
+                                    lhns,lcontpar,lsos,
+                                    hhns,hcontpar,hsos,
+                                    scboro,sc5,sclgc,stname,addrtype,realb7sc,validlgcs,parity,b10sc,segid,
+                                    zipcode,bbl,stnum_w_letter,predir,street_name,suftype,sufdir,
+                                    min_num,max_num,
+                                    billbbl,tmp
+                                    )
+                                select
+                                    block,lot,bin,
+                                    lhns,lcontpar,lsos,
+                                    hhns,hcontpar,hsos,
+                                    scboro,sc5,sclgc,stname,addrtype,realb7sc,validlgcs,parity,b10sc,segid,
+                                    zipcode,bbl,stnum_w_letter,predir,street_name,suftype,sufdir,
+                                    ##(min_num)s,##(max_num)s,
+                                    billbbl,tmp
+                                from ( select * from pad_adr where uid = ##(uid)s ) f
+                            \"\"\" ## T
+
+                    plpy.execute(               p2)
+                    return 'ok'
+
+                $$ LANGUAGE plpythonu;
+            """.replace('##','%')
+            self.T.conn.set_isolation_level(        0)
+            self.T.cur.execute(                     cmd)
+            return
         def z_run_string_functions(self):
             a="""
 
@@ -1651,8 +1758,12 @@ class pgSQL_Functions:
 
             Usage:
 
-                SELECT z_update_geom_from_coords(13277,'yelp','uid','latitude','longitude')
-                SELECT z_update_geom_from_coords(uid_grp[1:5],'yelp','uid','latitude','longitude')
+                SELECT z_update_with_geom_from_coords(13277,'yelp','uid','latitude','longitude')
+                SELECT z_update_with_geom_from_coords(uid_grp[1:5],'yelp','uid','latitude','longitude')
+
+                SELECT z_update_with_geom_from_coords(
+                    'where (age(now(),last_updated) < interval ''15 minutes'' and street_name is not null limit 10',
+                    'yelp'::text,'uid'::text,'latitude'::text,'longitude'::text)
 
             """
             cmd="""
@@ -1670,7 +1781,7 @@ class pgSQL_Functions:
                             'gid_col'   :   gid_col,
                             'lat_col'   :   lat_col,
                             'lon_col'   :   lon_col,
-                            'search_rad':   0.75     }
+                            'search_rad':   0.0175     }
 
                     p = \"\"\"
 
@@ -1711,9 +1822,9 @@ class pgSQL_Functions:
                     res,cnt = 0,10
                     while res==0:
                         res = len(plpy.execute(p ## T))
-                        T.update({'search_rad':T['search_rad']+0.05})
+                        T.update({'search_rad':T['search_rad']+0.005})
                         cnt -= 1
-                        if res>0 or cnt==0:
+                        if res>0 or cnt<=0:
                             break
 
                     return 'ok'
@@ -1723,18 +1834,19 @@ class pgSQL_Functions:
                 -- UID ARRAY FUNCTION
 
                 DROP FUNCTION IF EXISTS z_update_with_geom_from_coords(integer[],text,text,text,text);
-                CREATE OR REPLACE FUNCTION z_update_with_geom_from_coords(  idx         integer[],
-                                                                            tbl         text,
-                                                                            gid_col     text,
-                                                                            lat_col     text,
-                                                                            lon_col     text)
+                DROP FUNCTION IF EXISTS z_update_with_geom_from_coords(text,text,text,text,text);
+                CREATE OR REPLACE FUNCTION z_update_with_geom_from_coords(  limitations text default '',
+                                                                            tbl         text default '',
+                                                                            gid_col     text default '',
+                                                                            lat_col     text default '',
+                                                                            lon_col     text default '')
                 RETURNS text AS $$
 
-                    T = {   'idx_arr'   :   str(idx).replace("u'","'").replace("'",'').strip('[]'),
-                            'tbl'       :   tbl,
+                    T = {   'tbl'       :   tbl,
                             'gid_col'   :   gid_col,
                             'lat_col'   :   lat_col,
                             'lon_col'   :   lon_col,
+                            'limits'    :   'where ' + limitations.lower().lstrip('where ').replace("''","'"),
                             'search_rad':   0.0175     }
 
                     p = \"\"\"
@@ -1758,7 +1870,8 @@ class pgSQL_Functions:
                                             from
                                                 (
                                                 select ##(gid_col)s uid,##(lat_col)s lat,##(lon_col)s lon
-                                                from ##(tbl)s where ##(gid_col)s = any ( array[##(idx_arr)s] )
+                                                from ##(tbl)s
+                                                ##(limits)s
                                                 ) f2
                                             ) f3
                                         WHERE st_dwithin(p.geom::geography,txt_pt::geography,##(search_rad)f*1609.34)
@@ -1776,6 +1889,7 @@ class pgSQL_Functions:
                             RETURNING u.uid ##(gid_col)s;
 
                         \"\"\"
+
                     cnt = 10
                     while len(idx)>0:
                         res = plpy.execute(p ## T)
@@ -1784,7 +1898,7 @@ class pgSQL_Functions:
                             z=idx.pop(  idx.index( it[ '##(gid_col)s' ## T ] )  )
 
                         cnt -= 1
-                        if len(idx)==0 or cnt==0:
+                        if len(idx)==0 or cnt<=0:
                             break
 
                         T.update({  'idx_arr'       :   str(idx).replace("u'","'").replace("'",'').strip('[]'),
@@ -1821,12 +1935,25 @@ class pgSQL_Functions:
                                             (   select ##(gid_col)s uid,num,concat_ws(' ',predir,street_name,suftype,sufdir ) concat_addr
                                                 from ##(tbl)s where ##(gid_col)s = any ( array[##(idx_arr)s] )   ) f
                                     WHERE   concat_ws(' ',p.predir,p.street_name,p.suftype,p.sufdir ) = f.concat_addr
-                                    AND     (p.min_num <= f.num::double precision and f.num::double precision <= p.max_num)
-                                    AND     p.parity::integer = (case when mod((f.num::double precision)::integer,2)=1 THEN 1 ELSE 2 END)
-                                    AND     p.stnum_w_letter is false
+                                        -- street number within range
+                                    AND     (
+                                            -- <<
+                                            -- street number within range
+                                            (   (p.min_num is not null AND p.max_num is not null)
+                                                AND (p.min_num <= f.num::double precision and f.num::double precision <= p.max_num)
+                                                AND p.parity::integer = (case when mod((f.num::double precision)::integer,2)=1 THEN 1 ELSE 2 END)
 
-                                            -- parity=2 means even, parity=1 means odd
+                                                    -- parity=2 means even, parity=1 means odd
+                                            )
+                                            OR
+                                            -- street number equals min_max num
+                                            (   (p.min_num is null OR p.max_num is null)
+                                                AND (p.min_num = f.num::double precision OR p.max_num = f.num::double precision)
+                                            )
+                                            -- >>
+                                            )
                                     )
+
                                 UPDATE ##(tbl)s t set
                                         bbl         =   u.billbbl,
                                         geom        =   pc.geom
@@ -2681,13 +2808,67 @@ class pgSQL_Functions:
             self.T.cur.execute(                     cmd)
             print cmd
             return
+        def z_make_rows_with_numeric_range(self):
+            """
+                z_make_rows_with_numeric_range('idx_col','start_range_col','end_range_col')
+
+                EXAMPLE:
+                    select numeric_range(array[1,2,3],array[8,9,10],array[10,10,10]);
+
+
+                RETURNS:
+
+                        idx_col =  [1           rows_ranges     =  [8,
+                                    1,                              9,
+                                    1,                              10,
+                                    2,                              9,
+                                    2,                              10]
+            """
+            cmd="""
+
+                drop function if exists z_make_rows_with_numeric_range(int,int,int,boolean) cascade;
+
+                drop type if exists numeric_range_type;
+
+                CREATE TYPE numeric_range_type as (
+                    uid int,
+                    res_i int
+                );
+
+                CREATE OR REPLACE FUNCTION z_make_rows_with_numeric_range(  IN uid integer,
+                                                                            IN start_num integer,
+                                                                            IN end_num integer,
+                                                                            IN w_parity boolean default false)
+                RETURNS SETOF numeric_range_type AS $$
+
+                    class numeric_range_type:
+                        def __init__(self,uid,res_i):
+                            self.uid = uid
+                            self.res_i = res_i
+
+
+                    for j in range(start_num,end_num+1):
+                        if w_parity:
+                            if ((j % 2==0) == (start_num % 2==0)):
+                                yield( numeric_range_type(uid,j) )
+                        else:
+                            yield( numeric_range_type(uid,j) )
+
+                    return
+
+                $$ LANGUAGE plpythonu;
+            """
+            self.T.conn.set_isolation_level(        0)
+            self.T.cur.execute(                     cmd)
+            return
         def z_make_rows_with_alpha_range(self):
             """
                 z_make_rows_with_alpha_range('idx_col','start_range_col','end_range_col')
 
-                EXAMPLE:
-                    select z_make_rows_with_alpha_range(array[1,2,3],array['A','A','C'],array['B','C','E']);
+                z_make_rows_with_alpha_range(uid,base_str,start_r,end_r,first_empty)
 
+                EXAMPLE:
+                    select z_make_rows_with_alpha_range(uid,base_str,'A','C',false)
 
                 RETURNS:
 
@@ -2702,7 +2883,6 @@ class pgSQL_Functions:
                                     3]                              E]
             """
             cmd="""
-                drop function if exists z_make_rows_with_alpha_range(int,text,text) cascade;
                 drop function if exists z_make_rows_with_alpha_range(int,text,text,text,boolean) cascade;
                 drop type if exists alpha_range_type;
                 CREATE TYPE alpha_range_type as (
@@ -2728,7 +2908,6 @@ class pgSQL_Functions:
             """
             self.T.conn.set_isolation_level(        0)
             self.T.cur.execute(                     cmd)
-            print cmd
             return
         def z_update_addr_idx_from_gc_info(self):
             pass
@@ -2996,6 +3175,99 @@ class pgSQL_Triggers:
 
             self.T.conn.set_isolation_level(       0)
             self.T.cur.execute(                    a)
+            return
+        def z_update_with_geom_from_coords(self,tbl,uid_col):
+            a="""
+                DROP FUNCTION if exists z_update_with_geom_from_coords_on_%(tbl)s() cascade;
+                DROP TRIGGER if exists update_with_geom_from_coords_on_%(tbl)s ON %(tbl)s;
+
+                CREATE OR REPLACE FUNCTION z_update_with_geom_from_coords_on_%(tbl)s()
+                RETURNS TRIGGER AS $funct$
+
+                from traceback                      import format_exc       as tb_format_exc
+                from sys                            import exc_info         as sys_exc_info
+
+                try:
+                    if (TD["new"]["trigger_step"] != 'get_geom_from_coords'):
+                        return
+
+                    T = TD['new']
+
+                    p = \"\"\"
+
+                        SELECT z_update_with_geom_from_coords(   t.%(uid_col)s,
+                                                                '%(tbl)s'::text,
+                                                                '%(uid_col)s'::text,
+                                                                'latitude'::text,
+                                                                'longitude'::text)
+                        FROM %(tbl)s t
+                        WHERE %(uid_col)s = ##(uid)s
+
+                        \"\"\" ## T
+
+                    plpy.log(p)
+
+                    TD["new"]["trigger_step"] = 'geom_added_via_trigger_get_geom_from_coords'
+
+                    plpy.execute(p)
+
+                except plpy.SPIError:
+                    plpy.log('z_update_with_geom_from_coords FAILED')
+                    plpy.log("table: " + TD["table_name"] + '; %(uid_col)s:' + str(T["%(uid_col)s"]))
+                    plpy.log(tb_format_exc())
+                    plpy.log(sys_exc_info()[0])
+                    return
+                return
+
+                $funct$ language "plpythonu";
+
+                CREATE TRIGGER update_with_geom_from_coords_on_%(tbl)s
+                AFTER UPDATE OR INSERT ON %(tbl)s
+                FOR EACH ROW
+                EXECUTE PROCEDURE z_update_with_geom_from_coords_on_%(tbl)s();
+
+            """ % {"tbl"                        :   tbl,
+                   "uid_col"                    :   uid_col}
+
+            cmd                                 =   a.replace("##","%")
+            self.T.conn.set_isolation_level(        0)
+            self.T.cur.execute(                     cmd)
+            return
+        def z_yelp_set_trigger_on_addr_not_provided(self):
+            cmd="""
+                DROP FUNCTION if exists z_yelp_set_trigger_on_addr_not_provided() cascade;
+                DROP TRIGGER if exists yelp_set_trigger_on_addr_not_provided ON yelp;
+
+                CREATE OR REPLACE FUNCTION z_yelp_set_trigger_on_addr_not_provided()
+                RETURNS TRIGGER AS $funct$
+
+                #from traceback                      import format_exc       as tb_format_exc
+                #from sys                            import exc_info         as sys_exc_info
+
+                try:
+                    if (TD["new"]["address"] == TD["old"]["address"] or
+                        TD["new"]["address"] != 'not_provided'):
+                        return
+                    else:
+                        TD["new"]["trigger_step"] = 'get_geom_from_coords'
+                        return "MODIFY"
+
+                except plpy.SPIError:
+                    plpy.log('z_yelp_set_trigger_on_addr_not_provided FAILED')
+                    #plpy.log(tb_format_exc())
+                    #plpy.log(sys_exc_info()[0])
+                    return
+                return
+
+                $funct$ language "plpythonu";
+
+                CREATE TRIGGER yelp_set_trigger_on_addr_not_provided
+                BEFORE UPDATE OR INSERT ON yelp
+                FOR EACH ROW
+                EXECUTE PROCEDURE z_yelp_set_trigger_on_addr_not_provided();
+            """
+            self.T.conn.set_isolation_level(        0)
+            self.T.cur.execute(                     cmd)
             return
         def z_parse_address_on_gid_addr_zip(self,tbl,
                                         gid_col='gid',
@@ -4860,162 +5132,852 @@ class pgSQL_Tables:
                                             where not concat_ws(' ',t.predir,t.street_name,t.suftype,t.sufdir) = any (all_parsed)
                                             """,SV.T.eng).all_addr_in_idx_found_in_pad_adr[0] == True
 
-                # ADD MIN/MAX ADDRESS NUMBERS (where stnum_w_letter is False) to tmp_addr_idx
+                # ADD MIN/MAX ADDRESS NUMBERS
                 a="""
 
-                alter table tmp_addr_idx_pad
-                    add column min_num double precision,
-                    add column max_num double precision;
+                update pad_adr set min_num = lhnd::integer where stnum_w_letter is false;
+                update pad_adr set max_num = hhnd::integer where stnum_w_letter is false;
 
-                update tmp_addr_idx_pad tp set min_num = f1.lhnd
-                from
-                    (
-                    select
-                        t.gid t_gid,
-                        concat_ws(' ',t.predir,t.street_name,t.suftype,t.sufdir) parsed_addr,
-                        p.street_name,p.lhnd::double precision lhnd,
-                        min(p.lhnd::double precision) over (partition by p.street_name) as min_thing
-                    from    pad_adr p,
-                            tmp_addr_idx_pad t
-                    where
-                        p.stnum_w_letter is false
-                        and concat_ws(' ',t.predir,t.street_name,t.suftype,t.sufdir) = p.street_name
-                     ) f1
-                where f1.lhnd = f1.min_thing
-                and tp.gid = f1.t_gid
-                AND PARITY MATCHES;
+                -- UPDATE ALONG lhnd
+                update pad_adr set min_num = regexp_replace(lhnd,' 1/3','.33')::double precision
+                where stnum_w_letter = true and lhnd ilike '% 1/3%';
+                update pad_adr set min_num = regexp_replace(lhnd,' 3/4','.75')::double precision
+                where stnum_w_letter = true and lhnd ilike '% 3/4%';
+                update pad_adr set min_num = regexp_replace(lhnd,' 1/4','.25')::double precision
+                where stnum_w_letter = true and lhnd ilike '% 1/4%';
+                update pad_adr set min_num = regexp_replace(lhnd,' 1/2','.5')::double precision
+                where stnum_w_letter = true and lhnd ilike '% 1/2%';
 
-                update tmp_addr_idx_pad tp set max_num = f1.hhnd
-                from
-                    (
-                    select
-                        t.gid t_gid,
-                        concat_ws(' ',t.predir,t.street_name,t.suftype,t.sufdir) parsed_addr,
-                        p.street_name,p.hhnd::double precision hhnd,
-                        max(p.hhnd::double precision) over (partition by p.street_name) as max_thing
-                    from    pad_adr p,
-                            tmp_addr_idx_pad t
-                    where
-                        p.stnum_w_letter is false
-                        and concat_ws(' ',t.predir,t.street_name,t.suftype,t.sufdir) = p.street_name
-                     ) f1
-                where f1.hhnd = f1.max_thing
-                and tp.gid = f1.t_gid
-                AND PARITY MATCHES;
+                -- UPDATE ALONG hhnd
+                update pad_adr set max_num = regexp_replace(hhnd,' 3/4','.75')::double precision
+                where stnum_w_letter = true and hhnd ilike '% 3/4%';
+                update pad_adr set max_num = regexp_replace(hhnd,' 1/4','.25')::double precision
+                where stnum_w_letter = true and hhnd ilike '% 1/4%';
+                update pad_adr set max_num = regexp_replace(hhnd,' 1/3','.33')::double precision
+                where stnum_w_letter = true and hhnd ilike '% 1/3%';
+                update pad_adr set max_num = regexp_replace(hhnd,' 1/2','.5')::double precision
+                where stnum_w_letter = true and hhnd ilike '% 1/2%';
+
+                --WHERE '-' in street_num
+                update pad_adr set min_num = regexp_replace(lhnd,'-','.','g')::double precision
+                where stnum_w_letter = true and lhnd ilike '%%-%%';
+                update pad_adr set max_num = regexp_replace(hhnd,'-','.','g')::double precision
+                where stnum_w_letter = true and hhnd ilike '%%-%%';
 
                 """
-                SV.T.conn.set_isolation_level(        0)
-                SV.T.cur.execute(            a)
+                SV.T.conn.set_isolation_level(          0)
+                SV.T.cur.execute(                       a)
 
-                # Create addr_idx_wl from pad_adr (where stnum_w_letter is True & lhnd == hhnd)
-                a="""
-                    drop table if exists addr_idx_wl;
+                # USE tmp TABLE TO FORMAT ROWS (where stnum_w_letter=True)
+                # 1. add rows where lhnd = hhnd
+                #
+                # 2. ADD ROWS FOR EACH ADDRESS WHERE lhnd and hhnd have street number and one letter, e.g., (304A,304F)
+                # 	    make rows for each letter up to and including last letter, e.g., 304A,304B,...304F
+                #
+                # 3. ADD ROWS WHERE lhnd = hhnd + 'A' , e.g., (304,304A)
+                # 	    make row with just number
+                # 	    make row with number+A
+                #
+                # 4. ADD ROWS WHERE lhnd != hhnd and hhnd = # + A, e.g., (300,304A)
+                # 	    make row with just number range, e.g., 300...304
+                # 	    make row with last number + A, e.g., 304A
+                #
+                # 5. ADD ROWS WHERE lhnd = hhnd + letter other than 'A' , e.g., (304,304F)
+                # 	    make row with just number, e.g., 304
+                # 	    make rows for each letter up to and including last letter, e.g., 304A,304B,...304F
+                #
+                #
+                # 6. ADD ROWS WHERE lhnd != hhnd and hhnd = # + letter other than 'A' , e.g., (300,304F)
+                # 	    make row with just number range, e.g., 300...304
+                # 	    make rows for each letter up to and including last letter, e.g., 304A,304B,...304F
+                #
+                #
+                # 7. ADD ROWS WHERE lhnd+'A' and hhnd, e.g., (4A,6)
+                # 	    make row with just letter, e.g., 4A
+                # 	    make row with range, e.g., (4,6)
+                #
+                #
+                # 8. ADD ROWS WHERE lhnd!=hhnd,lhnd + word_l,hhnd + word_r,word_l=word_r, e.g., (501 REAR,503 REAR)
+                # 	    make row for each number (ALONG PARITY) between lhnd and hhnd
+                #
+                #
+                # 9. REMOVE ROWS ALREADY (and recently done) MANAGED IN pad_adr
+                #
+                # ### PROVE THAT ALL EXPECTED UID EXIST IN TMP TABLE
+                # ### PROVE THAT ALL ROWS IN TMP WHERE min/max_num ARE NULL THEN BOTH min/max_num ARE NULL
+                # ### PROVE THAT ONLY ROWS IN tmp WITHOUT min/max_num ARE THOSE ROWS WITH LETTERS
+                # # FINISH WITH TMP (update,delete related rows from pad_adr,re-insert rows from tmp,delete tmp)
 
-                    create table addr_idx_wl as
+                one="""
+                -- ADD ROWS WHERE lhnd = hhnd
+                create table tmp as
                     select * from pad_adr
                     where stnum_w_letter is true
                     and lhnd = hhnd;
+
+                select z_make_column_primary_serial_key('tmp','uid',false);
+
+                alter table tmp add column src_gid integer;
+                update tmp set src_gid = uid;
                 """
-                SV.T.conn.set_isolation_level(        0)
-                SV.T.cur.execute(                     a)
+                SV.T.conn.set_isolation_level(          0)
+                SV.T.cur.execute(                       one)
+                # 2.
+                two="""
+                -- ADD ROWS FOR EACH ADDRESS WHERE lhnd and hhnd have street number and one letter, e.g., (304A,304F)
+                --      make rows for each letter up to and including last letter, e.g., 304A,304B,...304F
 
-                # (1/2) Add to addr_idx_wl (where lhnd != hhnd)
-                # -- Create Entry for Each Address in Letter Ranges, e.g., 357A to 357F
-                a="""
+                insert into tmp (boro,src_gid,lhnd,hhnd,stname,zipcode,bbl,billbbl)
 
-                    insert into addr_idx_wl (boro,lhnd,hhnd,stname,zipcode,bbl)
+                select  1 boro,
+                        f2.src_gid,
+                        (z).alpha_range lhnd,
+                        (z).alpha_range hhnd,
+                        p.stname,
+                        p.zipcode,
+                        p.bbl,
+                        p.billbbl
+                from
+                    pad_adr p,
+                    (
 
-                    select  1,
-                            concat(base_str,(z).alpha_range) lhnd,
-                            concat(base_str,(z).alpha_range) hhnd,
-                            p.stname,
-                            p.zipcode,
-                            p.bbl
-                    --select uid,base_str,lhnd,hhnd,no_num_l,no_num_r,concat(base_str,(z).alpha_range) hhnd
-                    from
-                        pad_adr p,
-                        (
-                        select uid,regexp_replace(lhnd,no_num_l,'','g') base_str,
+                    select uid src_gid,uid,regexp_replace(lhnd,no_num_l,'','g') base_str,
                             lhnd,hhnd,no_num_l,no_num_r,z_make_rows_with_alpha_range(uid,only_num_l,no_num_l,no_num_r,false) z
-                        from
-                            (
-                            select uid,lhnd,hhnd,
-                                regexp_replace(hhnd,'[^0-9]*','','g') only_num_l,
-                                regexp_replace(lhnd,'[0-9]*','','g') no_num_l,
-                                regexp_replace(hhnd,'[0-9]*','','g') no_num_r
-                            from pad_adr
-                            where stnum_w_letter is true
-                            and lhnd != hhnd
-                            order by stname
-                            ) f1
-                        where f1.no_num_l != ''
-                        and length(no_num_r)=1
-                        and f1.no_num_l != '-'
-                        ) f2
-                    where p.uid = f2.uid;
-
-                """
-                SV.T.conn.set_isolation_level(        0)
-                SV.T.cur.execute(                     a)
-
-                # (2/2) Add to addr_idx_wl (where lhnd != hhnd)
-                # -- Add Remaining Ranges that didn't explicitly start with range letter
-                a="""
-                    insert into addr_idx_wl (boro,lhnd,hhnd,stname,zipcode,bbl)
-                    select '1' boro,(z).alpha_range lhnd,(z).alpha_range hhnd,STNAME,ZIPCODE,BBL
                     from
                         (
-                        select  f2.stname STNAME,f2.zipcode ZIPCODE,f2.bbl BBL,f2.uid UID,
-                                z_make_rows_with_alpha_range(f2.uid,f2.lhnd,
-                                                            f2.start_r,f2.no_num_r,True) z,
-                                no_num_l,no_num_r
-                        from
-                            (
-                            select stname,zipcode,bbl,uid,lhnd,hhnd,'A'::text start_r,
-                                regexp_replace(lhnd,'[0-9]*','','g') no_num_l,
-                                regexp_replace(hhnd,'[0-9]*','','g') no_num_r
-                            from
-                                pad_adr p,
-                                (select array_agg(distinct concat(bbl,stname)) all_wl from addr_idx_wl) f1
-                            where stnum_w_letter is true
-                            and not concat(bbl,stname) = any (all_wl)
-                            order by stname
-                            ) f2
-                        where f2.no_num_r = any (array['A','B','C','D','E','F','G','H','I','J','K','L','M'])
-                        ) f3
-                        where UID=(z).uid;
+                        select uid,lhnd,hhnd,
+                            regexp_replace(hhnd,'[^0-9]*','','g') only_num_l,
+                            regexp_replace(lhnd,'[0-9]*','','g') no_num_l,
+                            regexp_replace(hhnd,'[0-9]*','','g') no_num_r
+                        from pad_adr
+                        where stnum_w_letter is true
+                        and lhnd != hhnd
+                        order by stname
+                        ) f1
+                    where not f1.no_num_l = any (array['','-'])
+                    and length(no_num_r)=1
+
+                    ) f2
+
+                where p.uid = f2.uid
+                order by p.uid,lhnd;
 
                 """
-                SV.T.conn.set_isolation_level(        0)
-                SV.T.cur.execute(                     a)
+                SV.T.conn.set_isolation_level(          0)
+                SV.T.cur.execute(                       two)
+                # 3.
+                three="""
+
+                -- ADD ROWS WHERE lhnd =  hhnd + 'A' , e.g., (304,304A)
+                --      make row with just number
+                --      make row with number+A
+
+                INSERT INTO tmp (boro,src_gid,lhnd,hhnd,stname,zipcode,bbl,billbbl,parity,min_num,max_num)
+
+                select  1,
+                        f2.src_gid,
+                        f2.lhnd,  --PART 1/2
+                        f2.lhnd hhnd,
+                        p.stname,
+                        p.zipcode,
+                        p.bbl,
+                        p.billbbl,
+                        p.parity,
+                        f2.only_num_l::integer min_num,
+                        f2.only_num_l::integer max_num
+                from
+                    pad_adr p,
+                    (
+
+                    select uid src_gid,uid,lhnd,hhnd,only_num_l
+
+                    from
+                        (
+                        select uid src_gid,uid,lhnd,hhnd,
+                            regexp_replace(hhnd,'[^0-9]*','','g') only_num_l,
+                            regexp_replace(lhnd,'[0-9]*','','g') no_num_l,
+                            regexp_replace(hhnd,'[0-9]*','','g') no_num_r
+                        from pad_adr
+                        where stnum_w_letter is true
+                        and lhnd != hhnd
+                        order by stname
+                        ) f1
+                    where f1.no_num_l = any (array['','-'])
+                    and no_num_r='A'
+                    and lhnd=trim(trailing 'A' from hhnd)
 
 
-                # Handle Leftovers (where stnum_w_letter is True & lhnd != hhnd & not eq any addr_idx_wl)
-                # -- addresses with (a) only numbers, (b) greater specificity than needed, and (c) numbers between current endpoints (in tmp_addr_idx)
-                #          can be discarded at this point (b/c just a quick index).
-                # -- currently leaves only
-                #         F D R DRIVE --> added to tmp_addr_idx
-                #         EAST 119 STREET --> added to addr_idx_wl
-                #         WEST 48 STREET --> added to addr_idx_wl
-                a="""
-                    insert into tmp_addr_idx_pad (street_name,suftype,min_num,max_num)
-                    values
-                    ('F D R','DR',107.01,107.99),
-                    ('F D R','DR',108.01,108.99),
-                    ('F D R','DR',109.01,109.99),
-                    ('F D R','DR',110.01,110.99);
+                    ) f2
+                where p.uid = f2.uid
+                order by p.uid;
 
 
-                    insert into addr_idx_wl (boro,lhnd,hhnd,stname,zipcode,bbl)
-                    values
-                    ('1','247 REAR','247 REAR','EAST 119 STREET','10035','1017840120'),
-                    ('1','249 REAR','249 REAR','EAST 119 STREET','10035','1017840120'),
-                    ('1','501 REAR','501 REAR','WEST 48 STREET','10036','1010770029'),
-                    ('1','503 REAR','503 REAR','WEST 48 STREET','10036','1010770029');
+                INSERT INTO tmp (boro,src_gid,lhnd,hhnd,stname,zipcode,bbl,billbbl)
+                select  1,
+                        f2.src_gid,
+                        f2.hhnd lhnd,  --PART 2/2
+                        f2.hhnd,
+                        p.stname,
+                        p.zipcode,
+                        p.bbl,
+                        p.billbbl
+                from
+                    pad_adr p,
+                    (
+
+                    select uid src_gid,uid,lhnd,hhnd
+
+                    from
+                        (
+                        select uid src_gid,uid,lhnd,hhnd,
+                            regexp_replace(hhnd,'[^0-9]*','','g') only_num_l,
+                            regexp_replace(lhnd,'[0-9]*','','g') no_num_l,
+                            regexp_replace(hhnd,'[0-9]*','','g') no_num_r
+                        from pad_adr
+                        where stnum_w_letter is true
+                        and lhnd != hhnd
+                        order by stname
+                        ) f1
+                    where f1.no_num_l = any (array['','-'])
+                    and no_num_r='A'
+                    and lhnd=trim(trailing 'A' from hhnd)
+
+
+                    ) f2
+                where p.uid = f2.uid
+                order by p.uid;
 
                 """
-                SV.T.conn.set_isolation_level(        0)
-                SV.T.cur.execute(                     a)
+                SV.T.conn.set_isolation_level(          0)
+                SV.T.cur.execute(                       three)
+                # 4.
+                four="""
+
+                -- ADD ROWS WHERE lhnd != hhnd and hhnd = # + A, e.g., (300,304A)
+                --    make row with just number range, e.g., 300...304
+                --    make row with last number + A, e.g., 304A
+
+
+                insert into tmp (boro,src_gid,stname,zipcode,bbl,billbbl,parity,min_num,max_num)
+
+                --PART 1/2
+                select  1,
+                        f2.src_gid,
+                        p.stname,
+                        p.zipcode,
+                        p.bbl,
+                        p.billbbl,
+                        p.parity,
+                        only_num_l::integer min_num,
+                        only_num_r::integer max_num
+                from
+                    pad_adr p,
+                    (
+                    select uid src_gid,uid,
+                        lhnd,hhnd,
+                        only_num_l,only_num_r,
+                        no_num_l,no_num_r
+                    from
+                        (
+                        select uid,lhnd,hhnd,
+                            regexp_replace(lhnd,'[^0-9]*','','g') only_num_l,
+                            regexp_replace(hhnd,'[^0-9]*','','g') only_num_r,
+                            regexp_replace(lhnd,'[0-9]*','','g') no_num_l,
+                            regexp_replace(hhnd,'[0-9]*','','g') no_num_r
+                        from pad_adr
+                        where stnum_w_letter is true
+                        and lhnd != hhnd
+                        order by stname
+                        ) f1
+                    where f1.no_num_l = any (array['','-'])
+                    and no_num_r='A'
+                    and not lhnd=trim(trailing 'A' from hhnd)
+                    ) f2
+
+                where p.uid = f2.uid
+                order by p.uid;
+
+
+                select  1,
+                        f2.src_gid,
+                        --f2.lhnd real_lhnd,
+                        f2.hhnd lhnd,
+                        f2.hhnd,
+                        p.stname,
+                        p.zipcode,
+                        p.bbl,
+                        p.billbbl
+                from
+                    pad_adr p,
+                    (
+
+                    select uid src_gid,uid,
+                        lhnd,hhnd,
+                        only_num_l,only_num_r,
+                        no_num_l,no_num_r
+                    from
+                        (
+                        select uid,lhnd,hhnd,
+                            regexp_replace(lhnd,'[^0-9]*','','g') only_num_l,
+                            regexp_replace(hhnd,'[^0-9]*','','g') only_num_r,
+                            regexp_replace(lhnd,'[0-9]*','','g') no_num_l,
+                            regexp_replace(hhnd,'[0-9]*','','g') no_num_r
+                        from pad_adr
+                        where stnum_w_letter is true
+                        and lhnd != hhnd
+                        order by stname
+                        ) f1
+                    where f1.no_num_l = any (array['','-'])
+                    and no_num_r='A'
+                    and not lhnd=trim(trailing 'A' from hhnd)
+
+
+                    ) f2
+                where p.uid = f2.uid
+                order by p.uid;
+
+
+                --PART 2/2
+                insert into tmp (boro,src_gid,lhnd,hhnd,stname,zipcode,bbl,billbbl)
+                select  1 boro,
+                        f2.src_gid,
+                        f2.hhnd lhnd,
+                        f2.hhnd,
+                        p.stname,
+                        p.zipcode,
+                        p.bbl,
+                        p.billbbl
+                from
+                    pad_adr p,
+                    (
+
+                    select uid src_gid,uid,
+                        lhnd,hhnd,
+                        only_num_l,only_num_r,
+                        no_num_l,no_num_r
+                    from
+                        (
+                        select uid,lhnd,hhnd,
+                            regexp_replace(lhnd,'[^0-9]*','','g') only_num_l,
+                            regexp_replace(hhnd,'[^0-9]*','','g') only_num_r,
+                            regexp_replace(lhnd,'[0-9]*','','g') no_num_l,
+                            regexp_replace(hhnd,'[0-9]*','','g') no_num_r
+                        from pad_adr
+                        where stnum_w_letter is true
+                        and lhnd != hhnd
+                        order by stname
+                        ) f1
+                    where f1.no_num_l = any (array['','-'])
+                    and no_num_r='A'
+                    and not lhnd=trim(trailing 'A' from hhnd)
+
+
+                    ) f2
+                where p.uid = f2.uid
+                order by p.uid;
+
+                """
+                SV.T.conn.set_isolation_level(          0)
+                SV.T.cur.execute(                       four)
+                # 5.
+                five="""
+
+                -- ADD ROWS WHERE lhnd = hhnd and hhnd = # + letter other than A, e.g., (304,304C)
+                --    make rows with just number, e.g., 304
+                --    make row with last number + A, e.g., 304A,304B,304C
+
+
+                -- PART 1/2
+                INSERT INTO tmp (boro,src_gid,lhnd,hhnd,stname,zipcode,bbl,billbbl)
+                select  1,
+                        f2.src_gid,
+                        --f2.lhnd,
+                        --f2.hhnd,
+                        (z).alpha_range lhnd,
+                        (z).alpha_range hhnd,
+                        --f2.only_num_l,
+                        --f2.no_num_l,
+                        --f2.no_num_r,
+                        p.stname,
+                        p.zipcode,
+                        p.bbl,
+                        p.billbbl
+                from
+                    pad_adr p,
+                    (
+
+                    select uid src_gid,uid,regexp_replace(lhnd,no_num_l,'','g') base_str,
+                        lhnd,hhnd,only_num_l,only_num_r,no_num_l,no_num_r
+                        ,z_make_rows_with_alpha_range(uid,only_num_l,'A',no_num_r,false) z
+                    from
+                        (
+                        select uid,lhnd,hhnd,
+                            regexp_replace(lhnd,'[^0-9]*','','g') only_num_l,
+                            regexp_replace(hhnd,'[^0-9]*','','g') only_num_r,
+                            regexp_replace(lhnd,'[0-9]*','','g') no_num_l,
+                            regexp_replace(hhnd,'[0-9]*','','g') no_num_r
+                        from pad_adr
+                        where stnum_w_letter is true
+                        and lhnd != hhnd
+                        order by stname
+                        ) f1
+                    where
+                    f1.no_num_l = ''
+                    and f1.no_num_r = any (array['B','C','D','E','F','G','H','I','J','K','L','M'])
+                    and only_num_l=only_num_r
+
+
+                    ) f2
+                where p.uid = f2.uid
+                order by p.uid;
+
+
+                -- PART 2/2
+                INSERT INTO tmp (boro,src_gid,lhnd,hhnd,stname,zipcode,bbl,billbbl,min_num,max_num)
+                select  1 boro,
+                        f2.src_gid,
+                        f2.lhnd lhnd,
+                        f2.lhnd hhnd ,
+                        p.stname,
+                        p.zipcode,
+                        p.bbl,
+                        p.billbbl,
+                        only_num_l::integer min_num,
+                        only_num_r::integer max_num
+                from
+                    pad_adr p,
+                    (
+
+                    select uid src_gid,uid,regexp_replace(lhnd,no_num_l,'','g') base_str,
+                        lhnd,hhnd,only_num_l,only_num_r,no_num_l,no_num_r
+                        --,z_make_rows_with_alpha_range(uid,only_num_l,'A',no_num_r,false) z
+                    from
+                        (
+                        select uid,lhnd,hhnd,
+                            regexp_replace(lhnd,'[^0-9]*','','g') only_num_l,
+                            regexp_replace(hhnd,'[^0-9]*','','g') only_num_r,
+                            regexp_replace(lhnd,'[0-9]*','','g') no_num_l,
+                            regexp_replace(hhnd,'[0-9]*','','g') no_num_r
+                        from pad_adr
+                        where stnum_w_letter is true
+                        and lhnd != hhnd
+                        order by stname
+                        ) f1
+                    where
+                    f1.no_num_l = ''
+                    and f1.no_num_r = any (array['B','C','D','E','F','G','H','I','J','K','L','M'])
+                    and only_num_l=only_num_r
+
+
+                    ) f2
+                where p.uid = f2.uid
+                order by p.uid--,lhnd;
+
+                """
+                SV.T.conn.set_isolation_level(          0)
+                SV.T.cur.execute(                       five)
+                # 6.
+                six="""
+
+                -- ADD ROWS WHERE lhnd != hhnd and hhnd = # + letter other than A, e.g., (300,304B)
+                --    make row with just number range, e.g., 300...304
+                --    make row with last number + A, e.g., 304A,304B
+
+
+
+                --PART 1/2: row with range
+                INSERT INTO tmp (boro,src_gid,lhnd,hhnd,stname,zipcode,bbl,billbbl,parity,min_num,max_num)
+                select  1 boro,
+                        f2.src_gid,
+                        only_num_l lhnd,
+                        only_num_r hhnd,
+                        p.stname,
+                        p.zipcode,
+                        p.bbl,
+                        p.billbbl,
+                        p.parity,
+                        only_num_l::integer min_num,
+                        only_num_r::integer max_num
+                from
+                    pad_adr p,
+                    (
+                    select uid src_gid,uid,
+                        lhnd,hhnd,only_num_l,only_num_r,no_num_l,no_num_r
+                    from
+                        (
+                        select uid,lhnd,hhnd,
+                            regexp_replace(lhnd,'[^0-9]*','','g') only_num_l,
+                            regexp_replace(hhnd,'[^0-9]*','','g') only_num_r,
+                            regexp_replace(lhnd,'[0-9]*','','g') no_num_l,
+                            regexp_replace(hhnd,'[0-9]*','','g') no_num_r
+                        from pad_adr
+                        where stnum_w_letter is true
+                        and lhnd != hhnd
+                        order by stname
+                        ) f1
+                    where
+                    f1.no_num_l = ''
+                    and f1.no_num_r = any (array['B','C','D','E','F','G','H','I','J','K','L','M'])
+                    and only_num_l!=only_num_r
+                    ) f2
+                where p.uid = f2.uid
+                order by p.uid;
+
+
+
+                --PART 2/2: rows with alpha_range
+                INSERT INTO tmp (boro,src_gid,lhnd,hhnd,stname,zipcode,bbl,billbbl)
+                select  1 boro,
+                        f2.src_gid,
+                        --f2.lhnd,
+                        --f2.hhnd,
+                        (z).alpha_range lhnd,
+                        (z).alpha_range hhnd,
+                        --f2.only_num_l,
+                        --f2.no_num_l,
+                        --f2.no_num_r,
+                        p.stname,
+                        p.zipcode,
+                        p.bbl,
+                        p.billbbl
+                from
+                    pad_adr p,
+                    (
+
+                    select uid src_gid,uid,regexp_replace(lhnd,no_num_l,'','g') base_str,
+                        lhnd,hhnd,only_num_l,only_num_r,no_num_l,no_num_r
+                        ,z_make_rows_with_alpha_range(uid,only_num_l,'A',no_num_r,false) z
+                    from
+                        (
+                        select uid,lhnd,hhnd,
+                            regexp_replace(lhnd,'[^0-9]*','','g') only_num_l,
+                            regexp_replace(hhnd,'[^0-9]*','','g') only_num_r,
+                            regexp_replace(lhnd,'[0-9]*','','g') no_num_l,
+                            regexp_replace(hhnd,'[0-9]*','','g') no_num_r
+                        from pad_adr
+                        where stnum_w_letter is true
+                        and lhnd != hhnd
+                        order by stname
+                        ) f1
+                    where
+                    f1.no_num_l = ''
+                    and f1.no_num_r = any (array['B','C','D','E','F','G','H','I','J','K','L','M'])
+                    and only_num_l!=only_num_r
+
+
+                    ) f2
+                where p.uid = f2.uid
+                order by p.uid,lhnd;
+
+                """
+                SV.T.conn.set_isolation_level(          0)
+                SV.T.cur.execute(                       six)
+                # 7.
+                seven="""
+                --ADD ROWS WHERE lhnd+'A' and hhnd, e.g., (4A,6)
+                --    make row with just letter, e.g., 4A
+                --    make row with range, e.g., (4,6)
+
+                --PART 1/2
+                INSERT INTO tmp (boro,src_gid,lhnd,hhnd,stname,zipcode,bbl,billbbl)
+                select  1 boro,
+                        f2.src_gid,
+                        f2.lhnd lhnd,
+                        f2.lhnd hhnd,
+                        p.stname,
+                        p.zipcode,
+                        p.bbl,
+                        p.billbbl
+                from
+                    pad_adr p,
+                    (
+                    select uid src_gid,uid,
+                        lhnd,hhnd,only_num_l,only_num_r,no_num_l,no_num_r
+                    from
+                        (
+                        select uid,lhnd,hhnd,
+                            regexp_replace(lhnd,'[^0-9]*','','g') only_num_l,
+                            regexp_replace(hhnd,'[^0-9]*','','g') only_num_r,
+                            regexp_replace(lhnd,'[0-9]*','','g') no_num_l,
+                            regexp_replace(hhnd,'[0-9]*','','g') no_num_r
+                        from pad_adr
+                        where stnum_w_letter is true
+                        and lhnd != hhnd
+                        order by stname
+                        ) f1
+                    where
+                    f1.no_num_l = 'A'
+                    and f1.no_num_r = ''
+                    and only_num_l!=only_num_r
+                    ) f2
+                where p.uid = f2.uid
+                and not
+                    (
+                        f2.lhnd ilike any (array['%% 1/2%%','%% 3/4%%','%%-%%'])
+                        or f2.hhnd ilike any (array['%% 1/2%%','%% 3/4%%','%%-%%'])
+                    )
+                order by p.uid;
+
+
+                --PART 2/2
+                INSERT INTO tmp (boro,src_gid,lhnd,hhnd,stname,zipcode,bbl,billbbl,parity,min_num,max_num)
+                select  1 boro,
+                        f2.src_gid,
+                        only_num_l lhnd,
+                        only_num_r hhnd,
+                        p.stname,
+                        p.zipcode,
+                        p.bbl,
+                        p.billbbl,
+                        p.parity,
+                        only_num_l::integer min_num,
+                        only_num_r::integer max_num
+                from
+                    pad_adr p,
+                    (
+                    select uid src_gid,uid,
+                        lhnd,hhnd,only_num_l,only_num_r,no_num_l,no_num_r
+                    from
+                        (
+                        select uid,lhnd,hhnd,
+                            regexp_replace(lhnd,'[^0-9]*','','g') only_num_l,
+                            regexp_replace(hhnd,'[^0-9]*','','g') only_num_r,
+                            regexp_replace(lhnd,'[0-9]*','','g') no_num_l,
+                            regexp_replace(hhnd,'[0-9]*','','g') no_num_r
+                        from pad_adr
+                        where stnum_w_letter is true
+                        and lhnd != hhnd
+                        order by stname
+                        ) f1
+                    where
+                    f1.no_num_l = 'A'
+                    and f1.no_num_r = ''
+                    and only_num_l!=only_num_r
+                    ) f2
+                where p.uid = f2.uid
+                order by p.uid;
+                """
+                SV.T.conn.set_isolation_level(          0)
+                SV.T.cur.execute(                       seven)
+                # 8.
+                eight="""
+                --ADD ROWS WHERE lhnd!=hhnd,lhnd + word_l,hhnd + word_r,word_l=word_r, e.g., (501 REAR,503 REAR)
+                --    make row for each number (ALONG PARITY) between lhnd and hhnd
+                INSERT INTO tmp (boro,src_gid,lhnd,hhnd,stname,zipcode,bbl,billbbl)
+                select  1 boro,
+                        f2.src_gid,
+                        concat_ws(' ',(z).res_i,no_num_l) lhnd,
+                        concat_ws(' ',(z).res_i,no_num_l) hhnd,
+                        p.stname,
+                        p.zipcode,
+                        p.bbl,
+                        p.billbbl
+                from
+                    pad_adr p,
+                    (
+                    select uid src_gid,uid,
+                        lhnd,hhnd,only_num_l,only_num_r,no_num_l,no_num_r
+                        ,z_make_rows_with_numeric_range(uid,only_num_l::integer,only_num_r::integer,true) z
+                    from
+                        (
+                        select uid,lhnd,hhnd,
+                            regexp_replace(lhnd,'[^0-9]*','','g') only_num_l,
+                            regexp_replace(hhnd,'[^0-9]*','','g') only_num_r,
+                            regexp_replace(lhnd,'[0-9]*','','g') no_num_l,
+                            regexp_replace(hhnd,'[0-9]*','','g') no_num_r
+                        from pad_adr
+                        where stnum_w_letter is true
+                        and lhnd != hhnd
+                        order by stname
+                        ) f1
+                    where
+                    f1.no_num_l != ''
+                    and f1.no_num_r != ''
+                    and ( length(no_num_l)>0 or length(no_num_r)>0 )
+                    and only_num_l!=only_num_r
+                    and no_num_l=no_num_r
+                    ) f2
+                where p.uid = f2.uid
+                and not
+                    (
+                        f2.lhnd ilike any (array['%% 1/2%%','%% 3/4%%','%%-%%'])
+                        or f2.hhnd ilike any (array['%% 1/2%%','%% 3/4%%','%%-%%'])
+                    )
+                order by p.uid,(z).res_i;
+                """
+                SV.T.conn.set_isolation_level(          0)
+                SV.T.cur.execute(                       eight)
+                # 9.
+                nine="""
+                -- REMOVE ROWS ALREADY (and recently done) MANAGED IN pad_adr
+                delete from tmp
+                where   stnum_w_letter = true
+                        and (
+                        (lhnd ilike '% 3/4%'
+                        or lhnd ilike '% 1/4%'
+                        or lhnd ilike '% 1/3%'
+                        or lhnd ilike '% 1/2%'
+                        or lhnd ilike '%-%')
+                        or
+                        (hhnd ilike '% 3/4%'
+                        or hhnd ilike '% 1/4%'
+                        or hhnd ilike '% 1/3%'
+                        or hhnd ilike '% 1/2%'
+                        or hhnd ilike '%-%')
+                        );
+                """
+                SV.T.conn.set_isolation_level(          0)
+                SV.T.cur.execute(                       nine)
+
+                ### PROVE THAT ALL EXPECTED UID EXIST IN TMP TABLE
+                assert PG.T.pd.read_sql(    """ select count(*)=0 all_expected_uid_from_pad_adr_exist_in_tmp
+                                                from
+                                                (select distinct on (uid) * from pad_adr
+                                                    where stnum_w_letter = true and not
+                                                    (
+                                                        lhnd ilike any (array['%% 1/2%%','%% 3/4%%','%% 1/4%%','%% 1/3%%','%%-%%'])
+                                                        or hhnd ilike any (array['%% 1/2%%','%% 3/4%%','%% 1/4%%','%% 1/3%%','%%-%%'])
+                                                    )) p,
+                                                (select array_agg(distinct src_gid) all_t_uid from tmp) f2
+
+                                                where not array[p.uid] && all_t_uid
+                                            """,PG.T.eng).all_expected_uid_from_pad_adr_exist_in_tmp[0]==True
+
+                ### PROVE THAT ALL ROWS IN TMP WHERE min/max_num ARE NULL THEN BOTH min/max_num ARE NULL
+                assert PG.T.pd.read_sql("""
+                                            select count(*)=0 min_max_null_or_not_null_equally
+                                            from tmp where (min_num is null or max_num is null)
+                                            and not (min_num is null and max_num is null)
+                                        """,PG.T.eng).min_max_null_or_not_null_equally[0]==True
+
+                ### PROVE THAT ONLY ROWS IN tmp WITHOUT min/max_num ARE THOSE ROWS WITH LETTERS
+                assert PG.T.pd.read_sql("""
+                                            select count(*)=0 rows_without_letters_and_without_min_max
+                                            from tmp where
+                                            (min_num is null and not lhnd ~ '[a-zA-z]')
+                                            or (max_num is null and not hhnd ~ '[a-zA-z]')
+                                        """,PG.T.eng).rows_without_letters_and_without_min_max[0]==True
+
+                # FINISH WITH TMP (update,delete related rows from pad_adr,re-insert rows from tmp,delete tmp)
+                finish_up="""
+
+                -- ADD parser_info TO pad_adr WHERE NO STREET_NAME (should be those rows with lhnd or hhnd having '1/2', etc...)
+                WITH upd AS (
+                    SELECT  src_gid,predir,name street_name,suftype,sufdir
+                    FROM    z_parse_NY_addrs('
+                                            select
+                                                uid::bigint gid,
+                                                concat_ws('' '',''0'',stname)::text address,
+                                                zipcode::bigint zipcode
+                                            FROM pad_adr
+                                            WHERE street_name is null
+                                            ')
+                    )
+                UPDATE pad_adr t set
+                    predir = u.predir,
+                    street_name = u.street_name,
+                    suftype = u.suftype,
+                    sufdir = u.sufdir
+                FROM  upd u
+                WHERE u.src_gid = t.uid::bigint;
+
+                -- ADD parser_info TO tmp
+                WITH upd AS (
+                    SELECT  src_gid,predir,name street_name,suftype,sufdir
+                    FROM    z_parse_NY_addrs('
+                                            select
+                                                uid::bigint gid,
+                                                concat_ws('' '',''0'',stname)::text address,
+                                                zipcode::bigint zipcode
+                                            FROM tmp
+                                            ')
+
+                    )
+                UPDATE tmp t set
+                    predir = u.predir,
+                    street_name = u.street_name,
+                    suftype = u.suftype,
+                    sufdir = u.sufdir
+                FROM  upd u
+                WHERE u.src_gid = t.uid::bigint;
+
+
+                -- COPY OVER REMAINING DATA TO tmp
+                update tmp t set
+                    block = p.block,
+                    lot = p.lot,
+                    bin = p.bin,
+                    lhns = p.lhns,
+                    lcontpar = p.lcontpar,
+                    lsos = p.lsos,
+                    hhns = p.hhns,
+                    hcontpar = p.hcontpar,
+                    hsos = p.hsos,
+                    scboro = p.scboro,
+                    sc5 = p.sc5,
+                    sclgc = p.sclgc,
+                    stname = p.stname,
+                    addrtype = p.addrtype,
+                    realb7sc = p.realb7sc,
+                    validlgcs = p.validlgcs,
+                    b10sc = p.b10sc,
+                    segid = p.segid
+                from pad_adr p
+                where t.src_gid = p.uid;
+
+                -- DELETE FROM pad_adr THOSE ROWS ABOUT TO BE RE-INSERTED BACK INTO pad_adr FROM tmp
+                delete from pad_adr p
+                using (select array_agg(distinct src_gid) all_t_uid from tmp) t
+                where array[p.uid] && all_t_uid;
+
+
+                -- RE-INSERT FORMATTED ROWS FROM TMP
+                insert into pad_adr (boro,block,lot,bin,
+                    lhnd,lhns,lcontpar,lsos,
+                    hhnd,hhns,hcontpar,hsos,
+                    scboro,sc5,sclgc,stname,addrtype,realb7sc,validlgcs,parity,b10sc,segid,
+                    uid,bbl,stnum_w_letter,
+                    predir,street_name,suftype,sufdir,min_num,max_num,billbbl,tmp)
+                select
+                    boro,block,lot,bin,
+                    lhnd,lhns,lcontpar,lsos,
+                    hhnd,hhns,hcontpar,hsos,
+                    scboro,sc5,sclgc,stname,addrtype,realb7sc,validlgcs,parity,b10sc,segid,
+                    uid,bbl,stnum_w_letter,
+                    predir,street_name,suftype,sufdir,min_num,max_num,billbbl,tmp
+                from tmp;
+
+                -- DROP tmp TABLE
+                DROP TABLE tmp;
+
+                """
+                SV.T.conn.set_isolation_level(          0)
+                SV.T.cur.execute(                       finish_up)
+
+                # TIGHTEN THINGS UP
+
+                # 1. Satisfy/Prove condition:  no_rows_where_only_min_or_max_num_is_null
+                t="""   update pad_adr set min_num = lhnd::integer
+                        where (min_num is null and max_num is not null);
+
+                        update pad_adr set max_num = hhnd::integer
+                        where (max_num is null and min_num is not null);
+                """
+                SV.T.conn.set_isolation_level(          0)
+                SV.T.cur.execute(                       t)
+                assert PG.T.pd.read_sql(""" select count(*)=0 no_rows_where_only_min_or_max_num_is_null
+                                            from pad_adr where
+                                            (min_num is null and max_num is not null)
+                                            or
+                                            (max_num is null and min_num is not null)
+                                        """,PG.T.eng).no_rows_where_only_min_or_max_num_is_null[0]==True
+
+                # 2. Prove that all_rows_where_min_or_max_is_null_have_lhnd_equal_hhnd
+                assert PG.T.pd.read_sql(""" select count(*)=0 all_rows_where_min_or_max_is_null_have_lhnd_equal_hhnd
+                                            from pad_adr
+                                            where (min_num is null or max_num is null) and lhnd != hhnd
+                                        """,PG.T.eng).all_rows_where_min_or_max_is_null_have_lhnd_equal_hhnd[0]==True
+
 
                 # ** BELOW NEEDS TO BE INTEGRATED WITH ABOVE
                 a="""

@@ -1548,9 +1548,14 @@ class Yelp:
                                                     SELECT array_agg(%(tbl_uid)s) all_ids from %(tbl_name)s t2
                                                     WHERE ( t2.checked_out is null )
                                                     AND (
+
                                                         t2.%(upd_var)s      is   null
                                                         OR age('now'::timestamp with time zone,
                                                                t2.%(upd_var)s) > interval '%(upd_interval)s'
+
+                                                        --tmp = True
+                                                        --AND address is null
+
                                                     )
                                                     GROUP BY t2.%(upd_var)s,t2.%(tbl_uid)s
                                                     ORDER BY t2.%(upd_var)s ASC,t2.%(tbl_uid)s ASC
@@ -1558,24 +1563,57 @@ class Yelp:
                                                     ) as f1
                                                 WHERE all_ids && array[t.%(tbl_uid)s];
 
-                                                SELECT %(select_vars)s from %(tbl_name)s
+                                                SELECT * from %(tbl_name)s
                                                 WHERE checked_out           =   '%(guid)s';
                                             """ % self.T
 
             query_str                   =   t #if not query_str else query_str
-            d                           =   self.T.pd.read_sql( query_str,self.T.eng )
+            df                          =   self.T.pd.read_sql( query_str,self.T.eng )
 
-            y_links                     =   d.url.tolist()
             br                          =   self.T.br
             comment_sort_opts           =   '?sort_by=date_desc&start=0'
 
-            for it in y_links:
+            for i in range(len(df)):
+
+                THIS                    =   df.iloc[i,:]
+                it                      =   THIS.url
 
                 br.open_page(               it+comment_sort_opts)
                 html                    =   self.T.codecs_enc(br.source(),'utf8','ignore')
 
+
                 # extract yelp page data
-                vend_data               =   {'url':it}
+                vend_data               =   {'url'          :   it}
+                if not THIS.address:
+                    try:
+                        addr            =   self.T.getTagsByAttr(html, 'span',{'itemprop':'streetAddress'},contents=False)[0]
+                        vend_data.update(   {'address'      :   ', '.join([it for it in addr.strings]) })
+                    except IndexError:
+                        vend_data.update(   {'address'      :   'not_provided'})
+
+                if not THIS.city:
+                    vend_data.update(       {'city'         :   self.T.getTagsByAttr(html, 'span',
+                                                                    {'itemprop':'addressLocality'},
+                                                                    contents=False)[0].getText() })
+                if not THIS.state_code:
+                    vend_data.update(       {'state_code'   :   self.T.getTagsByAttr(html, 'span',
+                                                                    {'itemprop':'addressRegion'},
+                                                                    contents=False)[0].getText() })
+                if not THIS.postal_code:
+                    vend_data.update(       {'postal_code'  :   self.T.getTagsByAttr(html, 'span',
+                                                                    {'itemprop':'postalCode'},
+                                                                    contents=False)[0].getText() })
+
+                if THIS.phone==0 or not THIS.phone:
+                    try:
+                        vend_data.update(   {'phone'        :   int(self.T.re_sub(r'[^\u0000-\u007F]+','',
+                                                                    self.T.getTagsByAttr(html, 'span',
+                                                                         {'itemprop':'telephone'},
+                                                                         contents=False)[0].getText())) })
+                    except IndexError:
+                        vend_data.update(   {'phone'        :   0 })
+
+
 
                 # biz info
                 try:
@@ -1646,20 +1684,27 @@ class Yelp:
                 online_ordering         =   len(t)!=0
                 vend_data.update(           {'online_ordering':online_ordering})
 
+                updates                 =   []
+                for k,v in vend_data.iteritems():
+                    if k=='url':
+                        pass
+                    elif type(v)==str or type(v)==unicode:
+                        updates.append(     "%s = '%s'" % (k,v if type(v)!=self.T.NoneType else 'null') )
+                    else:
+                        updates.append(     "%s = %s" % (k,str(v) if type(v)!=self.T.NoneType else 'null') )
+
+                update_str = ',\n'.join(updates)
+                vend_data.update(                   {'updates'      :   update_str  })
+
                 # push to pgsql
                 cmd                     =   """
                                                 update yelp set
-                                                    extra_info                  =   '%(extra_info)s',
-                                                    hours                       =   '%(hours)s',
+                                                    %(updates)s,
                                                     hours_updated               =   'now'::timestamp with time zone,
-                                                    menu_page                   =   '%(menu_page)s',
-                                                    online_ordering             =   %(online_ordering)s,
-                                                    price_range                 =   '%(price_range)s',
-                                                    website                     =   '%(website)s',
                                                     checked_out                 =   null
                                                 where url                       =   '%(url)s'
 
-                                            """%(vend_data)
+                                            """ % vend_data
                 self.T.conn.set_isolation_level(0)
                 self.T.cur.execute(         cmd)
 
