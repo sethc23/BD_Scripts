@@ -55,6 +55,7 @@ class Webdriver():
         if browser == 'phantom': self.set_phantom(cookies)
         if browser == 'chrome': self.set_chrome(cookies)
         self.window=self.browser
+
     
     def set_firefox(self,cookies,with_profile=False):
         from selenium import webdriver
@@ -92,6 +93,26 @@ class Webdriver():
         driver.desired_capabilities['rotatable'] = True
         driver.implicitly_wait(120)
         self.browser = driver
+
+    def Select(self,element):
+        """
+        Example:
+
+        time_element            =   br.browser.find_element_by_id('deliveryTime')
+        time_str                =   "1:00 PM"
+        _select                 =   Select(time_element)
+        _select.select_by_value(    time_str)
+        assert time_element.get_attribute("value")==time_str
+
+        ALSO:
+
+        addresses               =   br.window.find_element_by_xpath("//select[@id='Address']")
+        last_option             =   len(addresses.find_elements_by_tag_name('option'))-1
+        addresses.find_elements_by_tag_name('option')[last_option].click()
+
+        """
+        from selenium.webdriver.support.select import Select
+        return Select(element)
 
     def open_page(self, gotoUrl):
         self.browser.get(gotoUrl)

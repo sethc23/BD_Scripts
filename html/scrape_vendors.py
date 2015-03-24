@@ -215,9 +215,9 @@ class Seamless:
                                     """ % self.T
         self.T.cur.execute(                cmd)
         return
-    def make_SL_search_adjustments(self,order_type_str='delivery',time_str='1:00 PM'):
+    def make_SL_search_adjustments(self,br,order_type_str='delivery',time_str='1:00 PM'):
 
-
+        br                      =   self.T.br
         #------------SET ORDER TYPE
         order_type_D            =   {'delivery'            :   '0',
                                     'pickup_20_blocks'     :   '20',
@@ -228,7 +228,7 @@ class Seamless:
 
         order_element           =   br.browser.find_element_by_id('pickupDistance')
         if order_element.get_attribute("value")!=order_type_D[ order_type_str ]:
-            _select             =   Select(order_element)
+            _select             =   self.T.br.Select(order_element)
             _select.select_by_value(order_type_D[ order_type_str ] )
             assert order_element.get_attribute("value")==order_type_D[ order_type_str ]
 
@@ -240,13 +240,13 @@ class Seamless:
             tmw                 =   (self.T['today'] + self.T.dt.timedelta(days=+1)).strftime('%m/%d/%Y')
             tmw_str             =   '/'.join([ it.lstrip('0') for it in tmw.split('/') ])
             date_element        =   br.browser.find_element_by_id('deliveryDate')
-            _select             =   Select(date_element)
+            _select             =   self.T.br.Select(date_element)
             _select.select_by_value(tmw_str)
             assert date_element.get_attribute("value")==tmw_str
 
         #------------SET DELIVERY TIME
         time_element            =   br.browser.find_element_by_id('deliveryTime')
-        _select                 =   Select(time_element)
+        _select                 =   self.T.br.Select(time_element)
         _select.select_by_value(    time_str)
         assert time_element.get_attribute("value")==time_str
 
@@ -510,10 +510,11 @@ class Seamless:
 
         return
     #   seamless: 1 of 3
-    def scrape_sl_1_search_results(self,query_str=''):
+    def scrape_sl_1_search_results(self,query_limit='',grp_size=100,iterations=10,update_interval='3 days'):
         """
         get results from seamless address search and update pgsql -- worked 2014.11.16
         """
+
         def get_sl_addr_search_results(self,src):
             br                          =   self.T.br
             only_delivery               =   True
@@ -552,30 +553,29 @@ class Seamless:
                 br.wait_for_page(           timeout_seconds=120)
 
 
-                self.make_SL_search_adjustments(order_type_str='delivery')
+                self.make_SL_search_adjustments(br,order_type_str='delivery')
 
 
                 if br.window.find_element_by_id("MessageArea").text.find('Your exact address could not be located by our system.') != -1:
                     br.window.find_element_by_name("singleAddressEntry").clear()
-                elif br.window.find_element_by_class_name("error-header").text.find('Your exact address could not be located by our system.') != -1:
-                    br.window.find_element_by_name("singleAddressEntry").clear()
-                elif br.window.find_element_by_class_name("error-header").text.find("We can't find your address.") != -1:
-                    br.window.find_element_by_id("fancybox-close").click()
+                elif br.window.find_element_by_class_name("error-header").text:
+                    if br.window.find_element_by_class_name("error-header").text.find("We can't find your address.") != -1:
+                        br.window.find_element_by_id("fancybox-close").click()
                     br.window.find_element_by_name("singleAddressEntry").clear()
                 else:
                     a                   =   br.window.execute_script('return document.body.scrollHeight;')
                     br.window.execute_script("window.scrollTo(%s, document.body.scrollHeight);" % str(a))
-                    br.wait_for_page(       timeout_seconds=120)
+                    # br.wait_for_page(       timeout_seconds=120)
                     b                   =   br.window.execute_script('return document.body.scrollHeight;')
                     br.window.execute_script("window.scrollTo(%s, document.body.scrollHeight);" % str(b))
-                    br.wait_for_page(       timeout_seconds=120)
+                    # br.wait_for_page(       timeout_seconds=120)
                     while a != b:
                         a               =   br.window.execute_script('return document.body.scrollHeight;')
                         br.window.execute_script("window.scrollTo(%s, document.body.scrollHeight);" % str(a))
-                        br.wait_for_page(   timeout_seconds=120)
+                        # br.wait_for_page(   timeout_seconds=120)
                         b               =   br.window.execute_script('return document.body.scrollHeight;')
                         br.window.execute_script("window.scrollTo(%s, document.body.scrollHeight);" % str(b))
-                        br.wait_for_page(   timeout_seconds=120)
+                        # br.wait_for_page(   timeout_seconds=120)
                 # --- 2. update pgsql:seamless with address search results
                 html                    =   self.T.codecs_enc(br.source(),'utf8','ignore')
                 z                       =   self.T.getTagsByAttr(html, 'div', {'class':'restaurant-name'},contents=False)
@@ -646,12 +646,12 @@ class Seamless:
                 check                   =   self.T.pd.read_sql('select count(*) cnt from seamless_closed',self.T.eng).cnt[0]
                 if check == 0:
                     self.T.conn.set_isolation_level(0)
-                    self.T.cur.execute(            """
+                    self.T.cur.execute(     """
                                             insert into seamless_closed (
                                                  vend_name,
                                                  opens_%(day)s,
                                                  closes_%(day)s,
-                                                 last_updated,
+                                                 last_updated
                                                  )
                                             select
                                                  t.vend_name,
@@ -698,9 +698,10 @@ class Seamless:
                 self.T.conn.set_isolation_level(   0)
                 self.T.cur.execute(                """ update scrape_lattice
                                                 set
-                                                    sl_open_cnt=%s,
-                                                    sl_closed_cnt=%s,
-                                                    sl_updated='now'::timestamp with time zone
+                                                    sl_open_cnt         =   %s,
+                                                    sl_closed_cnt       =   %s,
+                                                    sl_updated          =   now(),
+                                                    sl_checked_out      =   null
                                                 where gid=%s"""%(open_res_total,
                                                                  closed_res_total,
                                                                  gid))
@@ -709,24 +710,57 @@ class Seamless:
                 last_option             =   len(addresses.find_elements_by_tag_name('option'))-1
                 addresses.find_elements_by_tag_name('option')[last_option].click()
                 br.wait_for_page(           timeout_seconds=120)
-            br.quit()
 
         print self.T['guid']
 
+        self.T.update(                      {'tbl_name'                 :   'scrape_lattice',
+                                             'tbl_uid'                  :   'gid',
+                                             'checkout_var'             :   'sl_checked_out',
+                                             'upd_var'                  :   'sl_updated',
 
+                                             'upd_interval'             :   update_interval,
+                                             'select_vars'              :   'gid,address,zipcode',
+                                             'transaction_cnt'          :   grp_size})
 
-        src                             =   """ select gid,address,zipcode from scrape_lattice
-                                                where address is null
-                                                or sl_updated is null
-                                                or age('now'::timestamp with time zone,sl_updated) > interval '1 day'
-                                                limit %(transaction_cnt)s
+        q_lim                           =   query_limit if query_limit else """
+                                                                        t2.%(upd_var)s is null
+                                                                        OR age(now(),t2.%(upd_var)s) >
+                                                                        interval '%(upd_interval)s'
+                                                                            """ % self.T
+        self.T.update(                      {'query_limit'              :   q_lim   })
+
+        for _iter in range(iterations):
+            qry                         =   """ UPDATE %(tbl_name)s t
+                                                    SET %(checkout_var)s    =   null
+                                                    WHERE %(checkout_var)s  =   '%(guid)s';
+
+                                                UPDATE %(tbl_name)s t
+                                                SET %(checkout_var)s        =   '%(guid)s'
+                                                FROM (
+                                                    SELECT array_agg(%(tbl_uid)s) all_ids from %(tbl_name)s t2
+                                                    WHERE ( t2.%(checkout_var)s is null )
+                                                    AND (
+
+                                                        %(query_limit)s
+
+                                                    )
+                                                    GROUP BY t2.%(upd_var)s,t2.%(tbl_uid)s
+                                                    ORDER BY t2.%(upd_var)s ASC,t2.%(tbl_uid)s ASC
+                                                    LIMIT %(transaction_cnt)s
+                                                    ) as f1
+                                                WHERE all_ids && array[t.%(tbl_uid)s];
+
+                                                SELECT %(select_vars)s
+                                                FROM %(tbl_name)s
+                                                WHERE %(checkout_var)s       =   '%(guid)s';
                                             """ % self.T
-        src                             =   src if not query_str else query_str
-        get_sl_addr_search_results(         self,src )
+
+            get_sl_addr_search_results(         self,qry )
+
+        self.T.br.quit()
         self.T.update(                      {'line_no'                  :   self.T.I.currentframe().f_back.f_lineno})
         msg                             =   '%(line_no)s SL@%(user)s<%(guid)s>: Search Results Scraped.' % self.T
-        self.T.SYS_r._growl(                       msg )
-        print msg
+        self.T.SYS_r._growl(                msg )
         return True
     #   seamless: 2 of 3
     def scrape_sl_2_previously_closed_vendors(self,query_str=''):
@@ -1085,140 +1119,179 @@ class Yelp:
 
     # YELP FUNCTIONS
     #   yelp:     0 of 2
-    def scrape_yelp_0_search_results(self,query_str=''):
+    def scrape_yelp_0_search_results(self,query_limit='',grp_size=100,iterations=10,update_interval='3 days'):
         """
         get results from yelp address search and update pgsql
         """
+        def get_y_addr_search_results(self,qry):
+            s                               =   self.T.pd.read_sql( qry,self.T.eng )
+
+            p                               =   map(lambda s: str(s[0].title()+', New York, NY '+str(s[1])),
+                                                    zip(s.address,s.zipcode))
+
+            br                              =   self.T.br
+
+            d_cols                          =   ['vend_name','url','phone']
+            base_url                        =   'http://www.yelp.com'
+            for i in range(len(p)):
+                gid                         =   s.ix[i,'gid']
+                search_addr                 =   p[i]
+
+                url                         =   ''.join([base_url,'/search?find_desc=',
+                                                         self.T.safe_url('restaurant'),'&find_loc=',
+                                                         self.T.safe_url(search_addr)])
+                br.open_page(                   url)
+
+                if not self.T.getTagsByAttr(br.source(), 'div', {'class':'no-results'},contents=False):
+                    html                    =   self.T.codecs_enc(br.source(),'utf8','ignore')
+                    if html.find('ylist')==-1:
+                        res_num             =   0
+                        self.T.conn.set_isolation_level(0)
+                        self.T.cur.execute(     """ update scrape_lattice
+                                                    set yelp_cnt=%s,
+                                                    yelp_updated='now'::timestamp with time zone
+                                                    where gid=%s
+                                                """%(str(res_num),gid))
+                    else:
+                        a                   =   self.T.getTagsByAttr(html, 'span',
+                                                    {'class':'pagination-results-window'},contents=True)
+                        res_num             =   int(self.T.re_findall(r'\d+', str(a[a.find('of')+3:]))[0])
+                        self.T.conn.set_isolation_level(0)
+                        self.T.cur.execute(     """ update scrape_lattice
+                                                    set yelp_cnt=%s,
+                                                    yelp_updated='now'::timestamp with time zone
+                                                    where gid=%s
+                                                """%(str(res_num),gid))
+                        d                   =   self.T.pd.DataFrame(columns=d_cols)
+                        first_page,last_page=   True,False
+
+                        while last_page == False:
+
+                            a               =   self.T.getTagsByAttr(html, 'ul',
+                                                          {'class':'ylist ylist-bordered search-results'},
+                                                          contents=False)
+                            names           =   a[0].findAll('a',attrs={'class':'biz-name'})
+                            names_proper    =   map(lambda s: str(s.contents[0]).replace('\xe2\x80\x99',"'")
+                                                if len(s.contents)>0 else '',names)
+                            links           =   map(lambda s: base_url+str(s.attrs['href']),names)
+                            phones          =   a[0].findAll('span',attrs={'class':'biz-phone'})
+                            phones_proper   =   map(lambda s: ''.join(self.T.re_findall(r'\d+', str(s))),phones)
+
+                            z               =   {'vend_name'    :   self.T.pd.Series(names_proper),
+                                                 'url'          :   self.T.pd.Series(links),
+                                                 'phone'        :   self.T.pd.Series(phones_proper)}
+                            d               =   d.append(self.T.pd.DataFrame(data=z,columns=d_cols),ignore_index=True)
+
+                            next_page       =   self.T.getSoup(html).findAll('a', {'class':'page-option prev-next'})
+                            if first_page==True and len(next_page)==1:
+                                next_page_link = base_url + next_page[0].attrs['href']
+                                br.open_page(   next_page_link)
+                                html        =   self.T.codecs_enc(br.source(),'utf8','ignore')
+                                first_page= False
+                            elif len(next_page)==2:
+                                next_page_link = base_url + next_page[1].attrs['href']
+                                br.open_page(   next_page_link)
+                                html        =   self.T.codecs_enc(br.source(),'utf8','ignore')
+                            else:
+                                last_page   =   True
+                                break
+
+                        # upsert to yelp
+                        self.T.conn.set_isolation_level(0)
+                        self.T.cur.execute(        'drop table if exists %(tmp_tbl)s' % self.T)
+                        d['id']             =   d.url.map(lambda s: s[s.find('/biz/')+5:])
+                        d['phone_as_text']  =   d.phone.map(str)
+                        d.to_sql(               self.T['tmp_tbl'],self.T.eng)
+
+                        cmd                 =   """
+                                                    with upd as (
+                                                        update yelp y
+                                                        set
+                                                            id = t.id,
+                                                            vend_name = t.vend_name,
+                                                            url = t.url,
+                                                            phone_as_text = t.phone_as_text,
+                                                            upd_search_links = 'now'::timestamp with time zone
+                                                        from %(tmp_tbl)s t
+                                                        where y.url = t.url
+                                                        returning t.url url
+                                                    )
+                                                    insert into yelp ( id,
+                                                                       vend_name,
+                                                                       url,
+                                                                       phone_as_text,
+                                                                       upd_search_links)
+                                                    select
+                                                        t.id,
+                                                        t.vend_name,
+                                                        t.url,
+                                                        t.phone_as_text,
+                                                        'now'::timestamp with time zone
+                                                    from
+                                                        %(tmp_tbl)s t,
+                                                        (select array_agg(f.url) upd_vend_urls from upd f) as f2
+                                                    where (not upd_vend_urls && array[t.url]
+                                                        or upd_vend_urls is null);
+
+                                                    drop table %(tmp_tbl)s;
+
+                                                """ % self.T
+                        self.T.conn.set_isolation_level(0)
+                        self.T.cur.execute(     cmd)
+
         print self.T['guid']
+
         import sys
         reload(sys)
-        sys.setdefaultencoding(         'UTF8')
+        sys.setdefaultencoding(                 'UTF8')
 
-        t                               =   """ select gid,address,zipcode
-                                                from scrape_lattice
-                                                where yelp_updated > '2014-11-24 18:22:59.045361-05'::timestamp with time zone;
-                                                limit %(transaction_cnt)s
-                                            """ % self.T
+        self.T.update(                          {'tbl_name'                 :   'scrape_lattice',
+                                                 'tbl_uid'                  :   'gid',
+                                                 'checkout_var'             :   'y_checked_out',
+                                                 'upd_var'                  :   'yelp_updated',
+                                                 'upd_interval'             :   update_interval,
+                                                 'select_vars'              :   'gid,address,zipcode',
+                                                 'transaction_cnt'          :   grp_size})
 
-        query_str                       =   t if not query_str else query_str
-        s                               =   self.T.pd.read_sql( query_str,self.T.eng )
+        q_lim                               =   query_limit if query_limit else """
+                                                                        t2.%(upd_var)s is null
+                                                                        OR age(now(),t2.%(upd_var)s) >
+                                                                        interval '%(upd_interval)s'
+                                                                            """ % self.T
+        self.T.update(                          {'query_limit'              :   q_lim   })
 
-        p                               =   map(lambda s: str(s[0].title()+', New York, NY '+str(s[1])),
-                                                zip(s.address,s.zipcode))
+        for _iter in range(iterations):
+            qry                             =   """ UPDATE %(tbl_name)s t
+                                                    SET %(checkout_var)s    =   null
+                                                    WHERE %(checkout_var)s  =   '%(guid)s';
 
-        br                              =   self.T.br
+                                                    UPDATE %(tbl_name)s t
+                                                    SET %(checkout_var)s        =   '%(guid)s'
+                                                    FROM (
+                                                        SELECT array_agg(%(tbl_uid)s) all_ids from %(tbl_name)s t2
+                                                        WHERE ( t2.%(checkout_var)s is null )
+                                                        AND (
 
-        d_cols                          =   ['vend_name','url','phone']
-        base_url                        =   'http://www.yelp.com'
-        for i in range(len(p)):
-            gid                         =   s.ix[i,'gid']
-            search_addr                 =   p[i]
+                                                            %(query_limit)s
 
-            url                         =   base_url+'/search?find_desc='+self.T.safe_url('restaurant')+'&find_loc='+self.T.safe_url(search_addr)
-            br.open_page(                   url)
+                                                        )
+                                                        GROUP BY t2.%(upd_var)s,t2.%(tbl_uid)s
+                                                        ORDER BY t2.%(upd_var)s ASC,t2.%(tbl_uid)s ASC
+                                                        LIMIT %(transaction_cnt)s
+                                                        ) as f1
+                                                    WHERE all_ids && array[t.%(tbl_uid)s];
 
+                                                    SELECT %(select_vars)s
+                                                    FROM %(tbl_name)s
+                                                    WHERE %(checkout_var)s       =   '%(guid)s';
+                                                """ % self.T
 
-            from ipdb import set_trace as i_trace; i_trace()
-
-            if self.T.getTagsByAttr(br.source(), 'div', {'class':'no-results'},contents=False): pass
-            else:
-                html                =   self.T.codecs_enc(br.source(),'utf8','ignore')
-                if html.find('ylist')==-1:
-                    res_num         =   0
-                    self.T.conn.set_isolation_level(0)
-                    self.T.cur.execute(        """ update scrape_lattice
-                                            set yelp_cnt=%s,
-                                            yelp_updated='now'::timestamp with time zone
-                                            where gid=%s
-                                        """%(str(res_num),gid))
-                else:
-                    a               =   self.T.getTagsByAttr(html, 'span', {'class':'pagination-results-window'},contents=True)
-                    res_num         =   int(self.T.re_findall(r'\d+', str(a[a.find('of')+3:]))[0])
-                    self.T.conn.set_isolation_level(0)
-                    self.T.cur.execute(        """ update scrape_lattice
-                                            set yelp_cnt=%s,
-                                            yelp_updated='now'::timestamp with time zone
-                                            where gid=%s
-                                        """%(str(res_num),gid))
-                    d               =   self.T.pd.DataFrame(columns=d_cols)
-                    first_page,last_page = True,False
-
-                    while last_page == False:
-
-                        a           =   self.T.getTagsByAttr(html, 'ul',
-                                                      {'class':'ylist ylist-bordered search-results'},
-                                                      contents=False)
-                        names       =   a[0].findAll('a',attrs={'class':'biz-name'})
-                        names_proper=   map(lambda s: str(s.contents[0]).replace('\xe2\x80\x99',"'")
-                                            if len(s.contents)>0 else '',names)
-                        links       =   map(lambda s: base_url+str(s.attrs['href']),names)
-                        phones      =   a[0].findAll('span',attrs={'class':'biz-phone'})
-                        phones_proper = map(lambda s: ''.join(self.T.re_findall(r'\d+', str(s))),phones)
-
-                        z           =   {'vend_name':pd.Series(names_proper),
-                                         'url':pd.Series(links),
-                                         'phone':pd.Series(phones_proper)}
-                        d           =   d.append(pd.DataFrame(data=z,columns=d_cols),ignore_index=True)
-
-                        next_page   =   self.T.getSoup(html).findAll('a', {'class':'page-option prev-next'})
-                        if first_page==True and len(next_page)==1:
-                            next_page_link = base_url + next_page[0].attrs['href']
-                            br.open_page(next_page_link)
-                            html    =   self.T.codecs_enc(br.source(),'utf8','ignore')
-                            first_page= False
-                        elif len(next_page)==2:
-                            next_page_link = base_url + next_page[1].attrs['href']
-                            br.open_page(next_page_link)
-                            html    =   self.T.codecs_enc(br.source(),'utf8','ignore')
-                        else:
-                            last_page=  True
-                            break
-
-                    # upsert to yelp
-                    self.T.conn.set_isolation_level(0)
-                    self.T.cur.execute(        'drop table if exists %(tmp_tbl)s' % self.T)
-                    d['id']         =   d.url.map(lambda s: s[s.find('/biz/')+5:])
-                    d['phone_as_text'] = d.phone.map(str)
-                    d.to_sql(           self.T['tmp_tbl'],self.T.eng)
-
-                    cmd             =   """
-                                        with upd as (
-                                            update yelp y
-                                            set
-                                                id = t.id,
-                                                vend_name = t.vend_name,
-                                                url = t.url,
-                                                phone_as_text = t.phone_as_text,
-                                                upd_search_links = 'now'::timestamp with time zone
-                                            from %(tmp_tbl)s t
-                                            where y.url = t.url
-                                            returning t.url url
-                                        )
-                                        insert into yelp ( id,
-                                                           vend_name,
-                                                           url,
-                                                           phone_as_text,
-                                                           upd_search_links)
-                                        select
-                                            t.id,
-                                            t.vend_name,
-                                            t.url,
-                                            t.phone_as_text,
-                                            'now'::timestamp with time zone
-                                        from
-                                            %(tmp_tbl)s t,
-                                            (select array_agg(f.url) upd_vend_urls from upd f) as f2
-                                        where (not upd_vend_urls && array[t.url]
-                                            or upd_vend_urls is null);
-
-                                        drop table %(tmp_tbl)s;
-
-                                        """ % self.T
-                    self.T.conn.set_isolation_level(0)
-                    self.T.cur.execute(        cmd)
+            get_y_addr_search_results(          self,qry)
 
 
 
+
+        self.T.br.quit()
         self.T.update(                      {'line_no'                  :   self.T.I.currentframe().f_back.f_lineno})
         msg                             =   '%(line_no)s Yelp@%(user)s<%(guid)s>: Search Results Scraped.' % self.T
         print msg
