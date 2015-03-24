@@ -1788,10 +1788,287 @@ class pgSQL_Functions:
             self.T.conn.set_isolation_level(        0)
             self.T.cur.execute(                     cmd)
             return
-        def z_update_addr_with_string_dist(self):
+        def z_update_addr_with_string_dist_on_usps(self):
             cmd="""
 
-                CREATE OR REPLACE FUNCTION z_update_addr_with_string_dist(      idx             integer,
+                DROP FUNCTION IF EXISTS z_update_addr_with_string_dist_on_usps(integer,text,text,text,text[],text,text[]);
+                CREATE OR REPLACE FUNCTION z_update_addr_with_string_dist_on_usps(       idx                integer,
+                                                                                         tbl                text,
+                                                                                         uid_col            text,
+                                                                                         addr_col           text,
+                                                                                         zip_col            text,
+                                                                                         compare_from_cols  text[],
+                                                                                         compare_to_tbl     text,
+                                                                                         compare_to_cols    text[])
+                RETURNS text AS $$
+
+                from traceback                      import format_exc       as tb_format_exc
+                from sys                            import exc_info         as sys_exc_info
+
+                T       =   {   'idx'           :   str(idx),
+                                'tbl'           :   tbl,
+                                'uid_col'       :   uid_col,
+                                'addr_col'      :   addr_col,
+                                'zip_col'       :   zip_col,
+                                'comp_from_cols':   ','.join(compare_from_cols),
+                                'comp_to_tbl'   :   compare_to_tbl,
+                                'comp_to_cols'  :   ','.join(["'"+it+"'" for it in compare_to_cols]),   }
+
+                #plpy.log(T)
+                try:
+
+                    p   =   \"\"\"
+
+                            WITH upd AS (
+
+                                SELECT f2.*
+                                FROM
+                                        (
+                                        select (z).* from
+                                            (
+                                            select z_get_string_dist(       array_agg(f.uid),
+                                                                            array_agg(f.comp_element),
+                                                                            '##(comp_to_tbl)s'::text,
+                                                                            array[ ##(comp_to_cols)s ]) z
+                                            from
+                                                (
+                                                -- SELECT LAST ELEMENT FROM VALUE WHEN SPLIT BY ' '
+                                                select
+                                                    uid,
+                                                    split_part(f_str, ' ', array_upper(regex_split,1)) comp_element
+                                                from
+                                                    (
+                                                    select
+                                                        uid,
+                                                        regexp_split_to_array(comp_cols, ' ') regex_split,
+                                                        comp_cols f_str
+                                                    from
+                                                        (
+                                                        select
+                                                            src_gid::integer uid,
+                                                            ##(comp_from_cols)s comp_cols
+                                                        from
+                                                            (
+                                                            select (z).*
+                                                            from
+                                                                (
+                                                                    select z_parse_NY_addrs('
+                                                                    select
+                                                                        ##(uid_col)s::bigint gid,
+                                                                        ##(addr_col)s::text address,
+                                                                        ##(zip_col)s::bigint zipcode
+                                                                    FROM ##(tbl)s
+                                                                    WHERE ##(uid_col)s = ##(idx)s
+                                                                        ') z
+                                                                ) fe4
+                                                            ) fe3
+                                                        ) fe2
+                                                    ) fe1
+                                                ) f
+                                            ) f1
+                                        ) f2
+                                WHERE   f2.jaro > 0.8 and f2.jaro != 1.0
+                                ORDER BY f2.jaro DESC
+                                LIMIT 1
+                                )
+                            UPDATE ##(tbl)s t SET
+                                ##(addr_col)s = regexp_replace(upper(t.address),u.orig_str,u.jaro_b,'g')
+                            FROM upd u
+                            WHERE u.idx = t.##(uid_col)s
+                            RETURNING t.##(uid_col)s uid
+
+                            \"\"\" ## T
+
+                    plpy.log(p)
+                    res = plpy.execute(p)
+                    plpy.log(res)
+                    if len(res)==1:
+                        return "OK"
+                    else:
+                        return 'nothing updated'
+
+                except Exception as e:
+                    plpy.log(                       tb_format_exc())
+                    plpy.log(                       sys_exc_info()[0])
+                    plpy.log(                       e)
+                    return "ERROR"
+
+                $$ LANGUAGE plpythonu;
+            """.replace('##','%')
+            self.T.conn.set_isolation_level(        0)
+            self.T.cur.execute(                     cmd)
+            return
+        def z_update_addr_with_string_dist_on_snd(self):
+            cmd="""
+
+                DROP FUNCTION IF EXISTS z_update_addr_with_string_dist_on_snd(  integer,text,text,text,
+                                                                                text,text[]);
+                CREATE OR REPLACE FUNCTION z_update_addr_with_string_dist_on_snd(       idx                 integer,
+                                                                                        tbl                 text,
+                                                                                        uid_col             text,
+                                                                                        addr_col            text,
+
+                                                                                        zip_col             text,
+                                                                                        compare_from_cols   text[])
+                RETURNS text AS $$
+
+                from traceback                      import format_exc       as tb_format_exc
+                from sys                            import exc_info         as sys_exc_info
+
+                T       =   {   'idx'           :   str(idx),
+                                'tbl'           :   tbl,
+                                'uid_col'       :   uid_col,
+                                'addr_col'      :   addr_col,
+                                'zip_col'       :   zip_col,
+                                'comp_from_cols':   ','.join(compare_from_cols),
+
+                                'comp_to_tbl'   :   'snd',
+                                'comp_to_cols_1':   'primary_name',
+                                'comp_to_cols_2':   'variation',}
+
+                #plpy.log(T)
+                try:
+
+                    p   =   \"\"\"
+
+                            WITH upd_1 AS (
+
+                                SELECT f2.*
+                                FROM
+                                        (
+                                        select (z).* from
+                                            (
+                                            select z_get_string_dist(       array_agg(f.uid),
+                                                                            array_agg(f.comp_element),
+                                                                            '##(comp_to_tbl)s'::text,
+                                                                            array[ '##(comp_to_cols_1)s' ]) z
+                                            from
+                                                (
+                                                select
+                                                    src_gid::integer uid,
+                                                    concat_ws(' ',##(comp_from_cols)s) comp_element
+                                                from
+                                                    (
+                                                    select (z).*
+                                                    from
+                                                        (
+                                                            select z_parse_NY_addrs('
+                                                            select
+                                                                ##(uid_col)s::bigint gid,
+                                                                ##(addr_col)s::text address,
+                                                                ##(zip_col)s::bigint zipcode
+                                                            FROM ##(tbl)s
+                                                            WHERE ##(uid_col)s = ##(idx)s
+                                                            ') z
+                                                        ) fe1
+                                                    ) fe
+                                                ) f
+                                            ) f1
+                                        ) f2
+
+                                WHERE   f2.jaro > 0.8 and f2.jaro != 1.0
+                                ORDER BY f2.jaro DESC
+                                LIMIT 1
+                            ),
+                            upd_2 AS (
+
+                                SELECT f2.*
+                                FROM
+                                        (
+                                        select (z).* from
+                                            (
+                                            select z_get_string_dist(       array_agg(f.uid),
+                                                                            array_agg(f.comp_element),
+                                                                            '##(comp_to_tbl)s'::text,
+                                                                            array[ '##(comp_to_cols_2)s' ]) z
+                                            from
+                                                (
+                                                select
+                                                    src_gid::integer uid,
+                                                    concat_ws(' ',##(comp_from_cols)s) comp_element
+                                                from
+                                                    (
+                                                    select (z).*
+                                                    from
+                                                        (
+                                                            select z_parse_NY_addrs('
+                                                            select
+                                                                ##(uid_col)s::bigint gid,
+                                                                ##(addr_col)s::text address,
+                                                                ##(zip_col)s::bigint zipcode
+                                                            FROM ##(tbl)s
+                                                            WHERE ##(uid_col)s = ##(idx)s
+                                                            ') z
+                                                        ) fe1
+                                                    ) fe
+                                                ) f
+                                            ) f1
+                                        ) f2
+
+                                WHERE   f2.jaro > 0.8 and f2.jaro != 1.0
+                                ORDER BY f2.jaro DESC
+                                LIMIT 1
+                                )
+
+                            UPDATE ##(tbl)s t SET
+                                address = regexp_replace(upper(t.address),repl_array[1],repl_array[2],'g')
+                            FROM
+                                (
+                                SELECT
+                                    idx,
+                                    ARRAY[a,b] repl_array
+                                FROM
+                                    (
+                                    select
+                                        idx,
+                                        regexp_split_to_table(repl_from,' ') a,
+                                        regexp_split_to_table(repl_to,' ') b
+                                    from
+                                        (
+                                        SELECT
+                                            (select * from string_to_array(arr,','))[1] idx,
+                                            (select * from string_to_array(arr,','))[2] repl_from,
+                                            (select * from string_to_array(arr,','))[3] repl_to
+                                        FROM
+                                            (
+                                            select CASE WHEN f1.jaro>f2.jaro THEN f1.arr ELSE f2.arr END
+                                            from
+                                                (select concat_ws(',',idx,orig_str,jaro_b) arr,jaro from upd_1) f1,
+                                                (select concat_ws(',',idx,orig_str,jaro_b) arr,jaro from upd_2) f2
+                                            ) f3
+                                        ) f4
+                                    ) f5
+                                WHERE a!=b
+                                ) f
+                            WHERE f.idx::integer = t.##(uid_col)s::integer
+                            RETURNING t.##(uid_col)s
+
+                            \"\"\" ## T
+
+                    #plpy.log(p)
+                    res = plpy.execute(p)
+                    #plpy.log(res)
+                    if len(res)==1:
+                        return "OK"
+                    else:
+                        return 'nothing updated'
+
+                except Exception as e:
+                    plpy.log(                       tb_format_exc())
+                    plpy.log(                       sys_exc_info()[0])
+                    plpy.log(                       e)
+                    return "ERROR"
+
+                $$ LANGUAGE plpythonu;
+            """.replace('##','%')
+            self.T.conn.set_isolation_level(        0)
+            self.T.cur.execute(                     cmd)
+            return
+        def z_update_addr_with_string_dist_on_pad_adr(self):
+            cmd="""
+
+                DROP FUNCTION IF EXISTS z_update_addr_with_string_dist_on_pad_adr(integer,text,text,text,text,text[]);
+                CREATE OR REPLACE FUNCTION z_update_addr_with_string_dist_on_pad_adr(      idx             integer,
                                                                                 tbl             text,
                                                                                 uid_col         text,
                                                                                 addr_col        text,
@@ -1853,14 +2130,16 @@ class pgSQL_Functions:
                                 LIMIT 1
                                 )
                             UPDATE ##(tbl)s t SET
-                                ##(addr_col)s = u.jaro_b
+                                ##(addr_col)s = regexp_replace(upper(t.address),u.orig_str,u.jaro_b,'g')
                             FROM upd u
                             WHERE u.idx = t.##(uid_col)s
                             RETURNING t.##(uid_col)s uid
 
                             \"\"\" ## T
 
+                    plpy.log(p)
                     res = plpy.execute(p)
+                    plpy.log(res)
                     if len(res)==1:
                         return "OK"
                     else:
@@ -1917,15 +2196,19 @@ class pgSQL_Functions:
                                 self.__dict__.update(       upd)
 
 
+                    important_cols = ['street_name','variation','primary_name','common_use','usps_abbr','pattern']
                     T = {   'tbl'           :   compare_tbl,
                             'concat_col'    :   ''.join(["concat_ws(' ',",
                                                          ",".join(compare_col),
-                                                         ")"])}
+                                                         ")"]),
+                            'not_null_cols' :   ' is not null and '.join([it for it in compare_col
+                                                                    if important_cols.count(it)>0]) + ' is not null',
+                                                         }
 
                     #plpy.log(T)
                     try:
 
-                        p = "select distinct ##(concat_col)s comparison from ##(tbl)s where street_name is not null;" ## T
+                        p = "select distinct ##(concat_col)s comparison from ##(tbl)s where ##(not_null_cols)s;" ## T
                         res = plpy.execute(p)
                         if len(res)==0:
                             plpy.log("string_dist_results: NO DATA AVAILABLE FROM ##(tbl)s IN ##(tbl)s" ## T)

@@ -268,6 +268,7 @@ class Seamless:
                 addr                    =   self.T.re_findall(r'[(](.*)[)]',b)[0].strip(',')
                 addr                    =   self.T.re_sub(r'[^\u0000-\u007F\s]+','', addr)
                 self.T.update(              {'vendor_id':vendor_id,'vend_name':vend_name,'addr':addr} )
+
                 cmd                     =   """
                                             update seamless
                                             set
@@ -294,11 +295,10 @@ class Seamless:
         else:
             vend_name                   =   t[0].getText().replace('\n','').strip()
 
-        addr                            =   self.T.getTagsByAttr(html, 'span',
-                                                      {'itemprop':'streetAddress'},
-                                                      contents=False)[0].contents[0]
+        addr                            =   self.T.getTagsByAttr(html, 'span',{'itemprop':'streetAddress'},contents=False)[0].contents[0]
         addr                            =   self.T.re_sub(r'^([^\(]*)[\(](.*)$',r'\1',addr)
-        addr                            =   self.T.re_sub(r'[^\u0000-\u007F\s]+','', addr)
+        addr                            =   self.T.re_sub(r'[^\x00-\x7F]+','', addr)
+
         z                               =   self.T.getTagsByAttr(html, 'span',
                                                       {'itemprop':'postalCode'},
                                                       contents=False)[0].contents[0]
@@ -988,7 +988,7 @@ class Seamless:
                                              'select_vars'              :   'id,sl_link',
                                              'transaction_cnt'          :   grp_size })
 
-        query_limit                     =   't2.address is null and t2.geom is null'
+        query_limit                     =   't2.id = 7161'
 
         q_lim                           =   query_limit if query_limit else """
                                                                         t2.%(upd_var)s is null
@@ -1817,7 +1817,7 @@ class Yelp:
                                              'select_vars'                  :   'uid,url',
                                              'transaction_cnt'              :   grp_size})
 
-        # query_limit                     =   't2.address is null and t2.geom is null'
+        # query_limit                     =   't2.id = 7156'
 
         q_lim                           =   query_limit if query_limit else """
                                                                         t2.%(upd_var)s is null
