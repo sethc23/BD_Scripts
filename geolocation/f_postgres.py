@@ -1531,6 +1531,7 @@ class pgSQL_Functions:
             self.T.conn.set_isolation_level(        0)
             self.T.cur.execute(                     cmd)
             return
+
         def z_run_string_functions(self):
             a="""
 
@@ -1560,8 +1561,132 @@ class pgSQL_Functions:
                 WHERE   f2.jaro > 0.8 and f2.jaro != 1.0
                         and f2.idx = y.uid
 
+                -- CROSS WITH SND
+                select z_attempt_to_add_range_from_addr(num,predir,street_name,suftype,sufdir)
+                from yelp where uid = 18486
+
+
 
             """
+        def z_update_by_crossing_with_usps(self):
+            cmd="""
+
+                DROP FUNCTION IF EXISTS z_update_by_crossing_with_usps(integer,text,text);
+                CREATE OR REPLACE FUNCTION z_update_by_crossing_with_usps(  _idx            integer,
+                                                                            tbl             text,
+                                                                            gid_col         text)
+                RETURNS text AS $$
+
+                from traceback                      import format_exc       as tb_format_exc
+                from sys                            import exc_info         as sys_exc_info
+
+                # <<  WITH BLDG. NUMBER  >>  #
+
+                try:
+
+                    T = {   'tbl'       :   tbl,
+                            'gid_col'   :   gid_col,
+                            'idx'       :   str(_idx)     }
+
+                    p = \"\"\"  WITH upd AS (
+                                    SELECT  distinct on (s.uid)
+                                            f.uid::bigint src_gid,
+                                            s.to_num,s.to_predir,s.to_street_name,s.to_suftype,s.to_sufdir
+                                    FROM    snd s,
+                                            (   select ##(gid_col)s uid,concat_ws(' ',num,predir,street_name,suftype,sufdir ) concat_addr
+                                                from ##(tbl)s where ##(gid_col)s = ##(idx)s   ) f
+                                    WHERE   concat_ws(' ',s.from_num,s.from_predir,s.from_street_name,s.from_suftype,s.from_sufdir ) = f.concat_addr
+                                    )
+                                UPDATE ##(tbl)s t set
+                                        num         =   u.to_num,
+                                        predir      =   u.to_predir,
+                                        street_name =   u.to_street_name,
+                                        suftype     =   u.to_suftype,
+                                        sufdir      =   u.to_sufdir
+                                FROM    upd u
+                                WHERE   u.src_gid   =   t.##(gid_col)s::bigint
+                                RETURNING t.##(gid_col)s
+                        \"\"\" ## T
+
+
+                    plpy.log(p)
+                    res                         =   plpy.execute(p)
+                    if len(res)==1:
+                        return "OK"
+                    else:
+                        return 'nothing updated'
+
+
+                except:
+                    plpy.log(                       "f(x) z_update_by_crossing_with_usps FAILED")
+                    plpy.log(                       tb_format_exc() )
+                    plpy.log(                       sys_exc_info()[0] )
+                    return "error"
+
+                $$ LANGUAGE plpythonu;
+
+
+
+                DROP FUNCTION IF EXISTS z_update_by_crossing_with_usps(integer[],text,text);
+                CREATE OR REPLACE FUNCTION z_update_by_crossing_with_usps(  _idx            integer[],
+                                                                            tbl             text,
+                                                                            gid_col         text)
+                RETURNS text AS $$
+
+                from traceback                      import format_exc       as tb_format_exc
+                from sys                            import exc_info         as sys_exc_info
+
+                # <<  WITH BLDG. NUMBER  >>  #
+
+                try:
+
+                    T = {   'tbl'       :   tbl,
+                            'gid_col'   :   gid_col,
+                            'idx_arr'   :   str(_idx).replace("u'","'").replace("'",'').strip('[]')     }
+
+                    p = \"\"\"  WITH upd AS (
+                                    SELECT  distinct on (s.uid)
+                                            f.uid::bigint src_gid,
+                                            s.to_num,s.to_predir,s.to_street_name,s.to_suftype,s.to_sufdir
+                                    FROM    snd s,
+                                            (   select ##(gid_col)s uid,concat_ws(' ',num,predir,street_name,suftype,sufdir ) concat_addr
+                                                from ##(tbl)s where array[##(gid_col)s] && array[##(idx_arr)s]   ) f
+                                    WHERE   concat_ws(' ',s.from_num,s.from_predir,s.from_street_name,s.from_suftype,s.from_sufdir ) = f.concat_addr
+                                    )
+                                UPDATE ##(tbl)s t set
+                                        num         =   u.to_num,
+                                        predir      =   u.to_predir,
+                                        street_name =   u.to_street_name,
+                                        suftype     =   u.to_suftype,
+                                        sufdir      =   u.to_sufdir
+                                FROM    upd u
+                                WHERE   u.src_gid   =   t.##(gid_col)s::bigint
+                                RETURNING t.##(gid_col)s
+                        \"\"\" ## T
+
+
+                    res                         =   plpy.execute(p)
+
+                    plpy.log(res)
+
+                    if len(res)>0:
+                        res                     =   map(lambda s: s['##(gid_col)s' ## T],res)
+                        idx                     =   [ it for it in idx if res.count(it)==0 ]
+
+                except:
+                    plpy.log(                       "f(x) z_update_with_parsed_info FAILED")
+                    plpy.log(                       tb_format_exc() )
+                    plpy.log(                       sys_exc_info()[0] )
+                    return "error"
+
+
+                $$ LANGUAGE plpythonu;
+
+            """.replace('##','%')
+            # print cmd
+            self.T.conn.set_isolation_level(        0)
+            self.T.cur.execute(                     cmd)
+            return
         def z_update_by_crossing_with_snd(self):
             cmd="""
 
@@ -1663,8 +1788,96 @@ class pgSQL_Functions:
             self.T.conn.set_isolation_level(        0)
             self.T.cur.execute(                     cmd)
             return
+        def z_update_addr_with_string_dist(self):
+            cmd="""
 
-        def z_update_by_string_dist(self):
+                CREATE OR REPLACE FUNCTION z_update_addr_with_string_dist(      idx             integer,
+                                                                                tbl             text,
+                                                                                uid_col         text,
+                                                                                addr_col        text,
+                                                                                zip_col         text,
+                                                                                compare_cols    text[])
+                RETURNS text AS $$
+
+                from traceback                      import format_exc       as tb_format_exc
+                from sys                            import exc_info         as sys_exc_info
+
+                T       =   {   'idx'           :   str(idx),
+                                'tbl'           :   tbl,
+                                'uid_col'       :   uid_col,
+                                'addr_col'      :   addr_col,
+                                'zip_col'       :   zip_col,
+                                'comp_cols'     :   ','.join(["'"+it+"'" for it in compare_cols]),  }
+
+                #plpy.log(T)
+                try:
+
+                    p   =   \"\"\"
+
+                            WITH upd AS (
+
+                                SELECT f2.*
+                                FROM
+                                        (
+                                        select (z).* from
+                                            (
+                                            select z_get_string_dist(       array_agg(f.uid),
+                                                                            array_agg(f.concat_addr),
+                                                                            'pad_adr'::text,
+                                                                            array[ ##(comp_cols)s ]) z
+                                            from
+                                                (
+
+                                                select src_gid::integer uid,concat_ws(  ' ',predir,name,
+                                                                                        suftype,sufdir) concat_addr
+                                                from
+                                                    (
+                                                    select (z).*
+                                                    from
+                                                        (
+                                                            select z_parse_NY_addrs('
+                                                            select
+                                                                ##(uid_col)s::bigint gid,
+                                                                ##(addr_col)s::text address,
+                                                                ##(zip_col)s::bigint zipcode
+                                                            FROM ##(tbl)s
+                                                            WHERE ##(uid_col)s = ##(idx)s
+                                                            ') z
+                                                        ) fe1
+                                                    ) fe
+                                                ) f
+                                            ) f1
+                                        ) f2
+                                WHERE   f2.jaro > 0.8 and f2.jaro != 1.0
+                                ORDER BY f2.jaro DESC
+                                LIMIT 1
+                                )
+                            UPDATE ##(tbl)s t SET
+                                ##(addr_col)s = u.jaro_b
+                            FROM upd u
+                            WHERE u.idx = t.##(uid_col)s
+                            RETURNING t.##(uid_col)s uid
+
+                            \"\"\" ## T
+
+                    res = plpy.execute(p)
+                    if len(res)==1:
+                        return "OK"
+                    else:
+                        return 'nothing updated'
+
+                except Exception as e:
+                    plpy.log(                       tb_format_exc())
+                    plpy.log(                       sys_exc_info()[0])
+                    plpy.log(                       e)
+                    return "ERROR"
+
+                $$ LANGUAGE plpythonu;
+            """.replace('##','%')
+            self.T.conn.set_isolation_level(        0)
+            self.T.cur.execute(                     cmd)
+            return
+        def z_get_string_dist(self):
             cmd="""
 
                 DROP TYPE IF EXISTS string_dist_results cascade;
@@ -1679,13 +1892,13 @@ class pgSQL_Functions:
                     rating_codex text
                 );
 
-                DROP FUNCTION IF EXISTS z_update_by_string_dist(integer[],text,text,
-                                                                boolean,boolean,boolean,boolean);
+                DROP FUNCTION IF EXISTS z_get_string_dist(integer[],text,text,text[],
+                                                                boolean,boolean,boolean,boolean,boolean);
 
-                CREATE OR REPLACE FUNCTION z_update_by_string_dist( idx             integer[],
+                CREATE OR REPLACE FUNCTION z_get_string_dist(       idx             integer[],
                                                                     string_set      text[],
                                                                     compare_tbl     text,
-                                                                    compare_col     text,
+                                                                    compare_col     text[],
                                                                     jaro            boolean default true,
                                                                     leven           boolean default true,
                                                                     nysiis          boolean default true,
@@ -1705,26 +1918,37 @@ class pgSQL_Functions:
 
 
                     T = {   'tbl'           :   compare_tbl,
-                            'col'           :   compare_col,    }
+                            'concat_col'    :   ''.join(["concat_ws(' ',",
+                                                         ",".join(compare_col),
+                                                         ")"])}
 
-
+                    #plpy.log(T)
                     try:
 
-                        p = "select ##(col)s from ##(tbl)s where ##(col)s is not null;" ## T
+                        p = "select distinct ##(concat_col)s comparison from ##(tbl)s where street_name is not null;" ## T
                         res = plpy.execute(p)
                         if len(res)==0:
                             plpy.log("string_dist_results: NO DATA AVAILABLE FROM ##(tbl)s IN ##(tbl)s" ## T)
                             return
                         else:
-                            res = map(lambda s: s[compare_col],res)
+                            #plpy.log(res)
+                            res = map(lambda s: s['comparison'],res)
 
+                        #plpy.log("about to start")
                         for i in range(len(idx)):
-                            _word               =   string_set[i]
+                            #plpy.log("started")
+                            _word               =   string_set[i].upper()
                             if not _word:
+                                plpy.log(string_set)
+                                plpy.log("not word")
+                                plpy.log(_word)
                                 yield(              None)
+
                             else:
+
                                 t               =   {   'idx'               :   idx[i],
                                                         'orig_str'          :   _word   }
+                                #plpy.log(t)
                                 if jaro:
                                     t.update(       dict(zip(['jaro','jaro_b'],
                                                         sorted(map(lambda s: (J.jaro_distance(_word,s),s),res ) )[-1:][0])))
@@ -1738,6 +1962,7 @@ class pgSQL_Functions:
                                     t.update(       {   'rating_codex'      :   J.match_rating_codex(_word)     })
 
                                 r               =   string_dist_results(t)
+                                #plpy.log(t)
                                 yield(              r)
 
                         return
@@ -1753,6 +1978,7 @@ class pgSQL_Functions:
             self.T.conn.set_isolation_level(        0)
             self.T.cur.execute(                     cmd)
             return
+
         def z_update_with_geom_from_coords(self):
             """
 
@@ -2051,6 +2277,7 @@ class pgSQL_Functions:
             self.T.conn.set_isolation_level(        0)
             self.T.cur.execute(                     cmd)
             return
+
         def z_update_with_geocode_info(self):
             """
 
@@ -2151,7 +2378,6 @@ class pgSQL_Functions:
             self.T.conn.set_isolation_level(        0)
             self.T.cur.execute(                     cmd)
             return
-
         def z_update_with_parsed_info(self):
             cmd="""
                 DROP FUNCTION IF EXISTS z_update_with_parsed_info(integer,text, text,text, text,text[], boolean);
@@ -2321,6 +2547,7 @@ class pgSQL_Functions:
             self.T.conn.set_isolation_level(        0)
             self.T.cur.execute(                     cmd)
             return
+
         def z_parse_NY_addrs(self):
             T = {'fct_name'                 :   'z_parse_NY_addrs',
                  'fct_args_types'           :   [ ['IN','query_str','text'],],
@@ -3392,7 +3619,7 @@ class pgSQL_Triggers:
             self.T.cur.execute(                     cmd)
             return
 
-        def z_trigger_when_first_parsed(self,tbl,uid_col,addr_col):
+        def z_trigger_when_first_parsed(self,tbl,uid_col,addr_col,zip_col):
             cmd="""
                 DROP FUNCTION if exists z_trigger_when_first_parsed_on_%(tbl)s_in_%(addr_col)s() cascade;
                 DROP TRIGGER if exists trigger_when_first_parsed_on_%(tbl)s_in_%(addr_col)s ON %(tbl)s;
@@ -3418,6 +3645,7 @@ class pgSQL_Triggers:
                                                     "trigger=new_address.1.parsed.",
                                                     "uid_col=%(uid_col)s",
                                                     "addr_col=%(addr_col)s",
+                                                    "zip_col=%(zip_col)s",
                                                     "idx=##s" ## T['%(uid_col)s'] ]),
                                         "'",
                                         #" > /dev/null 2>&1",
@@ -3441,13 +3669,14 @@ class pgSQL_Triggers:
                 AFTER UPDATE OR INSERT ON %(tbl)s
                 FOR EACH ROW
                 EXECUTE PROCEDURE z_trigger_when_first_parsed_on_%(tbl)s_in_%(addr_col)s();
-            """ % { "tbl"                        :   tbl,
-                    "uid_col"                    :   uid_col,
-                    "addr_col"                   :   addr_col }
+            """ % { "tbl"                       :   tbl,
+                    "uid_col"                   :   uid_col,
+                    "addr_col"                  :   addr_col,
+                    "zip_col"                   :   zip_col }
             self.T.conn.set_isolation_level(        0)
             self.T.cur.execute(                     cmd.replace('##','%'))
             return
-        def z_trigger_when_new_addr(self,tbl,uid_col,addr_col):
+        def z_trigger_when_new_addr(self,tbl,uid_col,addr_col,zip_col):
             cmd="""
                 DROP FUNCTION if exists z_trigger_when_new_addr_on_%(tbl)s_in_%(addr_col)s() cascade;
                 DROP TRIGGER if exists set_trigger_when_new_addr_on_%(tbl)s_in_%(addr_col)s ON %(tbl)s;
@@ -3473,6 +3702,7 @@ class pgSQL_Triggers:
                                                     "trigger=new_address.1",
                                                     "uid_col=%(uid_col)s",
                                                     "addr_col=%(addr_col)s",
+                                                    "zip_col=%(zip_col)s",
                                                     "idx=##s" ## T['%(uid_col)s'] ]),
                                         "'",
                                         #" > /dev/null 2>&1",
@@ -3496,9 +3726,10 @@ class pgSQL_Triggers:
                 AFTER UPDATE OR INSERT ON %(tbl)s
                 FOR EACH ROW
                 EXECUTE PROCEDURE z_trigger_when_new_addr_on_%(tbl)s_in_%(addr_col)s();
-            """ % { "tbl"                        :   tbl,
-                    "uid_col"                    :   uid_col,
-                    "addr_col"                   :   addr_col }
+            """ % { "tbl"                       :   tbl,
+                    "uid_col"                   :   uid_col,
+                    "addr_col"                  :   addr_col,
+                    "zip_col"                   :   zip_col}
             self.T.conn.set_isolation_level(        0)
             self.T.cur.execute(                     cmd.replace('##','%'))
             return
