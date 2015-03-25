@@ -988,7 +988,7 @@ class Seamless:
                                              'select_vars'              :   'id,sl_link',
                                              'transaction_cnt'          :   grp_size })
 
-        query_limit                     =   't2.id = 7161'
+        query_limit                     =   't2.id = 8120'
 
         q_lim                           =   query_limit if query_limit else """
                                                                         t2.%(upd_var)s is null

@@ -1425,7 +1425,7 @@ class pgSQL_Functions:
             self.T.conn.set_isolation_level(       0)
             self.T.cur.execute(                    cmd)
 
-        def z_attempt_to_add_range_from_addr(self):
+        def OLD_z_attempt_to_add_range_from_addr(self):
             """
 
             USAGE:
@@ -1532,7 +1532,7 @@ class pgSQL_Functions:
             self.T.cur.execute(                     cmd)
             return
 
-        def z_run_string_functions(self):
+        def OLD_z_run_string_functions(self):
             a="""
 
                 -- USE USPS ABBREVIATION GUIDE
@@ -1568,7 +1568,7 @@ class pgSQL_Functions:
 
 
             """
-        def z_update_by_crossing_with_usps(self):
+        def OLD_z_update_by_crossing_with_usps(self):
             cmd="""
 
                 DROP FUNCTION IF EXISTS z_update_by_crossing_with_usps(integer,text,text);
@@ -1687,7 +1687,7 @@ class pgSQL_Functions:
             self.T.conn.set_isolation_level(        0)
             self.T.cur.execute(                     cmd)
             return
-        def z_update_by_crossing_with_snd(self):
+        def OLD_z_update_by_crossing_with_snd(self):
             cmd="""
 
                 DROP FUNCTION IF EXISTS z_update_by_crossing_with_snd(integer[],text,text);
@@ -2572,12 +2572,17 @@ class pgSQL_Functions:
             """
             cmd="""
                 DROP FUNCTION IF EXISTS z_update_with_geocode_info(text,text,text,text);
+                DROP FUNCTION IF EXISTS z_update_with_geocode_info(integer,text,text,text,text);
 
-                CREATE OR REPLACE FUNCTION z_update_with_geocode_info(  tbl      text,  gid_col text,
-                                                                        addr_col text,  zip_col text)
+                CREATE OR REPLACE FUNCTION z_update_with_geocode_info(  idx         integer,
+                                                                        tbl         text,
+                                                                        gid_col     text,
+                                                                        addr_col    text,
+                                                                        zip_col     text)
                 RETURNS text AS $$
 
-                    T = {   'tbl'       :   tbl,
+                    T = {   'idx'       :   idx,
+                            'tbl'       :   tbl,
                             'gid_col'   :   gid_col,
                             'addr_col'  :   addr_col,
                             'zip_col'   :   zip_col,   }
@@ -2588,13 +2593,13 @@ class pgSQL_Functions:
                                 SELECT (z).*  --,arr_uid,arr_addr
                                 FROM
                                     (
-                                    select z_get_geocode_info(array_agg(uid),array_agg(address)) z
+                                    select z_get_geocode_info(array[uid],array[address]) z
                                                 --,array_agg(uid) arr_uid,array_agg(address) arr_addr
                                     from
                                         (
-                                        select ##(gid_col)s uid,concat_ws(', ',##(addr_col)s ,'New York, NY',##(zip_col)s) address
+                                        select ##(gid_col)s uid,concat_ws(', ',##(addr_col)s,'New York, NY',##(zip_col)s) address
                                         from ##(tbl)s
-                                        where street_name is null and geom is null and gc_addr is null
+                                        where ##(gid_col)s = ##(idx)s
                                         and ##(addr_col)s  is not null and address != ''
                                         and ##(zip_col)s  is not null
                                         order by ##(gid_col)s
@@ -2609,13 +2614,17 @@ class pgSQL_Functions:
                                 gc_full_addr = u.form_addr
                             FROM upd u
                             WHERE u.addr_valid is true
-                            and u.idx = t.##(gid_col)s;
+                            and u.idx = t.##(gid_col)s
+                            RETURNING t.##(gid_col)s;
 
                         \"\"\" ## T
 
-                    #plpy.log(p)
-                    plpy.execute(p)
-                    return 'ok'
+                    plpy.log(p)
+                    #res = plpy.execute(p)
+                    # if len(res)==1:
+                    #     return 'OK'
+                    # else:
+                    #     return 'nothing updated'
 
                 $$ LANGUAGE plpythonu;
             """.replace('##','%')
@@ -3336,7 +3345,7 @@ class pgSQL_Functions:
             self.T.conn.set_isolation_level(       0)
             self.T.cur.execute(                    cmd)
 
-        def z_add_geom_through_addr_idx(self):
+        def OLD_z_add_geom_through_addr_idx(self):
             a="""
                 DROP FUNCTION if exists z_add_geom_through_addr_idx(text,text) cascade;
 
@@ -3577,9 +3586,6 @@ class pgSQL_Functions:
             self.T.conn.set_isolation_level(        0)
             self.T.cur.execute(                     cmd)
             return
-        def z_update_addr_idx_from_gc_info(self):
-            pass
-
         def z_get_geocode_info(self):
             cmd="""
                 DROP TYPE IF EXISTS geocode_results cascade;
@@ -3595,9 +3601,9 @@ class pgSQL_Functions:
 
                 );
 
-                drop function if exists z_get_geocode_info(text);
                 drop function if exists z_get_geocode_info(integer[],text[]);
-                CREATE FUNCTION z_get_geocode_info(uids integer [],addr_queries text[])
+                CREATE FUNCTION z_get_geocode_info(     uids            integer [],
+                                                        addr_queries    text[])
                 RETURNS SETOF geocode_results AS $$
 
                 from os                             import environ as os_environ
@@ -3644,7 +3650,6 @@ class pgSQL_Functions:
                             found = False
                             for i in range(0,results.len):
 
-                                idx                 =   i
                                 res                 =   results[i]
 
                                 if not res.valid_address:
@@ -3925,7 +3930,7 @@ class pgSQL_Triggers:
                                         "'",
                                         '&'.join([  "http://0.0.0.0:14401?",
                                                     "table=%(tbl)s",
-                                                    "trigger=new_address.1.parsed.",
+                                                    "trigger=new_address.1.parsed",
                                                     "uid_col=%(uid_col)s",
                                                     "addr_col=%(addr_col)s",
                                                     "zip_col=%(zip_col)s",
@@ -3982,7 +3987,7 @@ class pgSQL_Triggers:
                                         "'",
                                         '&'.join([  "http://0.0.0.0:14401?",
                                                     "table=%(tbl)s",
-                                                    "trigger=new_address.1",
+                                                    "trigger=new_address.1.parsed.string_dist.failed",
                                                     "uid_col=%(uid_col)s",
                                                     "addr_col=%(addr_col)s",
                                                     "zip_col=%(zip_col)s",
@@ -3993,7 +3998,7 @@ class pgSQL_Triggers:
                                          ])
                         plpy.log(cmd)
                         os_cmd(cmd)
-                        plpy.execute("update %(tbl)s set trigger_step = 'new_address.1.ngx' where %(uid_col)s =##s" ## T['%(uid_col)s'] )
+                        plpy.execute("update %(tbl)s set trigger_step = 'new_address.1.parsed.string_dist.failed' where %(uid_col)s =##s" ## T['%(uid_col)s'] )
                         return
 
                 except plpy.SPIError:
