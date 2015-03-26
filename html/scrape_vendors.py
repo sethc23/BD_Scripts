@@ -266,6 +266,7 @@ class Seamless:
                 b                       =   a[0].text.replace('\n','').replace('Bummer!','').strip()
                 vend_name               =   b[:b.find('(')].strip().replace("'","''")
                 addr                    =   self.T.re_findall(r'[(](.*)[)]',b)[0].strip(',')
+                addr                    =   addr.replace('&','and')
                 addr                    =   self.T.re_sub(r'[^\u0000-\u007F\s]+','', addr)
                 self.T.update(              {'vendor_id':vendor_id,'vend_name':vend_name,'addr':addr} )
 
@@ -297,6 +298,7 @@ class Seamless:
 
         addr                            =   self.T.getTagsByAttr(html, 'span',{'itemprop':'streetAddress'},contents=False)[0].contents[0]
         addr                            =   self.T.re_sub(r'^([^\(]*)[\(](.*)$',r'\1',addr)
+        addr                            =   addr.replace('&','and')
         addr                            =   self.T.re_sub(r'[^\x00-\x7F]+','', addr)
 
         z                               =   self.T.getTagsByAttr(html, 'span',
@@ -1668,6 +1670,8 @@ class Yelp:
                 if not THIS.address:
                     try:
                         addr            =   self.T.getTagsByAttr(html, 'span',{'itemprop':'streetAddress'},contents=False)[0]
+                        addr            =   addr.replace('&','and')
+                        addr            =   self.T.re_sub(r'[^\x00-\x7F]+','', addr)
                         vend_data.update(   {'address'      :   ', '.join([it for it in addr.strings]) })
                     except IndexError:
                         vend_data.update(   {'address'      :   'not_provided'})
