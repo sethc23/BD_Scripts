@@ -38,8 +38,9 @@ class PP_Functions:
         A['_photos']                        =   A._photos.map(lambda s: '' if s=='No Photos' else s)
         A['_rent']                          =   A._rent.map(lambda d: float(d.strip('$')))
         A['_beds']                          =   A._rent.map(int)
-        A['_date']                          =   A._date.map(lambda d: self.T.DU.parse(d))
-        A['_create_date']                   =   A._create_date.map(lambda d: self.T.DU.parse(d))
+        date_cols                           =   [ it for it in A.columns.tolist() if it.rfind('_date')==len(it)-5 ]
+        for it in date_cols:
+            A[it]                           =   A[it].map(lambda d: self.T.DU.parse(d))
         return A
 
     def recent_modified(self):
