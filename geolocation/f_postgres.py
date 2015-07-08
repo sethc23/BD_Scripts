@@ -4099,9 +4099,8 @@ class pgSQL_Triggers:
                 DROP EVENT TRIGGER if exists missing_primary_key_trigger;
 
                 CREATE EVENT TRIGGER missing_primary_key_trigger
-                ON ddl command end
-                WHEN TAG IN ('CREATE TABLE')
-                OR WHEN TAG IN ('CREATE TABLE AS')
+                ON ddl_command_end
+                WHEN TAG IN ('CREATE TABLE','CREATE TABLE AS')
                 EXECUTE PROCEDURE z_auto_add_primary_key();
 
                                                 """
@@ -4141,12 +4140,9 @@ class pgSQL_Triggers:
                   LANGUAGE plpgsql;
 
                 DROP EVENT TRIGGER if exists missing_last_updated_field;
-
                 CREATE EVENT TRIGGER missing_last_updated_field
                 ON ddl_command_end
-                WHEN TAG IN ('CREATE TABLE')
-                OR WHEN TAG IN ('CREATE TABLE AS')
-
+                WHEN TAG IN ('CREATE TABLE','CREATE TABLE AS')
                 EXECUTE PROCEDURE z_auto_add_last_updated_field();
                                             """
             self.T.conn.set_isolation_level(0)
@@ -4232,69 +4228,12 @@ class pgSQL_Triggers:
             self.T.cur.execute(                     cmd)
             return
 
-        def z_trigger_when_first_parsed(self,tbl,uid_col,addr_col,zip_col):
+        def z_trigger_after_update_and_new_addr_trigger(self,tbl,uid_col,addr_col,zip_col):
             cmd="""
-                DROP FUNCTION if exists z_trigger_when_first_parsed_on_%(tbl)s_in_%(addr_col)s() cascade;
-                DROP TRIGGER if exists trigger_when_first_parsed_on_%(tbl)s_in_%(addr_col)s ON %(tbl)s;
+                DROP FUNCTION if exists z_trigger_after_update_and_new_addr_trigger_on_%(tbl)s_in_%(addr_col)s() cascade;
+                DROP TRIGGER if exists trigger_after_update_and_new_addr_trigger_on_%(tbl)s_in_%(addr_col)s ON %(tbl)s;
 
-                CREATE OR REPLACE FUNCTION z_trigger_when_first_parsed_on_%(tbl)s_in_%(addr_col)s()
-                RETURNS TRIGGER AS $funct$
-
-                from os                             import system           as os_cmd
-                from traceback                      import format_exc       as tb_format_exc
-                from sys                            import exc_info         as sys_exc_info
-
-                try:
-                    T = TD["new"]
-                    if (T["%(addr_col)s"] == 'not_provided' or
-                        T["%(addr_col)s"] == '' or
-                        T["trigger_step"] != 'new_address.1.parsed'):
-                        return
-                    else:
-                        cmd = ''.join([ "curl -X POST ",
-                                        "'",
-                                        '&'.join([  "http://0.0.0.0:14401?",
-                                                    "table=%(tbl)s",
-                                                    "trigger=new_address.1.parsed",
-                                                    "uid_col=%(uid_col)s",
-                                                    "addr_col=%(addr_col)s",
-                                                    "zip_col=%(zip_col)s",
-                                                    "idx=##s" ## T['%(uid_col)s'] ]),
-                                        "'",
-                                        #" > /dev/null 2>&1",
-                                        " &",
-                                         ])
-                        plpy.log(cmd)
-                        os_cmd(cmd)
-                        plpy.execute("update %(tbl)s set trigger_step = 'new_address.1.parsed.ngx' where %(uid_col)s =##s" ## T['%(uid_col)s'] )
-                        return
-
-                except plpy.SPIError:
-                    plpy.log('set_trigger_when_new_addr_on_%(tbl)s_in_%(addr_col)s FAILED')
-                    plpy.log(tb_format_exc())
-                    plpy.log(sys_exc_info()[0])
-                    return
-
-
-                $funct$ language "plpythonu";
-
-                CREATE TRIGGER trigger_when_first_parsed_on_%(tbl)s_in_%(addr_col)s
-                AFTER UPDATE OR INSERT ON %(tbl)s
-                FOR EACH ROW
-                EXECUTE PROCEDURE z_trigger_when_first_parsed_on_%(tbl)s_in_%(addr_col)s();
-            """ % { "tbl"                       :   tbl,
-                    "uid_col"                   :   uid_col,
-                    "addr_col"                  :   addr_col,
-                    "zip_col"                   :   zip_col }
-            self.T.conn.set_isolation_level(        0)
-            self.T.cur.execute(                     cmd.replace('##','%'))
-            return
-        def z_trigger_when_new_addr(self,tbl,uid_col,addr_col,zip_col):
-            cmd="""
-                DROP FUNCTION if exists z_trigger_when_new_addr_on_%(tbl)s_in_%(addr_col)s() cascade;
-                DROP TRIGGER if exists set_trigger_when_new_addr_on_%(tbl)s_in_%(addr_col)s ON %(tbl)s;
-
-                CREATE OR REPLACE FUNCTION z_trigger_when_new_addr_on_%(tbl)s_in_%(addr_col)s()
+                CREATE OR REPLACE FUNCTION z_trigger_after_update_and_new_addr_trigger_on_%(tbl)s_in_%(addr_col)s()
                 RETURNS TRIGGER AS $funct$
 
                 from os                             import system           as os_cmd
@@ -4311,6 +4250,17 @@ class pgSQL_Triggers:
                         T["trigger_step"].rfind(trig_term) + len(trig_term) != len(T["trigger_step"]) ):
                         return
                     else:
+
+                        p = \"\"\"
+
+                                UPDATE %(tbl)s set
+                                    trigger_step = 'new_address.ngx'
+                                WHERE %(uid_col)s = ##s
+
+                            \"\"\" ## T['%(uid_col)s']
+
+                        plpy.execute(p)
+
                         cmd = ''.join([ "curl -X POST ",
                                         "'",
                                         '&'.join([  "http://0.0.0.0:14401?",
@@ -4326,7 +4276,7 @@ class pgSQL_Triggers:
                                          ])
                         plpy.log(cmd)
                         os_cmd(cmd)
-                        plpy.execute("update %(tbl)s set trigger_step = 'new_address.ngx' where %(uid_col)s =##s" ## T['%(uid_col)s'] )
+
                         return
 
                 except plpy.SPIError:
@@ -4338,10 +4288,82 @@ class pgSQL_Triggers:
 
                 $funct$ language "plpythonu";
 
-                CREATE TRIGGER trigger_when_new_addr_on_%(tbl)s_in_%(addr_col)s
-                AFTER UPDATE OR INSERT ON %(tbl)s
+                CREATE TRIGGER trigger_after_update_and_new_addr_trigger_on_%(tbl)s_in_%(addr_col)s
+                AFTER UPDATE ON %(tbl)s
                 FOR EACH ROW
-                EXECUTE PROCEDURE z_trigger_when_new_addr_on_%(tbl)s_in_%(addr_col)s();
+                EXECUTE PROCEDURE z_trigger_after_update_and_new_addr_trigger_on_%(tbl)s_in_%(addr_col)s();
+            """ % { "tbl"                       :   tbl,
+                    "uid_col"                   :   uid_col,
+                    "addr_col"                  :   addr_col,
+                    "zip_col"                   :   zip_col}
+            self.T.conn.set_isolation_level(        0)
+            self.T.cur.execute(                     cmd.replace('##','%'))
+            return
+        def z_trigger_after_inserting_new_addr(self,tbl,uid_col,addr_col,zip_col):
+            cmd="""
+                DROP FUNCTION if exists z_trigger_after_inserting_new_addr_on_%(tbl)s_in_%(addr_col)s() cascade;
+                DROP TRIGGER if exists trigger_after_inserting_new_addr_on_%(tbl)s_in_%(addr_col)s ON %(tbl)s;
+
+                CREATE OR REPLACE FUNCTION z_trigger_after_inserting_new_addr_on_%(tbl)s_in_%(addr_col)s()
+                RETURNS TRIGGER AS $funct$
+
+                from os                             import system           as os_cmd
+                from traceback                      import format_exc       as tb_format_exc
+                from sys                            import exc_info         as sys_exc_info
+
+                try:
+
+                    T                           =   TD["new"]
+                    trig_term                   =   'new_address'
+
+                    if (T["%(addr_col)s"] == 'not_provided' or
+                        T["%(addr_col)s"] == '' or
+                        T["trigger_step"].rfind(trig_term) + len(trig_term) != len(T["trigger_step"]) ):
+                        return
+                    else:
+
+                        p = \"\"\"
+
+                                UPDATE %(tbl)s set
+                                    trigger_step = 'new_address.ngx',
+                                    orig_addr = %(addr_col)s
+                                WHERE %(uid_col)s = ##s
+
+                            \"\"\" ## T['%(uid_col)s']
+
+                        plpy.execute(p)
+
+                        cmd = ''.join([ "curl -X POST ",
+                                        "'",
+                                        '&'.join([  "http://0.0.0.0:14401?",
+                                                    "table=%(tbl)s",
+                                                    "trigger=new_address",
+                                                    "uid_col=%(uid_col)s",
+                                                    "addr_col=%(addr_col)s",
+                                                    "zip_col=%(zip_col)s",
+                                                    "idx=##s" ## T['%(uid_col)s'] ]),
+                                        "'",
+                                        #" > /dev/null 2>&1",
+                                        " &",
+                                         ])
+                        plpy.log(cmd)
+                        os_cmd(cmd)
+
+                        return
+
+                except plpy.SPIError:
+                    plpy.log('set_trigger_when_new_addr_on_%(tbl)s_in_%(addr_col)s FAILED')
+                    plpy.log(tb_format_exc())
+                    plpy.log(sys_exc_info()[0])
+                    return
+
+
+                $funct$ language "plpythonu";
+
+                CREATE TRIGGER trigger_after_inserting_new_addr_on_%(tbl)s_in_%(addr_col)s
+                AFTER INSERT ON %(tbl)s
+                FOR EACH ROW
+                EXECUTE PROCEDURE z_trigger_after_inserting_new_addr_on_%(tbl)s_in_%(addr_col)s();
             """ % { "tbl"                       :   tbl,
                     "uid_col"                   :   uid_col,
                     "addr_col"                  :   addr_col,
@@ -7180,33 +7202,6 @@ class pgSQL_Tables:
                         or max_num is null)
                 """
 
-
-class To_Class:
-
-    def __init__(self, init=None):
-        if init is not None:
-            self.__dict__.update(init)
-
-    def __getitem__(self, key):
-        return self.__dict__[key]
-
-    def __setitem__(self, key, value):
-        self.__dict__[key] = value
-
-    def __delitem__(self, key):
-        del self.__dict__[key]
-
-    def __contains__(self, key):
-        return key in self.__dict__
-
-    def __len__(self):
-        return len(self.__dict__)
-
-    def __repr__(self):
-        return repr(self.__dict__)
-
-
-
 class pgSQL:
 
     def __init__(self):
@@ -7228,6 +7223,7 @@ class pgSQL:
         py_path                             =   py_path
         py_path.append(                         os_environ['HOME'] + '/.scripts')
         from system_settings                import DB_HOST,DB_PORT
+        from py_classes                     import To_Class
         # from System_Control               import System_Reporter
         # SYS_r                               =   System_Reporter()
         import                                  pandas          as pd
@@ -7265,7 +7261,7 @@ class pgSQL:
                                                  'py_path'      :   py_path,
                                                  'guid'         :   str(get_guid().hex)[:7]}
         D.update(                               {'tmp_tbl'      :   'tmp_'+D['guid']})
-        self.T                              =   To_Class(D)
+        self.T                              =   D
         # py_path.append(                         os_path.join(os_environ['BD'],'geolocation'))
         #### from f_vendor_postgre import get_bldg_street_idx
         #### from f_vendor_postgre import get_addr_body,match_simple_regex

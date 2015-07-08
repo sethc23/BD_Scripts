@@ -53,7 +53,7 @@ class Webdriver():
         self.cookies=''
         if browser == 'firefox': self.set_firefox(cookies)
         if browser == 'phantom': self.set_phantom(cookies)
-        if browser == 'chrome': self.set_chrome(cookies)
+        if browser == 'chrome':  self.set_chrome(cookies)
         self.window=self.browser
 
     
@@ -75,7 +75,8 @@ class Webdriver():
 
     def set_chrome(self,cookies,with_profile=False):
         from selenium import webdriver
-        profile = webdriver.Chrome()
+        driver = webdriver.Chrome('/Users/admin/Desktop/chromedriver')
+        self.browser = driver
     
     def set_phantom(self,cookies):
         from selenium import webdriver
