@@ -18,7 +18,7 @@ class PP_Functions:
                 self.T.update(                  {k                      :   eval(k) })
         from webpage_scrape                     import scraper
         self.br                             =   scraper(self.T.browser_type).browser
-        self.logged_in                      =   self.login()
+        # self.logged_in                      =   self.login()
 
     def login(self):
         url                                 =   'http://previewbostonrealty.com/admin/login.php'
@@ -73,10 +73,10 @@ class PP_Functions:
         return added,A,recents,R
 
     def update_from_homepage(self):
-        added,A,recents,R = self.recent_modified()
+        added,A,recents,R                   =   self.recent_modified()
         i_trace()
 
-class Browser:
+class Auto_Poster:
     """Main class for initiating AutoPoster"""
 
     def __init__(self,browser_type='phantom'):
@@ -99,32 +99,14 @@ class Browser:
         from sys                            import path             as py_path
         py_path                             =   py_path
         py_path.append(                         os_environ['HOME'] + '/.scripts')
-        from system_settings                import DB_HOST,DB_PORT
-        # from System_Control                 import System_Reporter
-        # SYS_r                               =   System_Reporter()
-        import                                  pandas          as pd
-        # from pandas.io.sql                import execute              as sql_cmd
-        pd.set_option(                         'expand_frame_repr', False)
-        pd.set_option(                              'display.max_columns', None)
-        pd.set_option(                              'display.max_rows', 1000)
-        pd.set_option(                              'display.width', 180)
-        np                                  =   pd.np
-        np.set_printoptions(                    linewidth=200,threshold=np.nan)
-        import                                  geopandas       as gd
-        from sqlalchemy                         import create_engine
-        from logging                            import getLogger
-        from logging                            import INFO             as logging_info
-        getLogger(                                  'sqlalchemy.dialects.postgresql').setLevel(logging_info)
-        eng                                 =   create_engine(r'postgresql://postgres:postgres@%s:%s/%s'
-                                                          %(DB_HOST,DB_PORT,'routing'),
-                                                          encoding='utf-8',
-                                                          echo=False)
-        from psycopg2                           import connect          as pg_connect
-        pd                                  =   pd
-        gd                                  =   gd
-        conn                                =   pg_connect("dbname='routing' "+"user='postgres' "+"host='%s' password='' port=8800" % DB_HOST)
-        cur                                 =   conn.cursor()
-        D                                   =   {'browser_type'         :   browser_type,
+        from py_classes                     import To_Class
+        from System_Control                 import System_Admin     as SA
+        sys_admin                           =   SA()
+        DB                                  =   'autoposter'
+        
+        D                                   =   {'exec_cmds'            :   sys_admin.exec_cmds,
+                                                 'exec_root_cmds'       :   sys_admin.exec_root_cmds,
+                                                 'browser_type'         :   browser_type,
                                                  'guid'                 :   str(get_guid().hex)[:7],
                                                  'user'                 :   os_environ['USER'],
                                                  'guid'                 :   str(get_guid().hex)[:7],
@@ -136,6 +118,14 @@ class Browser:
         D.update(                               {'tmp_tbl'              :   'tmp_' + D['guid'] } )
 
         self.T                              =   To_Class(D)
+        all_imports                         =   locals().keys()
+        for k in all_imports:
+            if not k=='D':
+                self.T.update(                  {k                      :   eval(k) })
+        globals().update(                       self.T.__getdict__())
+        self.pgSQL                          =   self.pgSQL(self)
+        self.Config                         =   self.Config(self)
+        self.Maintenance                    =   self.Maintenance(self)
         self.PP                             =   PP_Functions(self)
         self.B                              =   self
 
@@ -164,79 +154,212 @@ class Browser:
             assert _err                ==   None
         return
 
-class To_Class:
-    def __init__(self, init=None):
-        if init is not None:
-            self.__dict__.update(init)
+    class pgSQL:
 
-    def __getitem__(self, key):
-        return self.__dict__[key]
+        def __init__(self,_parent):
+            self.AP                         =   _parent
+            self.T                          =   _parent.T
+            self.pgSQL                      =   self
+            import                              pandas              as pd
+            # from pandas.io.sql                  import execute          as sql_cmd
+            pd.set_option(                      'expand_frame_repr', False)
+            pd.set_option(                      'display.max_columns', None)
+            pd.set_option(                      'display.max_rows', 1000)
+            pd.set_option(                      'display.width', 180)
+            np                              =   pd.np
+            np.set_printoptions(                linewidth=200,threshold=np.nan)
+            import                              geopandas       as gd
+            from sqlalchemy                     import create_engine
+            from logging                        import getLogger
+            from logging                        import INFO             as logging_info
+            getLogger(                          'sqlalchemy.dialects.postgresql').setLevel(logging_info)
+            from psycopg2                       import connect          as pg_connect
+            from psycopg2                       import OperationalError,InterfaceError
+            from system_settings                import THIS_PC,DB_HOST,DB_PORT
+            # from System_Control                 import System_Reporter
+            # SYS_r                               =   System_Reporter()
+            try:
+                eng                         =   create_engine(r'postgresql://postgres:postgres@%s:%s/%s'
+                                                                  %(DB_HOST,DB_PORT,self.T.DB),
+                                                                  encoding='utf-8',
+                                                                  echo=False)
 
-    def __setitem__(self, key, value):
-        self.__dict__[key] = value
+                conn                        =   pg_connect("dbname='%s' " % self.T.DB +
+                                                                   "user='postgres' "+
+                                                                   "host='%s' password='' port=%s" % (DB_HOST,
+                                                                                                      DB_PORT))
+                cur                         =   conn.cursor()
+            except OperationalError:
+                print 'NO DB CONNECTED'
+                pass
 
-    def __delitem__(self, key):
-        del self.__dict__[key]
+            all_imports                     =   locals().keys()
+            excludes = ['self', '_parent']
+            for k in all_imports:
+                if not excludes.count(k):
+                    self.T.update(              {k                      :   eval(k) })
+            self.Functions                  =   self.Functions(self.pgSQL)
+            self.Triggers                   =   self.Triggers(self.pgSQL)
 
-    def __contains__(self, key):
-        return key in self.__dict__
+        def _initial_build(self):
+            
+            pass
 
-    def __len__(self):
-        return len(self.__dict__)
+        class Functions:
 
-    def __repr__(self):
-        return repr(self.__dict__)
+            def __init__(self,_parent):
+                self.T                      =   _parent.T
+                self.Create                 =   self.Create(self)
 
-    def update(self,upd):
-        return self.__init__(upd)
+            class Create:
 
-    def has_key(self,key):
-        return self.__dict__.has_key(key)
+                def __init__(self,_parent):
+                    self.T                  =   _parent.T
+                    self.Create             =   self
 
+        class Triggers:
+
+            def __init__(self,_parent):
+                self.T                      =   _parent.T
+                self.Create                 =   self.Create(self)
+
+            class Create:
+
+                def __init__(self,_parent):
+                    self.T                  =   _parent.T
+                    self.Create             =   self
+
+    class Config:
+
+        def __init__(self,_parent):
+            self.AP                         =   _parent
+            self.T                          =   _parent.T
+            self.Config                     =   self
+
+        def update_build_files(self):
+            def make_dir_path(d_path,base_dir):
+                dirs_in_path                =   d_path.replace(base_dir,'').lstrip('/').split('/')
+                for d in dirs_in_path:
+                    base_dir                =   '/'.join([base_dir,d])
+                    if not os_path.isdir(base_dir):
+                        os_mkdir(               base_dir)
+
+            from_dir                        =   os_environ['APORO']
+            to_dir                          =   os_environ['SERV_HOME'] + '/BUILD/files/aporo/src'
+
+            specific_paths                  =   {os_environ['SERV_HOME']+'/.scripts/pgsql_functions.sql':
+                                                 to_dir.replace('/src','/setup')}
+
+
+            for k,v in specific_paths.items():
+                cmd                         =   'cp -R %s %s' % (k,v)
+                p                           =   sub_popen(cmd,stdout=sub_PIPE,shell=True)
+                (_out,_err)                 =   p.communicate()
+                assert _out                ==   ''
+                assert _err                ==   None
+
+            # COPY FILES TO DESTINATION
+            excludes                        =   ['.pyc','ENV']
+            src_files                       =   []
+            for root, sub_dir, files in os_walk(from_dir):
+                for f in files:
+                    f_path                  =   os_path.join(root,f)
+                    if not sum([f_path.count(it) for it in excludes]):
+                        new_f_path          =   f_path.replace(from_dir,to_dir)
+                        src_files.append(       new_f_path)
+                        new_dir_path        =   new_f_path[:new_f_path.rfind('/')]
+                        if not os_path.isdir(new_dir_path):
+                            make_dir_path(      new_dir_path,to_dir)
+                        cmd                 =   'cp -R %s %s' % (f_path,new_f_path)
+                        p                   =   sub_popen(cmd,stdout=sub_PIPE,shell=True)
+                        (_out,_err)         =   p.communicate()
+                        assert _out        ==   ''
+                        assert _err        ==   None
+
+            # REMOVE FILES FROM DESTINATION NOT IN SOURCE
+            for root, sub_dir, files in os_walk(from_dir):
+                for f in files:
+                    f_path                  =   os_path.join(root,f)
+                    if src_files.count(f_path):
+                        t                   =   src_files.pop(src_files.index(f_path))
+            for it in src_files:
+                cmd                         =   'rm -fR %s' % it
+                p                           =   sub_popen(cmd,stdout=sub_PIPE,shell=True)
+                (_out,_err)                 =   p.communicate()
+                assert _out                ==   ''
+                assert _err                ==   None
+
+            return
+
+        def build_db(self):
+            cmd                             =   ''.join(["sudo -u postgres psql postgres -h 0.0.0.0",
+                                                        " --port %s -l | grep %s | wc -l;"%(self.T.DB_PORT,self.T.DB)])
+
+            # cmds                            =   ['echo "money" | sudo -S --prompt=\'\' ',
+            #                                      'script -qc \"bash -i -l -c \'',
+            #                                      cmd,
+            #                                      '\'\";',
+            #                                      'rm -f typescript;'
+            #                                     ]
+            args                            =   self.T.To_Class({       'cmd'       :   cmd,
+                                                                        'tag'       :   'autoposter_chk_db',
+                                                                        'cmd_host'  :   'ub2',
+                                                                        'results'   :   'print',
+                                                                        'errors'    :   'print'})
+            (_out,_err)                     =   self.T.exec_root_cmds(args)
+            print _out
+            print _err
+            assert _err==None
+            for it in _out.split('\n'):
+                if it.lower().count('error')>0:
+                    print it
+                else:
+                    print it
+
+            return
+
+        def destroy_db(self):
+            psql_cmd    = ['script -aqc "echo \"money\" | sudo -S -k --prompt=\'\'',
+                           ' sudo su postgres -c \\\"',
+                                'psql --host=0.0.0.0 --port=8800 --username=postgres -c \'',
+                                '\\i $TMP;',
+                           '\' \\\" ";',
+                           'rm typescript;']
+            cmd1        = [ 'echo "UPDATE pg_database set datallowconn = \'false\' where datname = \'aporo\';" > tmp;',
+                            'echo "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = \'aporo\';" >> tmp;',
+                            'echo "DROP DATABASE IF EXISTS aporo;" >> tmp;']
+            cmd2        = [ 'TMP="`pwd`/tmp";',
+                            ''.join(psql_cmd),]
+            cmd3        = [ 'TMP="`pwd`/tmp";',
+                            'rm $TMP;',
+                            'unset TMP;']
+            (_out,_err)                     =   self.exec_cmds(cmd1,'ub2','ub2')
+            assert _err==None
+            (_out,_err)                     =   self.exec_cmds(cmd2,'ub2','ub2')
+            assert _err==None
+            (_out,_err)                     =   self.exec_cmds(cmd3,'ub2','ub2')
+            assert _err==None
+            return
+
+    class Maintenance:
+
+        def __init__(self,_parent):
+
+            self.AP                         =   _parent
+            self.T                          =   _parent.T
+            self.Maintenance                =   self
+            py_path.append(                     '/home/ub2/SERVER2/ipython/ENV/' +
+                                                'local/lib/python2.7/site-packages/matplotlib')
+            from matplotlib.pyplot          import bar
+            from time                       import tzname           as t_tzname
+            THIS_TZ                         =   list(t_tzname)[-1]
+            all_imports                     =   locals().keys()
+            excludes = ['self', '_parent']
+            for k in all_imports:
+                if not excludes.count(k):
+                    self.T.update(                {k                      :   eval(k) })
 
 
 from sys import argv
 if __name__ == '__main__':
-
-
-    if   len(argv)>1:
-        SV                              =   Scrape_Vendors()
-        query_str                       =   '' if len(argv)<4 else argv[3]
-        msg                             =   ''
-
-
-        if   argv[1]=='sl':
-
-            if   ['1','search_results'].count(argv[2])>0:
-                SV.SL.scrape_sl_1_search_results(query_str)
-
-            elif ['2','prev_closed_v'].count(argv[2])>0:
-                SV.SL.scrape_sl_2_previously_closed_vendors(query_str)
-
-            elif ['3','v_pgs'].count(argv[2])>0:
-                SV.SL.scrape_sl_3_known_vendor_pages(query_str)
-
-            else:
-                msg                     =   'UNKNOWN COMMAND LINE ARGUMENTS'
-
-
-        elif argv[1]=='y':
-
-            if   ['0','search_results'].count(argv[2])>0:
-                SV.Yelp.scrape_yelp_0_search_results(query_str)
-
-            elif ['1','api'].count(argv[2])>0:
-                SV.Yelp.scrape_yelp_1_api(query_str)
-
-            elif ['2','v_pgs'].count(argv[2])>0:
-                SV.Yelp.scrape_yelp_2_vendor_pages(query_str)
-
-            else:
-                msg                     =   'UNKNOWN COMMAND LINE ARGUMENTS'
-
-        else:
-            msg                         =   'UNKNOWN COMMAND LINE ARGUMENTS'
-
-
-        if msg:
-            print msg
+    pass
