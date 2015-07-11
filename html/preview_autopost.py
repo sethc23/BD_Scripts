@@ -33,17 +33,21 @@ class PP_Functions:
     def _clean_cols(self,pd_table_from_html,key_items):
         A                                   =   pd_table_from_html
         A.columns                           =   map(lambda s: '_'+s.lower().replace(' ','_'),A.columns.tolist())
+        A['_date_avail']                    =   A._date
+        A                                   =   A.drop(['_date'],axis=1)
         A['_keys']                          =   map(lambda t: '' if t.img is None else t.img.get('src'),key_items)
         A['_property_id']                   =   A._property_id.map(int)
         A['_photos']                        =   A._photos.map(lambda s: '' if s=='No Photos' else s)
-        A['_rent']                          =   A._rent.map(lambda d: float(d.strip('$')))
-        A['_beds']                          =   A._rent.map(int)
-        date_cols                           =   [ it for it in A.columns.tolist() if it.rfind('_date')==len(it)-5 ]
+        A['_rent']                          =   A._rent.map(lambda d: None if self.T.pd.isnull(d) else float(d.strip('$')))
+        A['_beds']                          =   A._beds.map(lambda s: 0 if (s=='Studio' or type(s)==float) else int(s))
+        date_cols                           =   [ it for it in A.columns.tolist() if (it.rfind('_date')==len(it)-5 or it.find('_date_')==0) ]
         for it in date_cols:
             A[it]                           =   A[it].map(lambda d: self.T.DU.parse(d))
         return A
 
     def recent_modified(self):
+        if not hasattr(self,'logged_in'):
+            self.logged_in                  =   self.login()
         h                                   =   self.T.codecs_enc(self.br.source(),'utf8','ignore')
         tbls                                =   self.T.getTagsByAttr(h,'table',{'class':'added_table'},contents=False)
         
@@ -59,7 +63,6 @@ class PP_Functions:
         A_key_items                         =   [it.findAll('td')[1] for it in added.findAll('tr') if len(it.findAll('td'))==11][1:]
         A                                   =   self._clean_cols(A,A_key_items)
 
-
         # GET RECENTS TABLE
         recents                             =   tbls[1]#.decode_contents(formatter='html')
 
@@ -70,11 +73,52 @@ class PP_Functions:
         R_key_items                         =   [it.findAll('td')[1] for it in recents.findAll('tr') if len(it.findAll('td'))==11][1:]
         R                                   =   self._clean_cols(R,R_key_items)
 
-        return added,A,recents,R
+        return A,R
 
-    def update_from_homepage(self):
-        added,A,recents,R                   =   self.recent_modified()
-        i_trace()
+    def upsert_to_pgsql(self):
+        self.T.conn.set_isolation_level(        0)
+        self.T.cur.execute(                     'DROP TABLE IF EXISTS %(tmp_tbl)s;' % self.T)
+        self.results.to_sql(                    self.T['tmp_tbl'],self.T.eng)
+
+        upd_set                             =   ','.join(['%s = t.%s' % (it,it) for it in self.results.columns])
+        ins_cols                            =   ','.join(self.results.columns)
+        sel_cols                            =   ','.join(['t.%s' % it for it in self.results.columns])
+
+        self.T.update(                          {'upd_set'              :   upd_set,
+                                                 'ins_cols'             :   ins_cols,
+                                                 'sel_cols'             :   sel_cols,})
+        # upsert to properties
+        cmd                                 =   """
+                                                with upd as (
+                                                    update properties p
+                                                    set
+                                                        %(upd_set)s
+                                                    from %(tmp_tbl)s t
+                                                    where p._property_id     =   t._property_id
+                                                    returning t._property_id _property_id
+                                                )
+                                                insert into properties ( %(ins_cols)s )
+                                                select
+                                                    %(sel_cols)s
+                                                from
+                                                    %(tmp_tbl)s t,
+                                                    (select array_agg(f._property_id) upd_property_ids from upd f) as f1
+                                                where (not upd_property_ids && array[t._property_id]
+                                                    or upd_property_ids is null);
+
+                                                DROP TABLE %(tmp_tbl)s;
+                                                """ % self.T
+        self.T.conn.set_isolation_level(        0)
+        self.T.cur.execute(                     cmd)
+
+    def update_pgsql_from_homepage(self):
+        added,recents                       =   self.recent_modified()
+        self.results                        =   added
+        self.upsert_to_pgsql(                   )
+        self.results                        =   recents
+        self.upsert_to_pgsql(                   )
+
+
 
 class Auto_Poster:
     """Main class for initiating AutoPoster"""
