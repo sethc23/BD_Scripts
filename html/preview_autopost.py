@@ -118,6 +118,14 @@ class PP_Functions:
         self.results                        =   recents
         self.upsert_to_pgsql(                   )
 
+    def post_postlets(self):
+        if not hasattr(self,'logged_in'):
+            self.logged_in                  =   self.login()
+        self.T.pd.read_sql("""                  select * from properties 
+                                                where post_date is null
+                                                AND length(_photos)>0
+                                                order by _date_avail ASC 
+                                                limit 5""")
 
 
 class Auto_Poster:
@@ -216,7 +224,7 @@ class Auto_Poster:
             from sqlalchemy                     import create_engine
             from logging                        import getLogger
             from logging                        import INFO             as logging_info
-            getLogger(                          'sqlalchemy.dialects.postgresql').setLevel(logging_info)
+            getLogger(                          'sqlalchemy.engine').setLevel(logging_info)
             from psycopg2                       import connect          as pg_connect
             from psycopg2                       import OperationalError,InterfaceError
             from system_settings                import THIS_PC,DB_HOST,DB_PORT
