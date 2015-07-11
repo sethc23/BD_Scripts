@@ -224,8 +224,7 @@ class Auto_Poster:
             from sqlalchemy                     import create_engine
             import logging
             logging.basicConfig()
-            from logging                        import INFO             as logging_info
-            logging.getLogger(                  'sqlalchemy.engine').setLevel(logging_info)
+            logging.getLogger(                  'sqlalchemy.engine').setLevel(logging.warning)
             from psycopg2                       import connect          as pg_connect
             from psycopg2                       import OperationalError,InterfaceError
             from system_settings                import THIS_PC,DB_HOST,DB_PORT
