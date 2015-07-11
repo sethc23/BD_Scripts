@@ -222,10 +222,10 @@ class Auto_Poster:
             np.set_printoptions(                linewidth=200,threshold=np.nan)
             import                              geopandas       as gd
             from sqlalchemy                     import create_engine
-            from logging                        import getLogger,basicConfig
-            basicConfig()
+            import logging
+            logging.basicConfig()
             from logging                        import INFO             as logging_info
-            getLogger(                          'sqlalchemy.engine').setLevel(logging_info)
+            logging.getLogger(                  'sqlalchemy.engine').setLevel(logging_info)
             from psycopg2                       import connect          as pg_connect
             from psycopg2                       import OperationalError,InterfaceError
             from system_settings                import THIS_PC,DB_HOST,DB_PORT
