@@ -48,13 +48,15 @@ class Mechanize():
 class Webdriver():
 
     def __init__(self,browser,cookies):
-        self.browser=''
-        self.type=browser
-        self.cookies=''
-        if browser == 'firefox': self.set_firefox(cookies)
-        if browser == 'phantom': self.set_phantom(cookies)
-        if browser == 'chrome':  self.set_chrome(cookies)
-        self.window=self.browser
+        self.browser            =   '  '
+        self.type               =   browser
+        self.cookies            =   ''
+        if browser == 'firefox':    self.set_firefox(cookies)
+        if browser == 'phantom':    self.set_phantom(cookies)
+        if browser == 'chrome':     self.set_chrome(cookies)
+        self.window             =   self.browser
+        from selenium.webdriver.common.keys import Keys 
+        self.keys               =   Keys
 
     
     def set_firefox(self,cookies,with_profile=False):

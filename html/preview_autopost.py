@@ -12,12 +12,14 @@ class PP_Functions:
         self.T                              =   _parent.T
         self.SF                             =   self
         from HTML_API                           import getTagsByAttr,google,safe_url,getSoup
+        from json                               import dumps                as j_dump
         all_imports                         =   locals().keys()
         for k in all_imports:
             if not self.T.has_key(k):
                 self.T.update(                  {k                      :   eval(k) })
         from webpage_scrape                     import scraper
         self.br                             =   scraper(self.T.browser_type).browser
+        self.BASE_URL                       =   'http://previewbostonrealty.com/admin/'
         # self.logged_in                      =   self.login()
 
     def login(self):
@@ -30,11 +32,22 @@ class PP_Functions:
             self.br.window.find_element_by_name("Submit").click()
         return True
 
+    def login_postlets(self):
+        try:
+            uname                       =   self.br.window.find_element_by_id('username')
+            if uname.is_displayed():
+                uname.send_keys(            'seth.chase.boston@gmail.com')
+                self.br.window.find_element_by_id('password').send_keys('B*_Realty')
+                self.br.window.find_element_by_id('password').send_keys(self.br.keys.ENTER)
+        except:
+            pass
+
     def _clean_cols(self,pd_table_from_html,key_items):
         A                                   =   pd_table_from_html
         A.columns                           =   map(lambda s: '_'+s.lower().replace(' ','_'),A.columns.tolist())
-        A['_date_avail']                    =   A._date
-        A                                   =   A.drop(['_date'],axis=1)
+        if A.columns.tolist().count('_date'):
+            A['_date_avail']                =   A._date
+            A                               =   A.drop(['_date'],axis=1)
         A['_keys']                          =   map(lambda t: '' if t.img is None else t.img.get('src'),key_items)
         A['_property_id']                   =   A._property_id.map(int)
         A['_photos']                        =   A._photos.map(lambda s: '' if s=='No Photos' else s)
@@ -113,20 +126,88 @@ class PP_Functions:
 
     def update_pgsql_from_homepage(self):
         added,recents                       =   self.recent_modified()
-        self.results                        =   added
-        self.upsert_to_pgsql(                   )
-        self.results                        =   recents
-        self.upsert_to_pgsql(                   )
+        if len(added):
+            self.results                    =   added
+            self.upsert_to_pgsql(               )
+        if len(recents):
+            self.results                    =   recents
+            self.upsert_to_pgsql(               )
 
-    def post_postlets(self):
+    def get_property_info(self,pd_row):
+        self.br.open_page(                 'http://previewbostonrealty.com/admin/property_index.php')
+        prop_field                      =   self.br.window.find_element_by_name("searchproperty_IDs")
+        if prop_field.is_displayed():
+            prop_field.send_keys(           pd_row['_property_id'])
+            prop_field.send_keys(           self.br.keys.ENTER)
+        return
+
+    def post_ad(self,post_type):
         if not hasattr(self,'logged_in'):
             self.logged_in                  =   self.login()
-        self.T.pd.read_sql("""                  select * from properties 
-                                                where post_date is null
-                                                AND length(_photos)>0
-                                                order by _date_avail ASC 
-                                                limit 5""")
+        items                               =   self.T.pd.read_sql("""                  
+                                                    select * from properties 
+                                                    where posts is null
+                                                    and _beds > 1
+                                                    AND length(_photos)>0
+                                                    order by _date_avail ASC 
+                                                    limit 5""",self.T.eng)
+        if not len(items):                      return
+        post_type                           =   post_type if type(post_type)==list else [post_type]
+        for idx,prop in items.iterrows():
+            D                               =   {} if prop.posts is None else prop.posts
+            if not hasattr(self.T,'date_today'):
+                self.T.update({                 'date_today'            :   self.T.dt.datetime.strftime(self.T.dt.datetime.now(),'%Y.%m.%d')})
+            D.update({                          self.T.date_today       :   {}    })
+            
+            if post_type.count('postlets'):
+                goto_url                    =   self.BASE_URL + "postlets.php?property_ID=%s" % prop['_property_id']
+                self.br.open_page(              goto_url)
+                self.br.window.find_element_by_name("titlegen").click()
+                self.br.window.find_element_by_name("make_postlet").click()
 
+                # i_trace()
+                # IF POSTLETS LOGIN HERE: re-init webdriver/login/post
+
+                
+                # GET PAGE POST INFO
+                src                         =   self.br.source()
+                a                           =   src.find('<body')
+                b                           =   src.find('>',a) + 1
+                c                           =   src.find('<!--',b)
+                cmts                        =   src[b:c].strip('\n').split('<br />')[:-1]
+                assert cmts[-1]            ==   'We _might_ review page...'
+                
+                # ACTIVATE AD
+                activate_postlet_xpath      =   """/html/body[@class='controller-ad view-main browser-ie']/div[@id='main']/div[@class='tablet-margins']/div[@id='postlet-main']/div[@class='postlet-content']/div[@id='postlet_review_form']/a[@class='button button_main']"""
+                self.br.window.find_element_by_xpath(activate_postlet_xpath).click()
+
+                # LOGIN INTO POSTLETS IF NECESSARY
+                self.login_postlets()
+
+                # CONFIRMED POST
+                h                           =   self.T.getSoup(self.br.source())
+                res                         =   h.findAll('div',attrs={'id':'activated-dialog'})
+                assert len(res)>0
+                self.br.window.find_element_by_class_name("closer").click()
+
+                post_url                    =   self.br.window.find_element_by_class_name('hdp-url').text
+                D[self.T.date_today].update({   self.T.dt.datetime.strftime(self.T.dt.datetime.now(),'%H:%M:%S') : {'postlets'  :   post_url} })
+
+
+            # UPDATE PGSQL
+            cmd                             =   """
+                                                    UPDATE properties SET
+                                                    posts            =   '%s'
+                                                    WHERE _property_id = '%s'
+                                                """ % (self.T.j_dump(D),prop._property_id)
+
+            self.T.conn.set_isolation_level(   0)
+            self.T.cur.execute(                cmd   )
+
+        return
+
+    def close_browser(self):
+        self.br.quit()
 
 class Auto_Poster:
     """Main class for initiating AutoPoster"""
