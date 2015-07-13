@@ -147,7 +147,7 @@ class PP_Functions:
         items                               =   self.T.pd.read_sql("""                  
                                                     select * from properties 
                                                     where posts is null
-                                                    and _beds > 1
+                                                    and _beds >= 1
                                                     AND length(_photos)>0
                                                     order by _date_avail ASC 
                                                     limit 5""",self.T.eng)
