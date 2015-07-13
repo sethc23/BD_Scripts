@@ -174,7 +174,9 @@ class PP_Functions:
                 a                           =   src.find('<body')
                 b                           =   src.find('>',a) + 1
                 c                           =   src.find('<!--',b)
-                cmts                        =   src[b:c].strip('\n').split('<br />')[:-1]
+                cmts                        =   src[b:c].strip('\n')
+                splitter                    =   '<br />' if cmts.count('<br />') else '<br>'
+                cmts                        =   cmts.split(splitter)[:-1]
                 assert cmts[-1]            ==   'We _might_ review page...'
                 
                 # ACTIVATE AD
@@ -207,6 +209,7 @@ class PP_Functions:
         return
 
     def close_browser(self):
+
         self.br.quit()
 
 class Auto_Poster:
