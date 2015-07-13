@@ -177,7 +177,11 @@ class PP_Functions:
                 cmts                        =   src[b:c].strip('\n')
                 splitter                    =   '<br />' if cmts.count('<br />') else '<br>'
                 cmts                        =   cmts.split(splitter)[:-1]
-                assert cmts[-1]            ==   'We _might_ review page...'
+                try:
+                    assert cmts[-1]            ==   'We _might_ review page...'
+                except:
+                    D[self.T.date_today].update({   self.T.dt.datetime.strftime(self.T.dt.datetime.now(),'%H:%M:%S') : {'postlets'  :   'ERROR_1'} })
+                    break
                 
                 # ACTIVATE AD
                 activate_postlet_xpath      =   """/html/body[@class='controller-ad view-main browser-ie']/div[@id='main']/div[@class='tablet-margins']/div[@id='postlet-main']/div[@class='postlet-content']/div[@id='postlet_review_form']/a[@class='button button_main']"""
@@ -189,11 +193,15 @@ class PP_Functions:
                 # CONFIRMED POST
                 h                           =   self.T.getSoup(self.br.source())
                 res                         =   h.findAll('div',attrs={'id':'activated-dialog'})
-                assert len(res)>0
-                self.br.window.find_element_by_class_name("closer").click()
+                try:
+                    assert len(res)>0
+                    self.br.window.find_element_by_class_name("closer").click()
 
-                post_url                    =   self.br.window.find_element_by_class_name('hdp-url').text
-                D[self.T.date_today].update({   self.T.dt.datetime.strftime(self.T.dt.datetime.now(),'%H:%M:%S') : {'postlets'  :   post_url} })
+                    post_url                =   self.br.window.find_element_by_class_name('hdp-url').text
+                    D[self.T.date_today].update({   self.T.dt.datetime.strftime(self.T.dt.datetime.now(),'%H:%M:%S') : {'postlets'  :   post_url} })
+                except:
+                    D[self.T.date_today].update({   self.T.dt.datetime.strftime(self.T.dt.datetime.now(),'%H:%M:%S') : {'postlets'  :   'ERROR_2'} })
+                    break
 
 
             # UPDATE PGSQL
