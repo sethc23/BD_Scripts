@@ -14,6 +14,7 @@ class PP_Functions:
         from HTML_API                           import getTagsByAttr,google,safe_url,getSoup
         from json                               import dumps                as j_dump
         import re
+        from random                             import randrange
         all_imports                         =   locals().keys()
         for k in all_imports:
             if not self.T.has_key(k):
@@ -148,7 +149,7 @@ class PP_Functions:
         opts                                    =   res.findAll('option')
         df                                      =   self.T.pd.DataFrame(data={                  
                                                         'post_type'         :   map(lambda s: s.text.lower().replace(' ','_'),opts),
-                                                        'post_link'         :   map(lambda s: s.get('value').replace(res_id,'%(_property_id)s'),opts),
+                                                        'post_link'         :   map(lambda s: s.get('value').replace(str(res_id),'%(_property_id)s'),opts),
                                                         })
         ndf                                     =   self.T.pd.DataFrame(columns=['_setting','_value'])
         D                                       =   {'_setting'             :   'post_urls',
@@ -282,6 +283,11 @@ class PP_Functions:
                 update_pgsql_with_post_data(self,prop,D)
             return
         def craigslist(self):
+            def login_craigslist(self):
+                self.br.window.find_element_by_id("inputEmailHandle").send_keys('seth.chase.boston@gmail.com')
+                self.br.window.find_element_by_id("inputPassword").send_keys('B*_Realty')
+                self.br.window.find_element_by_id("inputPassword").send_keys(self.br.keys.ENTER)
+
             items                               =   self.T.pd.read_sql("""                  
                                                         select * from properties 
                                                         where 
@@ -293,7 +299,7 @@ class PP_Functions:
             if not len(items):                      return
             h                                       =   self.T.getSoup(self.br.source())
             res                                     =   h.findAll('td',attrs={'class':'testimonials'})
-            assert len(res)>0
+            assert                      len(res)    >   0
             res                                     =   res[1]
             res_id                                  =   res.parent.findAll('select')[0].get('id').strip('ad-')
 
@@ -301,8 +307,11 @@ class PP_Functions:
                 D                               =   {} if prop.posts is None else prop.posts
 
                 # SET DESTINATION FOR FORM SUBMISSION
-                goto_url                        =   self.post_settings['craigslist_local_1'] % prop
-
+                cl_cols                         =   [ it for it in prop.axes[0].tolist() 
+                                                        if it.find('last_craigslist_')==0 ]
+                # post_type                       =   self.T.re_sub(r'^last_','',cl_cols[self.T.randrange(0,len(cl_cols))])
+                post_type                       =   self.T.re_sub(r'^last_','',cl_cols[0])
+                goto_url                        =   self.post_settings[post_type] % prop
 
                 # CHANGE VALUE OF FIRST POST_AD FORM
                 # Get First Row
@@ -313,9 +322,9 @@ class PP_Functions:
                 # Change name and id of select tag
                 select_path                     =   first_row_path + "/select"
                 select_tag                      =   self.br.window.find_element_by_xpath(select_path)
-                to_name                         =   select_tag.get_attribute('name').replace(res_id,str(prop['_property_id']))
+                to_name                         =   select_tag.get_attribute('name').replace(str(res_id),str(prop['_property_id']))
                 self.br.window.execute_script(      "arguments[0].setAttribute('name', arguments[1])", select_tag, to_name)
-                to_id                           =   select_tag.get_attribute('id').replace(res_id,str(prop['_property_id']))
+                to_id                           =   select_tag.get_attribute('id').replace(str(res_id),str(prop['_property_id']))
                 self.br.window.execute_script(      "arguments[0].setAttribute('id', arguments[1])", select_tag, to_id)
                 # Change value of first option
                 option_1_path                   =   select_path + "/option[1]"
@@ -324,79 +333,82 @@ class PP_Functions:
                 # Change name and onclick for submit button
                 button_path                     =   first_row_path + "/input"
                 button_tag                      =   self.br.window.find_element_by_xpath(button_path)
-                to_name                         =   button_tag.get_attribute('name').replace(res_id,str(prop['_property_id']))
+                to_name                         =   button_tag.get_attribute('name').replace(str(res_id),str(prop['_property_id']))
                 self.br.window.execute_script(      "arguments[0].setAttribute('name', arguments[1])", button_tag, to_name)
-                to_onclick                      =   button_tag.get_attribute('onclick').replace(res_id,str(prop['_property_id']))
+                to_onclick                      =   button_tag.get_attribute('onclick').replace(str(res_id),str(prop['_property_id']))
                 self.br.window.execute_script(      "arguments[0].setAttribute('onclick', arguments[1])", button_tag, to_onclick)
                 # Update Replace Marker
-                res_id                          =   prop['_property_id']
+                res_id                          =   str(prop['_property_id'])
                 button_tag.click(                   )
 
                 # Move to new window
                 self.T.delay(                       2)
+                self.br.wait_for_page(              )
                 assert self.br.window_count()   ==  2
                 orig_window                     =   self.br.window.current_window_handle
                 new_window                      =   [it for it in self.br.window.window_handles if it!=orig_window][0]
                 self.br.window.switch_to_window(    new_window)
                 
-                # Make title for ad
-                for i in range(3):
-                    self.br.window.find_element_by_name("titlegen").click()
-                self.T.delay(                       2)
-                assert self.br.window.find_element_by_id('title').get_attribute('value') is not None
-                
-                # Submit PP page for CL
-                self.br.window.find_element_by_id("submitbutton").click()
-                
-                # ...page runs a script and finally window shows a CL page
-                
-                # Submit CL pictures
-                self.br.window.find_element_by_name("go").click()
+                # Check for Errors
+                if self.br.source().find('posting aborted')!=-1:
+                    x                           =   self.br.source()
+                    b                           =   x.find('posting aborted')
+                    a                           =   x[:b].rfind('<br')+3
+                    msg                         =   x[a:b].strip('/ <>\n-').replace("'","")
+                    tuid                        =   int((self.T.dt.datetime.now()-self.T.epoch).total_seconds())
+                    D.update({                      tuid                :       {post_type     :   """ERROR: %s""" % msg} })
+                    
+                    update_pgsql_with_post_data(    self,prop,D)
+                    self.br.window.close(           )
+                    self.br.window.switch_to_window(orig_window)
 
-                i_trace()
-                self.br.window.find_element_by_partial_link_text('log in to your account')
+                else:
 
-                # Check login 
-                # -not needed
-                L = "/html[@class='js']/body[@class='post desktop']/article[@id='pagecontainer']/header[@class='bchead']/section[@class='contents']/aside[@id='loginWidget']/b/a"
-                # -needed
-                L = "/html[@class='js canvas draggable fileAPI hashChange pushState placeholder no-touchCapable transitions localStorage']/body[@class='post desktop']/article[@id='pagecontainer']/header[@class='bchead']/section[@class='contents']/aside[@id='loginWidget']/b/a"
-                if self.br.window.find_element_by_xpath(L).text=='log in to your account':
-                    self.br.window.find_element_by_xpath(L).click()
+                    # Make title for ad
+                    for i in range(3):
+                        self.br.window.find_element_by_name("titlegen").click()
+                    self.T.delay(                       2)
+                    self.br.wait_for_page(              )
+                    assert self.br.window.find_element_by_id('title').get_attribute('value') is not None
+                    
+                    # Submit PP page for CL
+                    self.br.window.find_element_by_id("submitbutton").click()
+                    self.T.delay(                       2)
+                    self.br.wait_for_page(              )
 
-                
-                # Click done with images
-                L = "/html[@class='js']/body[@class='post desktop']/article[@id='pagecontainer']/section[@class='body']/form/button[@class='done bigbutton']"
-                L = "/html[@class='js']/body[@class='post desktop w1024']/article[@id='pagecontainer']/section[@class='body']/form/button[@class='done bigbutton']"
-                self.br.window.find_element_by_xpath(L).click()
-                
-                # click log in:
-                h                               =   self.T.getSoup(self.br.source())
-                post_url                        =   h.findAll(href=self.T.re.compile('/login'))[0].get('href')
-                L = "/html[@class='js canvas draggable fileAPI hashChange pushState placeholder no-touchCapable transitions localStorage']/body[@class='post desktop w1024']/article[@id='pagecontainer']/section[@class='body']/div[@class='posting shadow']"
-                self.br.window.find_element_by_xpath(L).click()
+                    # ...page runs a script and finally shows a windowed CL page
+                    
+                    # Submit CL pictures
+                    self.br.window.find_element_by_name("go").click()
+                    self.T.delay(                       2)
+                    self.br.wait_for_page(              )
 
+                    try:
+                        self.br.window.find_element_by_partial_link_text('log in to your account').click()
+                        self.T.delay(                   2)
+                        login_craigslist(               self)
+                    except:
+                        pass              
+                    
+                    # Option to Change/Re-Order pictures (click bottom button)
+                    self.br.window.find_elements_by_tag_name('button')[-1].click()
+                    self.T.delay(                       2)
+                    self.br.wait_for_page(              )
 
-                self.br.window.find_element_by_id("inputEmailHandle").send_keys('seth.chase.boston@gmail.com')
-                self.br.window.find_element_by_id("inputPassword").send_keys('B*_Realty')
-                self.br.window.find_element_by_id("inputPassword").send_keys(self.br.keys.ENTER)
-                
-                # Option to order pictures
-                L = "/html[@class='js canvas draggable fileAPI hashChange pushState placeholder no-touchCapable transitions localStorage']/body[@class='post desktop w1024']/article[@id='pagecontainer']/section[@class='body']/form/button[@class='done bigbutton']"
-                self.br.window.find_element_by_xpath(L).click()
-                
+                    # Click to publish ad
+                    self.br.window.find_elements_by_tag_name('button')[0].click()
+                    self.T.delay(                       2)
+                    self.br.wait_for_page(              )
 
-                # Click to publish ad
-                L = "/html[@class='js canvas draggable fileAPI hashChange pushState placeholder no-touchCapable transitions localStorage']/body[@class='post desktop w1024']/article[@id='pagecontainer']/section[@class='body']/div[@class='draft_warning']/form/button[@class='button']"
-                self.br.window.find_element_by_xpath(L).click()
+                    h                               =   self.T.getSoup(self.br.source())
+                    post_url                        =   h.findAll(href=self.T.re.compile('\.html'))[0].get('href')
+                    tuid                            =   int((self.T.dt.datetime.now()-self.T.epoch).total_seconds())
+                    D.update({                          tuid                :       {post_type     :   post_url} })
+                    
+                    update_pgsql_with_post_data(        self,prop,D)
+                    self.br.window.close(               )
+                    self.br.window.switch_to_window(    orig_window)
 
-                h                               =   self.T.getSoup(self.br.source())
-                post_url                        =   h.findAll(href=self.T.re.compile('\.html'))[0].get('href')
-                tuid                            =   int((self.T.dt.datetime.now()-self.T.epoch).total_seconds())
-                D.update({                          tuid                :       {'postlets'     :   post_url} })
-                
-
-                
             return
 
         if not hasattr(self,'logged_in'):
