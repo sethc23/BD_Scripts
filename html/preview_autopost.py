@@ -142,26 +142,35 @@ class PP_Functions:
         return
 
     def post_ad(self,post_type):
-        if not hasattr(self,'logged_in'):
-            self.logged_in                  =   self.login()
-        items                               =   self.T.pd.read_sql("""                  
-                                                    select * from properties 
-                                                    where posts is null
-                                                    and _beds >= 1
-                                                    AND length(_photos)>0
-                                                    order by _date_avail ASC 
-                                                    limit 5""",self.T.eng)
-        if not len(items):                      return
-        post_type                           =   post_type if type(post_type)==list else [post_type]
-        for idx,prop in items.iterrows():
-            D                               =   {} if prop.posts is None else prop.posts
-            if not hasattr(self.T,'date_today'):
-                self.T.update({                 'date_today'            :   self.T.dt.datetime.strftime(self.T.dt.datetime.now(),'%Y.%m.%d')})
-            D.update({                          self.T.date_today       :   {}    })
-            
-            if post_type.count('postlets'):
-                goto_url                    =   self.BASE_URL + "postlets.php?property_ID=%s" % prop['_property_id']
-                self.br.open_page(              goto_url)
+
+        def update_pgsql_with_post_data(self,prop,D):
+            # UPDATE PGSQL
+            cmd                                 =   """
+                                                        UPDATE properties SET
+                                                        posts            =   '%s'
+                                                        WHERE _property_id = '%s'
+                                                    """ % (self.T.j_dump(D),prop._property_id)
+
+            self.T.conn.set_isolation_level(        0)
+            self.T.cur.execute(                     cmd   )
+        def postlets(self):
+            items                               =   self.T.pd.read_sql("""                  
+                                                        select * from properties 
+                                                        where posts is null
+                                                        and _beds >= 1
+                                                        AND length(_photos)>0
+                                                        order by _date_avail ASC 
+                                                        limit 5""",self.T.eng)
+            if not len(items):                      return
+            for idx,prop in items.iterrows():
+                D                               =   {} if prop.posts is None else prop.posts
+                # if not hasattr(self.T,'date_today'):
+                #     self.T.update({                 'date_today'            :   self.T.dt.datetime.strftime(self.T.dt.datetime.now(),'%Y.%m.%d')})
+                
+                # D.update({                          self.T.date_today       :   {}    })
+                
+                goto_url                        =   self.BASE_URL + "postlets.php?property_ID=%s" % prop['_property_id']
+                self.br.open_page(                  goto_url)
                 self.br.window.find_element_by_name("titlegen").click()
                 self.br.window.find_element_by_name("make_postlet").click()
 
@@ -170,49 +179,55 @@ class PP_Functions:
 
                 
                 # GET PAGE POST INFO
-                src                         =   self.br.source()
-                a                           =   src.find('<body')
-                b                           =   src.find('>',a) + 1
-                c                           =   src.find('<!--',b)
-                cmts                        =   src[b:c].strip('\n')
-                splitter                    =   '<br />' if cmts.count('<br />') else '<br>'
-                cmts                        =   cmts.split(splitter)[:-1]
+                src                             =   self.br.source()
+                a                               =   src.find('<body')
+                b                               =   src.find('>',a) + 1
+                c                               =   src.find('<!--',b)
+                cmts                            =   src[b:c].strip('\n')
+                splitter                        =   '<br />' if cmts.count('<br />') else '<br>'
+                cmts                            =   cmts.split(splitter)[:-1]
                 try:
                     assert cmts[-1]            ==   'We _might_ review page...'
                 except:
-                    D[self.T.date_today].update({   self.T.dt.datetime.strftime(self.T.dt.datetime.now(),'%H:%M:%S') : {'postlets'  :   'ERROR_1'} })
+                    # D[self.T.date_today].update({   self.T.dt.datetime.strftime(self.T.dt.datetime.now(),'%H:%M:%S') : {'postlets'  :   'ERROR_1'} })
+                    tuid                        =   int((self.T.dt.datetime.now()-epoch).total_seconds())
+                    D.update({                      tuid                :       {'postlets'     :   'ERROR_1'} })
                     break
                 
                 # ACTIVATE AD
-                activate_postlet_xpath      =   """/html/body[@class='controller-ad view-main browser-ie']/div[@id='main']/div[@class='tablet-margins']/div[@id='postlet-main']/div[@class='postlet-content']/div[@id='postlet_review_form']/a[@class='button button_main']"""
+                activate_postlet_xpath          =   """/html/body[@class='controller-ad view-main browser-ie']/div[@id='main']/div[@class='tablet-margins']/div[@id='postlet-main']/div[@class='postlet-content']/div[@id='postlet_review_form']/a[@class='button button_main']"""
                 self.br.window.find_element_by_xpath(activate_postlet_xpath).click()
 
                 # LOGIN INTO POSTLETS IF NECESSARY
-                self.login_postlets()
+                self.login_postlets(                )
 
                 # CONFIRMED POST
-                h                           =   self.T.getSoup(self.br.source())
-                res                         =   h.findAll('div',attrs={'id':'activated-dialog'})
+                h                               =   self.T.getSoup(self.br.source())
+                res                             =   h.findAll('div',attrs={'id':'activated-dialog'})
                 try:
                     assert len(res)>0
                     self.br.window.find_element_by_class_name("closer").click()
 
-                    post_url                =   self.br.window.find_element_by_class_name('hdp-url').text
-                    D[self.T.date_today].update({   self.T.dt.datetime.strftime(self.T.dt.datetime.now(),'%H:%M:%S') : {'postlets'  :   post_url} })
+                    post_url                    =   self.br.window.find_element_by_class_name('hdp-url').text
+                    tuid                        =   int((self.T.dt.datetime.now()-epoch).total_seconds())
+                    D.update({                      tuid                :       {'postlets'     :   post_url} })
                 except:
-                    D[self.T.date_today].update({   self.T.dt.datetime.strftime(self.T.dt.datetime.now(),'%H:%M:%S') : {'postlets'  :   'ERROR_2'} })
+                    tuid                        =   int((self.T.dt.datetime.now()-epoch).total_seconds())
+                    D.update({                      tuid                :       {'postlets'     :   'ERROR_2'} })
                     break
+                update_pgsql_with_post_data(self,prop,D)
+            return
 
+        def craigslist(self):
+            i_trace()
+            pass
 
-            # UPDATE PGSQL
-            cmd                             =   """
-                                                    UPDATE properties SET
-                                                    posts            =   '%s'
-                                                    WHERE _property_id = '%s'
-                                                """ % (self.T.j_dump(D),prop._property_id)
+        if not hasattr(self,'logged_in'):
+            self.logged_in                      =   self.login()
 
-            self.T.conn.set_isolation_level(   0)
-            self.T.cur.execute(                cmd   )
+        post_type                               =   post_type if type(post_type)==list else [post_type]
+        if post_type.count('postlets'):             postlets(self)
+        if post_type.count('craigslist'):           craigslist(self)
 
         return
 
@@ -225,6 +240,7 @@ class Auto_Poster:
 
     def __init__(self,browser_type='phantom'):
         import                                  datetime            as dt
+        epoch                               =   dt.datetime.now().utcfromtimestamp(0)
         from dateutil                       import parser           as DU
         from urllib                         import quote_plus,unquote
         from re                             import findall          as re_findall
