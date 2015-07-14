@@ -8,11 +8,12 @@ from ipdb import set_trace as i_trace
 class PP_Functions:
 
     def __init__(self,_parent):
-        self.SV                             =   _parent
+        self.AP                             =   _parent
         self.T                              =   _parent.T
-        self.SF                             =   self
+        self.PP                             =   self
         from HTML_API                           import getTagsByAttr,google,safe_url,getSoup
         from json                               import dumps                as j_dump
+        import re
         all_imports                         =   locals().keys()
         for k in all_imports:
             if not self.T.has_key(k):
@@ -175,8 +176,29 @@ class PP_Functions:
         self.T.cur.execute(                        cmd)
         self.T.conn.set_isolation_level(           0)
         self.T.cur.execute(                        'drop table if exists %(tmp_tbl)s' % self.T)
+
+        # Check if any new types of post_type exist
+        prop_tbl_cols                           =   self.T.pd.read_sql("select * from properties",self.T.eng).columns.astype(str).tolist()
+        post_types                              =   eval(D['_value']).keys()
+        # 1. Ensure columns exist for all post types
+        missing_post_type_cols                  =   ['last_%s' % it for it in post_types if prop_tbl_cols.count('last_%s' % it)==0]
+        for it in missing_post_type_cols:
+            cmd                                 =   "ALTER TABLE properties add column %s TIMESTAMP with time zone" % it
+            self.T.conn.set_isolation_level(        0)
+            self.T.cur.execute(                     cmd)
+        # 2. Create Triggers for checking 'posts' col/log and Updating Col values
+        c                                       =   """ select replace(proname,'z_copy_latest_post_type_','') post_types
+                                                        from (pg_trigger join pg_class on tgrelid=pg_class.oid)
+                                                        join pg_proc on (tgfoid=pg_proc.oid)
+                                                        where relname='properties'
+                                                        AND position('copy_latest_post_type' in proname)>0
+                                                    """
+        current_post_type_triggers              =   self.T.pd.read_sql(c,self.T.eng).post_types.tolist()
+        for it in post_types:
+            if not current_post_type_triggers.count(it):
+                self.AP.pgSQL.Triggers.Create.copy_latest_post_type(self.T.re_sub(r'^last_','',it)) 
+
         return
-        
 
     def get_property_info(self,pd_row):
         self.br.open_page(                 'http://previewbostonrealty.com/admin/property_index.php')
@@ -230,7 +252,7 @@ class PP_Functions:
                 try:
                     assert cmts[-1]            ==   'We _might_ review page...'
                 except:
-                    tuid                        =   int((self.T.dt.datetime.now()-epoch).total_seconds())
+                    tuid                        =   int((self.T.dt.datetime.now()-self.T.epoch).total_seconds())
                     D.update({                      tuid                :       {'postlets'     :   'ERROR_1'} })
                     break
                 
@@ -249,10 +271,10 @@ class PP_Functions:
                     self.br.window.find_element_by_class_name("closer").click()
 
                     post_url                    =   self.br.window.find_element_by_class_name('hdp-url').text
-                    tuid                        =   int((self.T.dt.datetime.now()-epoch).total_seconds())
+                    tuid                        =   int((self.T.dt.datetime.now()-self.T.epoch).total_seconds())
                     D.update({                      tuid                :       {'postlets'     :   post_url} })
                 except:
-                    tuid                        =   int((self.T.dt.datetime.now()-epoch).total_seconds())
+                    tuid                        =   int((self.T.dt.datetime.now()-self.T.epoch).total_seconds())
                     D.update({                      tuid                :       {'postlets'     :   'ERROR_2'} })
                     break
                 update_pgsql_with_post_data(self,prop,D)
@@ -267,62 +289,121 @@ class PP_Functions:
                                                         order by _date_avail ASC 
                                                         limit 5""",self.T.eng)
             if not len(items):                      return
+            h                                       =   self.T.getSoup(self.br.source())
+            res                                     =   h.findAll('td',attrs={'class':'testimonials'})
+            assert len(res)>0
+            res                                     =   res[1]
+            res_id                                  =   res.parent.findAll('select')[0].get('id').strip('ad-')
+
             for idx,prop in items.iterrows():
                 D                               =   {} if prop.posts is None else prop.posts
 
+                # SET DESTINATION FOR FORM SUBMISSION
+                goto_url                        =   self.post_settings['craigslist_local_1'] % prop
+
+
+                # CHANGE VALUE OF FIRST POST_AD FORM
+                # Get First Row
+                first_row_path                  =   ''.join([   "/html/body/div[@id='admin-container']",
+                                                                "/div[@id='admin-center']",
+                                                                "/table[@class='added_table'][1]",
+                                                                "/tbody/tr[4]/td[@class='testimonials']"])
+                # Change name and id of select tag
+                select_path                     =   first_row_path + "/select"
+                select_tag                      =   self.br.window.find_element_by_xpath(select_path)
+                to_name                         =   select_tag.get_attribute('name').replace(res_id,str(prop['_property_id']))
+                self.br.window.execute_script(      "arguments[0].setAttribute('name', arguments[1])", select_tag, to_name)
+                to_id                           =   select_tag.get_attribute('id').replace(res_id,str(prop['_property_id']))
+                self.br.window.execute_script(      "arguments[0].setAttribute('id', arguments[1])", select_tag, to_id)
+                # Change value of first option
+                option_1_path                   =   select_path + "/option[1]"
+                option_1_tag                    =   self.br.window.find_element_by_xpath(option_1_path)
+                self.br.window.execute_script(      "arguments[0].setAttribute('value', arguments[1])", option_1_tag, goto_url)
+                # Change name and onclick for submit button
+                button_path                     =   first_row_path + "/input"
+                button_tag                      =   self.br.window.find_element_by_xpath(button_path)
+                to_name                         =   button_tag.get_attribute('name').replace(res_id,str(prop['_property_id']))
+                self.br.window.execute_script(      "arguments[0].setAttribute('name', arguments[1])", button_tag, to_name)
+                to_onclick                      =   button_tag.get_attribute('onclick').replace(res_id,str(prop['_property_id']))
+                self.br.window.execute_script(      "arguments[0].setAttribute('onclick', arguments[1])", button_tag, to_onclick)
+                # Update Replace Marker
+                res_id                          =   prop['_property_id']
+                button_tag.click(                   )
+
+                # Move to new window
+                self.T.delay(                       2)
+                assert self.br.window_count()   ==  2
+                orig_window                     =   self.br.window.current_window_handle
+                new_window                      =   [it for it in self.br.window.window_handles if it!=orig_window][0]
+                self.br.window.switch_to_window(    new_window)
+                
+                # Make title for ad
+                for i in range(3):
+                    self.br.window.find_element_by_name("titlegen").click()
+                self.T.delay(                       2)
+                assert self.br.window.find_element_by_id('title').get_attribute('value') is not None
+                
+                # Submit PP page for CL
+                self.br.window.find_element_by_id("submitbutton").click()
+                
+                # ...page runs a script and finally window shows a CL page
+                
+                # Submit CL pictures
+                self.br.window.find_element_by_name("go").click()
+
                 i_trace()
 
-
-                goto_url                        =   self.BASE_URL + "postlets.php?property_ID=%s" % prop['_property_id']
-                self.br.open_page(                  goto_url)
-                self.br.window.find_element_by_name("titlegen").click()
-                self.br.window.find_element_by_name("make_postlet").click()
-
-                # i_trace()
-                # IF POSTLETS LOGIN HERE: re-init webdriver/login/post
+                # Check login 
+                # -not needed
+                L = "/html[@class='js']/body[@class='post desktop']/article[@id='pagecontainer']/header[@class='bchead']/section[@class='contents']/aside[@id='loginWidget']/b/a"
+                # -needed
+                L = "/html[@class='js canvas draggable fileAPI hashChange pushState placeholder no-touchCapable transitions localStorage']/body[@class='post desktop']/article[@id='pagecontainer']/header[@class='bchead']/section[@class='contents']/aside[@id='loginWidget']/b/a"
+                if self.br.window.find_element_by_xpath(L).text=='log in to your account':
+                    self.br.window.find_element_by_xpath(L).click()
 
                 
-                # GET PAGE POST INFO
-                src                             =   self.br.source()
-                a                               =   src.find('<body')
-                b                               =   src.find('>',a) + 1
-                c                               =   src.find('<!--',b)
-                cmts                            =   src[b:c].strip('\n')
-                splitter                        =   '<br />' if cmts.count('<br />') else '<br>'
-                cmts                            =   cmts.split(splitter)[:-1]
-                try:
-                    assert cmts[-1]            ==   'We _might_ review page...'
-                except:
-                    tuid                        =   int((self.T.dt.datetime.now()-epoch).total_seconds())
-                    D.update({                      tuid                :       {'postlets'     :   'ERROR_1'} })
-                    break
+                # Click done with images
+                L = "/html[@class='js']/body[@class='post desktop']/article[@id='pagecontainer']/section[@class='body']/form/button[@class='done bigbutton']"
+                L = "/html[@class='js']/body[@class='post desktop w1024']/article[@id='pagecontainer']/section[@class='body']/form/button[@class='done bigbutton']"
+                self.br.window.find_element_by_xpath(L).click()
                 
-                # ACTIVATE AD
-                activate_postlet_xpath          =   """/html/body[@class='controller-ad view-main browser-ie']/div[@id='main']/div[@class='tablet-margins']/div[@id='postlet-main']/div[@class='postlet-content']/div[@id='postlet_review_form']/a[@class='button button_main']"""
-                self.br.window.find_element_by_xpath(activate_postlet_xpath).click()
-
-                # LOGIN INTO POSTLETS IF NECESSARY
-                self.login_postlets(                )
-
-                # CONFIRMED POST
+                # click log in:
                 h                               =   self.T.getSoup(self.br.source())
-                res                             =   h.findAll('div',attrs={'id':'activated-dialog'})
-                try:
-                    assert len(res)>0
-                    self.br.window.find_element_by_class_name("closer").click()
+                post_url                        =   h.findAll(href=self.T.re.compile('/login'))[0].get('href')
+                L = "/html[@class='js canvas draggable fileAPI hashChange pushState placeholder no-touchCapable transitions localStorage']/body[@class='post desktop w1024']/article[@id='pagecontainer']/section[@class='body']/div[@class='posting shadow']"
+                self.br.window.find_element_by_xpath(L).click()
 
-                    post_url                    =   self.br.window.find_element_by_class_name('hdp-url').text
-                    tuid                        =   int((self.T.dt.datetime.now()-epoch).total_seconds())
-                    D.update({                      tuid                :       {'postlets'     :   post_url} })
-                except:
-                    tuid                        =   int((self.T.dt.datetime.now()-epoch).total_seconds())
-                    D.update({                      tuid                :       {'postlets'     :   'ERROR_2'} })
-                    break
-                update_pgsql_with_post_data(self,prop,D)
+
+                self.br.window.find_element_by_id("inputEmailHandle").send_keys('seth.chase.boston@gmail.com')
+                self.br.window.find_element_by_id("inputPassword").send_keys('B*_Realty')
+                self.br.window.find_element_by_id("inputPassword").send_keys(self.br.keys.ENTER)
+                
+                # Option to order pictures
+                L = "/html[@class='js canvas draggable fileAPI hashChange pushState placeholder no-touchCapable transitions localStorage']/body[@class='post desktop w1024']/article[@id='pagecontainer']/section[@class='body']/form/button[@class='done bigbutton']"
+                self.br.window.find_element_by_xpath(L).click()
+                
+
+                # Click to publish ad
+                L = "/html[@class='js canvas draggable fileAPI hashChange pushState placeholder no-touchCapable transitions localStorage']/body[@class='post desktop w1024']/article[@id='pagecontainer']/section[@class='body']/div[@class='draft_warning']/form/button[@class='button']"
+                self.br.window.find_element_by_xpath(L).click()
+
+                h                               =   self.T.getSoup(self.br.source())
+                post_url                        =   h.findAll(href=self.T.re.compile('\.html'))[0].get('href')
+                tuid                            =   int((self.T.dt.datetime.now()-self.T.epoch).total_seconds())
+                D.update({                          tuid                :       {'postlets'     :   post_url} })
+                
+
+                
             return
 
         if not hasattr(self,'logged_in'):
             self.logged_in                      =   self.login()
+
+        self.post_settings                      =   eval(self.T.pd.read_sql("""
+                                                        select _value r 
+                                                        from pp_settings 
+                                                        where _setting = 'post_urls'
+                                                        """,self.T.eng).r.tolist()[0])
 
         post_type                               =   post_type if type(post_type)==list else [post_type]
         if post_type.count('postlets'):             postlets(self)
@@ -508,6 +589,7 @@ class Auto_Poster:
                             trigger_depth               =   plpy.execute('select pg_trigger_depth() res')[0]['res']
                             
                             if (T["posts"] == None
+                                or TD["new"]["posts"]==TD["old"]["posts"]
                                 or trigger_depth>1):        return
                             else:
 
@@ -555,6 +637,55 @@ class Auto_Poster:
                         EXECUTE PROCEDURE z_copy_latest_post_type_%(post_type)s();
 
                     """ % {'post_type':post_type}
+
+                    self.T.conn.set_isolation_level(       0)
+                    self.T.cur.execute(                    a.replace('##','%'))
+                    return
+
+                def keep_recent_craigslist(self):
+                    # def z_auto_update_timestamp(self,tbl,col):
+                    a="""
+                        DROP FUNCTION if exists z_keep_recent_craigslist() cascade;
+                        DROP TRIGGER if exists update_last_craigslist ON properties;
+
+                        CREATE OR REPLACE FUNCTION z_keep_recent_craigslist()
+                        RETURNS TRIGGER AS $funct$
+
+                        from os                             import system           as os_cmd
+                        from traceback                      import format_exc       as tb_format_exc
+                        from sys                            import exc_info         as sys_exc_info
+
+                        try:
+
+                            CL_cols                     =   [ it for it in TD["new"] if it.find('last_craigslist_')==0 and TD["new"][it] is not None ]
+                            trigger_depth               =   plpy.execute('select pg_trigger_depth() res')[0]['res']
+                            
+                            for k,v in TD["new"].iteritems():
+                                
+                                if (TD["old"][k]!=v 
+                                    and CL_cols.count(k)>0 
+                                    and v):
+                                                                        
+                                    TD["new"]["last_craigslist"] = v
+                                    return "MODIFY"
+
+                            return "OK"                             # means unmodified
+
+                        except plpy.SPIError:
+                            plpy.log('z_keep_recent_craigslist FAILED')
+                            plpy.log(tb_format_exc())
+                            plpy.log(sys_exc_info()[0])
+                            return
+
+
+                        $funct$ language "plpythonu";
+
+                        CREATE TRIGGER update_last_craigslist
+                        BEFORE UPDATE or INSERT ON properties
+                        FOR EACH ROW
+                        EXECUTE PROCEDURE z_keep_recent_craigslist();
+
+                    """
 
                     self.T.conn.set_isolation_level(       0)
                     self.T.cur.execute(                    a.replace('##','%'))
