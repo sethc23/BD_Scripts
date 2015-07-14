@@ -425,12 +425,14 @@ class PP_Functions:
 
         return
 
-    def search(self,**kwargs):
+    def run_search(self,**kwargs):
         if not hasattr(self,'logged_in'):
             self.logged_in                      =   self.login()
-        # self.br.open_page(                          self.T.SEARCH_URL)
+        self.br.open_page(                          self.T.SEARCH_URL)
 
-        # i_trace()
+        i_trace()
+
+        self.get_search_results(                    )
 
         # # Make Query
         # --active, with photos, in boston, 5000 results
@@ -462,8 +464,7 @@ class PP_Functions:
         # 'pending': {'id':'ap_SearchStatus3'},
         # }
 
-
-
+    def get_search_results(self):
         # Pull Results
         h                                   =   self.T.re_sub(r'[^\x00-\x7F]+',' ',self.T.codecs_enc(self.br.source(),'utf8','ignore'))
         tbls                                =   self.T.getTagsByAttr(h,'table',{'cellpadding':'4'},contents=False)
