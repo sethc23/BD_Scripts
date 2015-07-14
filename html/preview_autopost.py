@@ -21,7 +21,6 @@ class PP_Functions:
                 self.T.update(                  {k                      :   eval(k) })
         from webpage_scrape                     import scraper
         self.br                             =   scraper(self.T.browser_type).browser
-        self.BASE_URL                       =   'http://previewbostonrealty.com/admin/'
         # self.logged_in                      =   self.login()
 
     def login(self):
@@ -34,21 +33,11 @@ class PP_Functions:
             self.br.window.find_element_by_name("Submit").click()
         return True
 
-    def login_postlets(self):
-        try:
-            uname                       =   self.br.window.find_element_by_id('username')
-            if uname.is_displayed():
-                uname.send_keys(            'seth.chase.boston@gmail.com')
-                self.br.window.find_element_by_id('password').send_keys('B*_Realty')
-                self.br.window.find_element_by_id('password').send_keys(self.br.keys.ENTER)
-        except:
-            pass
-
     def _clean_cols(self,pd_table_from_html,key_items):
         A                                   =   pd_table_from_html
         A.columns                           =   map(lambda s: '_'+s.lower().replace(' ','_'),A.columns.tolist())
         if A.columns.tolist().count('_date'):
-            A['_date_avail']                =   A._date
+            A['_avail_date']                =   A._date
             A                               =   A.drop(['_date'],axis=1)
         A['_keys']                          =   map(lambda t: '' if t.img is None else t.img.get('src'),key_items)
         A['_property_id']                   =   A._property_id.map(int)
@@ -139,8 +128,8 @@ class PP_Functions:
         """updates pgSQL with current url destinations for 'Post Ad' feature"""
         if not hasattr(self,'logged_in'):
             self.logged_in                      =   self.login()
-        if not self.br.get_url()==self.BASE_URL:
-            self.br.open_page(self.BASE_URL)
+        if not self.br.get_url()==self.T.BASE_URL:
+            self.br.open_page(self.T.BASE_URL)
         h                                       =   self.T.getSoup(self.br.source())
         res                                     =   h.findAll('td',attrs={'class':'testimonials'})
         assert len(res)>0
@@ -224,18 +213,28 @@ class PP_Functions:
             self.T.conn.set_isolation_level(        0)
             self.T.cur.execute(                     cmd   )
         def postlets(self):
+            def login_postlets(self):
+                try:
+                    uname                       =   self.br.window.find_element_by_id('username')
+                    if uname.is_displayed():
+                        uname.send_keys(            'seth.chase.boston@gmail.com')
+                        self.br.window.find_element_by_id('password').send_keys('B*_Realty')
+                        self.br.window.find_element_by_id('password').send_keys(self.br.keys.ENTER)
+                except:
+                    pass
+
             items                               =   self.T.pd.read_sql("""                  
                                                         select * from properties 
                                                         where 
                                                             last_postlets is null
                                                             AND _beds >= 1
                                                             AND length(_photos)>0
-                                                        order by _date_avail ASC 
+                                                        order by _avail_date ASC 
                                                         limit 5""",self.T.eng)
             if not len(items):                      return
             for idx,prop in items.iterrows():
                 D                               =   {} if prop.posts is None else prop.posts                
-                goto_url                        =   self.BASE_URL + "postlets.php?property_ID=%s" % prop['_property_id']
+                goto_url                        =   self.T.BASE_URL + "postlets.php?property_ID=%s" % prop['_property_id']
                 self.br.open_page(                  goto_url)
                 self.br.window.find_element_by_name("titlegen").click()
                 self.br.window.find_element_by_name("make_postlet").click()
@@ -264,7 +263,7 @@ class PP_Functions:
                 self.br.window.find_element_by_xpath(activate_postlet_xpath).click()
 
                 # LOGIN INTO POSTLETS IF NECESSARY
-                self.login_postlets(                )
+                login_postlets(                     self)
 
                 # CONFIRMED POST
                 h                               =   self.T.getSoup(self.br.source())
@@ -294,7 +293,7 @@ class PP_Functions:
                                                             last_craigslist is null
                                                             AND _beds >= 1
                                                             AND length(_photos)>0
-                                                        order by _date_avail ASC 
+                                                        order by _avail_date ASC 
                                                         limit 5""",self.T.eng)
             if not len(items):                      return
             h                                       =   self.T.getSoup(self.br.source())
@@ -426,6 +425,108 @@ class PP_Functions:
 
         return
 
+    def search(self,**kwargs):
+        if not hasattr(self,'logged_in'):
+            self.logged_in                      =   self.login()
+        # self.br.open_page(                          self.T.SEARCH_URL)
+
+        # i_trace()
+
+        # # Make Query
+        # --active, with photos, in boston, 5000 results
+        # --active, without photos, with keys, in boston, 5000 results
+
+        # D={
+        # 'prop_id'  : {'name':'searchproperty_IDs'},
+        # 'street' : {'name':'property_StreetName'},
+
+        # 'bed_min': {'name':'min_bedrooms'},
+        # 'bed_max': {'name':'max_bedrooms'},
+        # 'bath_min': {'name':'min_bathooms'},
+        # 'bath_max': {'name':'max_bathrooms'},
+        # 'price_min': {'name':'price_min'},
+        # 'price_max': {'name':'price_max'},
+
+        # 'avail_now': {'name':'property_AvailableNow'},
+        # 'avail_day': {'name':'property_AvailableDay'},
+        # 'avail_month': {'name':'property_Available'},
+        # 'avail_year': {'name':'property_AvailableYear'},
+
+        # 'loc1': {'name':'loc1'},
+        # 'loc2': {'name':'loc2'},
+
+        # 'w_photo': {'name':'property_NumPhotos'},
+        # 'wo_photo': {'name':'property_NoPhotos'},
+        # 'w_keys': {'name':'property_Key'},
+        # 'rented': {'id':'ap_SearchStatus2'},
+        # 'pending': {'id':'ap_SearchStatus3'},
+        # }
+
+
+
+        # Pull Results
+        h                                   =   self.T.re_sub(r'[^\x00-\x7F]+',' ',self.T.codecs_enc(self.br.source(),'utf8','ignore'))
+        tbls                                =   self.T.getTagsByAttr(h,'table',{'cellpadding':'4'},contents=False)
+        try:
+            tbl                             =   tbls[0]
+        except:
+            return
+        
+        header                              =   map(lambda t: t.text,tbl.find_all('tr')[3].find_all('td')) # 2 and 3 have worked worked (3 when next button at top)
+        header                              =   dict(zip(header,range(len(header))))
+
+        pop_list                            =   []
+        for k,v in header.iteritems():
+            if not unicode(k).isalpha():
+                pop_list.append(k)
+                
+        for it in pop_list:
+            del header[it]
+
+        header                              =   dict(zip(['_'+it.lstrip('_').lower().replace(' ','_') for it in header.keys()],header.values()))
+        header.update({                         '_keys'             :   1,
+                                                '_photos'           :   1,
+                                                '_apt_num'          :   6,
+                                                '_property_id'      :   11})
+        df                                  =   self.T.pd.DataFrame(columns=header.keys())
+        df['ROWS']                          =   map(lambda s: s,tbl.find_all('tr',attrs={'valign':'top'}))
+        for k,v in header.iteritems():
+            df[k]                           =   df.ROWS.map(lambda t: t.find_all('td')[v].text)
+
+        df['_property_id']                  =   df._updated.str.extract(r'#([0-9]+)').map(int)
+        df['_walk_score']                   =   df._updated.str.extract(r'[s][c][o][r][e][:][\s]([0-9.]+)').map(float)
+        df['_updated_date']                 =   df._updated.str.extract(r'\s([0-9]{2}\.[0-9]{2}\.[0-9]{2})')
+        df['_price']                        =   df._price.str.replace(r'[^\d]','').map(lambda d: None if self.T.pd.isnull(d) else float(d))
+        df['_beds']                         =   df._beds.str.replace(r'[^\d]','').map(lambda s: 0 if (type(s)==float or s=='Studio' or not s) else int(s))
+        df['_status']                       =   df._status.map(lambda s: s.split('\n')[0])
+        df['_avail_date']                   =   df._avail.map(lambda s: s.split('\t')[0])
+
+        df['_address']                      =   df.ROWS.map(lambda r: r.find_all('td')[header['_address']].contents[0])
+        df['tmp']                           =   df.ROWS.map(lambda r: r.find_all('td')[header['_keys']].find('img',attrs={'src':self.T.re.compile("key")}))
+        df['_keys']                         =   df.tmp.map(lambda t: None if t is None or not t.has_key('src') else t.get('src'))
+        df['tmp']                           =   df.ROWS.map(lambda r: r.find_all('td')[header['_photos']].find('img',attrs={'src':self.T.re.compile("photo")}))
+        df['_photos']                       =   df.tmp.map(lambda t: None if t is None or not t.has_key('src') else t.get('src'))
+        df['_city']                         =   df.ROWS.map(lambda t: [ self.T.re_sub(r'[^a-zA-Z0-9 ]+','',it) for it in list(t.find_all('td')[header['_city']].contents) if ( type(it).__name__!='Tag' and self.T.re_sub(r'[^a-zA-Z0-9 ]+','',it) is not None) ] )
+        df['_apt_num']                      =   df.ROWS.map(lambda t: self.T.re_sub('\t|\n','',t.find_all('td')[header['_apt_num']].text))
+        df['_address']                      =   df[['_address','_apt_num']].apply(lambda t: '%s, Apt. %s' % (t[0],t[1]),axis=1)
+
+        df                                  =   df.drop(['_actions','_updated','_avail','_apt_num','ROWS'],axis=1)
+        df                                  =   df.rename(columns={ '_city'             :       '_town',
+                                                                    '_price'            :       '_rent'})
+
+        col_ord                             =   ['_property_id','_updated_date','_walk_score','_keys','_photos','_status','_beds',
+                                                '_avail_date','_address','_town','_rent']
+        df                                  =   df.ix[:,col_ord].reset_index(drop=True)
+
+        date_cols                           =   [ it for it in df.columns.tolist() if (it.rfind('_date')==len(it)-5 or it.find('_date_')==0) ]
+        for it in date_cols:
+            df[it]                          =   df[it].map(lambda d: self.T.DU.parse(d))
+        
+        self.results                        =   df
+        self.upsert_to_pgsql(                   )
+
+        return
+
     def close_browser(self):
 
         self.br.quit()
@@ -469,7 +570,10 @@ class Auto_Poster:
                                                  # 'oldest_comments'      :   str(9*30),                      # in days
                                                  # 'transaction_cnt'      :   '100',
                                                  'growl_notice'         :   True,
-                                                 'debug'                :   True,}
+                                                 'debug'                :   True,
+                                                 'BASE_URL'             :   'http://previewbostonrealty.com/admin/',
+                                                 'MODDED_URL'           :   'http://previewbostonrealty.com/admin/recent_modified.php',
+                                                 'SEARCH_URL'           :   'http://previewbostonrealty.com/admin/property_index.php'}
         D.update(                               {'tmp_tbl'              :   'tmp_' + D['guid'] } )
 
         self.T                              =   To_Class(D)
