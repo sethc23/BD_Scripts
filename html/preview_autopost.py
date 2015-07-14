@@ -399,8 +399,11 @@ class PP_Functions:
                     self.T.delay(                       2)
                     self.br.wait_for_page(              )
 
-                    h                               =   self.T.getSoup(self.br.source())
-                    post_url                        =   h.findAll(href=self.T.re.compile('\.html'))[0].get('href')
+                    try:
+                        h                               =   self.T.getSoup(self.br.source())
+                        post_url                        =   h.findAll(href=self.T.re.compile('\.html'))[0].get('href')
+                    except:
+                        post_url                    =   "ERROR: couldn't obtain link"
                     tuid                            =   int((self.T.dt.datetime.now()-self.T.epoch).total_seconds())
                     D.update({                          tuid                :       {post_type     :   post_url} })
                     
