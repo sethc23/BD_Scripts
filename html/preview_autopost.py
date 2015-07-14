@@ -138,6 +138,8 @@ class PP_Functions:
         """updates pgSQL with current url destinations for 'Post Ad' feature"""
         if not hasattr(self,'logged_in'):
             self.logged_in                      =   self.login()
+        if not self.br.get_url()==self.BASE_URL:
+            self.br.open_page(self.BASE_URL)
         h                                       =   self.T.getSoup(self.br.source())
         res                                     =   h.findAll('td',attrs={'class':'testimonials'})
         assert len(res)>0
@@ -283,7 +285,7 @@ class PP_Functions:
             items                               =   self.T.pd.read_sql("""                  
                                                         select * from properties 
                                                         where 
-                                                            last_cl is null
+                                                            last_craigslist is null
                                                             AND _beds >= 1
                                                             AND length(_photos)>0
                                                         order by _date_avail ASC 
@@ -352,6 +354,7 @@ class PP_Functions:
                 self.br.window.find_element_by_name("go").click()
 
                 i_trace()
+                self.br.window.find_element_by_partial_link_text('log in to your account')
 
                 # Check login 
                 # -not needed
@@ -660,6 +663,8 @@ class Auto_Poster:
                             CL_cols                     =   [ it for it in TD["new"] if it.find('last_craigslist_')==0 and TD["new"][it] is not None ]
                             trigger_depth               =   plpy.execute('select pg_trigger_depth() res')[0]['res']
                             
+                            if not TD["old"]:               return "OK"
+
                             for k,v in TD["new"].iteritems():
                                 
                                 if (TD["old"][k]!=v 
