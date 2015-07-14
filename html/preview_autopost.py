@@ -163,12 +163,7 @@ class PP_Functions:
                                                         limit 5""",self.T.eng)
             if not len(items):                      return
             for idx,prop in items.iterrows():
-                D                               =   {} if prop.posts is None else prop.posts
-                # if not hasattr(self.T,'date_today'):
-                #     self.T.update({                 'date_today'            :   self.T.dt.datetime.strftime(self.T.dt.datetime.now(),'%Y.%m.%d')})
-                
-                # D.update({                          self.T.date_today       :   {}    })
-                
+                D                               =   {} if prop.posts is None else prop.posts                
                 goto_url                        =   self.BASE_URL + "postlets.php?property_ID=%s" % prop['_property_id']
                 self.br.open_page(                  goto_url)
                 self.br.window.find_element_by_name("titlegen").click()
@@ -189,7 +184,6 @@ class PP_Functions:
                 try:
                     assert cmts[-1]            ==   'We _might_ review page...'
                 except:
-                    # D[self.T.date_today].update({   self.T.dt.datetime.strftime(self.T.dt.datetime.now(),'%H:%M:%S') : {'postlets'  :   'ERROR_1'} })
                     tuid                        =   int((self.T.dt.datetime.now()-epoch).total_seconds())
                     D.update({                      tuid                :       {'postlets'     :   'ERROR_1'} })
                     break
@@ -388,6 +382,79 @@ class Auto_Poster:
                 def __init__(self,_parent):
                     self.T                  =   _parent.T
                     self.Create             =   self
+
+                def copy_latest_post_type(self,post_type):
+                    # def z_auto_update_timestamp(self,tbl,col):
+                    a="""
+                        DROP FUNCTION if exists z_copy_latest_post_type_%(post_type)s() cascade;
+                        DROP TRIGGER if exists update_last_%(post_type)s ON properties;
+
+                        CREATE OR REPLACE FUNCTION z_copy_latest_post_type_%(post_type)s()
+                        RETURNS TRIGGER AS $funct$
+
+                        from os                             import system           as os_cmd
+                        from traceback                      import format_exc       as tb_format_exc
+                        from sys                            import exc_info         as sys_exc_info
+
+                        try:
+
+                            T                           =   TD["new"]
+                            T.update({                      'post_type'             :   '%(post_type)s' })
+                            trigger_depth               =   plpy.execute('select pg_trigger_depth() res')[0]['res']
+                            
+                            if (T["posts"] == None
+                                or trigger_depth>1):        return
+                            else:
+
+                                p = \"\"\"
+                                    with res as 
+                                        (
+                                        select 
+                                            uid,to_timestamp(times::double precision) post_time,json_object_keys( posts::json -> times ) post_type,
+                                            ROW_NUMBER() OVER(PARTITION BY f2.uid,f2.post_type ORDER BY times DESC) as rk
+                                        from
+                                            (
+                                            select 
+                                                uid,_property_id,json_object_keys( posts::json ) times,posts,
+                                                json_object_keys( posts::json -> json_object_keys( posts::json ) ) post_type
+                                            from ( 
+                                                select 
+                                                    ##(uid)s uid,
+                                                    ##(_property_id)s _property_id,
+                                                    '##(posts)s'::jsonb posts
+                                                ) f1
+                                            ) f2
+                                            where post_type = '%(post_type)s'
+                                        )
+                                    UPDATE properties p SET last_%(post_type)s = s.post_time
+                                    FROM res s
+                                    WHERE s.rk=1 AND p.uid=s.uid
+                                    \"\"\" ## T
+
+                                # plpy.log(p)
+                                plpy.execute(p)
+                                return
+
+                        except plpy.SPIError:
+                            plpy.log('z_copy_latest_post_type_%(post_type)s FAILED')
+                            plpy.log(tb_format_exc())
+                            plpy.log(sys_exc_info()[0])
+                            return
+
+
+                        $funct$ language "plpythonu";
+
+                        CREATE TRIGGER update_last_%(post_type)s
+                        AFTER UPDATE or INSERT ON properties
+                        FOR EACH ROW
+                        EXECUTE PROCEDURE z_copy_latest_post_type_%(post_type)s();
+
+                    """ % {'post_type':post_type}
+
+                    self.T.conn.set_isolation_level(       0)
+                    self.T.cur.execute(                    a.replace('##','%'))
+                    return
+                    
 
     class Config:
 
