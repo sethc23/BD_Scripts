@@ -133,6 +133,51 @@ class PP_Functions:
             self.results                    =   recents
             self.upsert_to_pgsql(               )
 
+    def update_post_settings(self):
+        """updates pgSQL with current url destinations for 'Post Ad' feature"""
+        if not hasattr(self,'logged_in'):
+            self.logged_in                      =   self.login()
+        h                                       =   self.T.getSoup(self.br.source())
+        res                                     =   h.findAll('td',attrs={'class':'testimonials'})
+        assert len(res)>0
+        res                                     =   res[1]
+        res_id                                  =   res.parent.findAll('select')[0].get('id').strip('ad-')
+        opts                                    =   res.findAll('option')
+        df                                      =   self.T.pd.DataFrame(data={                  
+                                                        'post_type'         :   map(lambda s: s.text.lower().replace(' ','_'),opts),
+                                                        'post_link'         :   map(lambda s: s.get('value').replace(res_id,'%(_property_id)s'),opts),
+                                                        })
+        ndf                                     =   self.T.pd.DataFrame(columns=['_setting','_value'])
+        D                                       =   {'_setting'             :   'post_urls',
+                                                     '_value'               :   self.T.j_dump(dict(zip(df.post_type.tolist(),df.post_link.tolist())))}
+        ndf                                     =   ndf.append(D,ignore_index=True)
+        self.T.conn.set_isolation_level(           0)
+        self.T.cur.execute(                        'drop table if exists %(tmp_tbl)s' % self.T)
+        ndf.to_sql(                                 self.T.tmp_tbl,self.T.eng)
+        cmd                                     =   """
+                                                    with upd as (
+                                                        UPDATE pp_settings p SET _value = t._value
+                                                        FROM %(tmp_tbl)s t
+                                                        WHERE p._setting = t._setting
+                                                        RETURNING p._setting _setting
+                                                        )
+                                                    INSERT into pp_settings
+                                                        (_setting,_value)
+                                                    SELECT 
+                                                        t._setting,t._value
+                                                    FROM 
+                                                        %(tmp_tbl)s t,
+                                                        (select array_agg(u._setting) upd_setting from upd u) f1
+                                                    WHERE (not upd_setting && array[t._setting]
+                                                    or upd_setting is null);
+                                                    """ % self.T
+        self.T.conn.set_isolation_level(           0)
+        self.T.cur.execute(                        cmd)
+        self.T.conn.set_isolation_level(           0)
+        self.T.cur.execute(                        'drop table if exists %(tmp_tbl)s' % self.T)
+        return
+        
+
     def get_property_info(self,pd_row):
         self.br.open_page(                 'http://previewbostonrealty.com/admin/property_index.php')
         prop_field                      =   self.br.window.find_element_by_name("searchproperty_IDs")
@@ -156,9 +201,10 @@ class PP_Functions:
         def postlets(self):
             items                               =   self.T.pd.read_sql("""                  
                                                         select * from properties 
-                                                        where posts is null
-                                                        and _beds >= 1
-                                                        AND length(_photos)>0
+                                                        where 
+                                                            last_postlets is null
+                                                            AND _beds >= 1
+                                                            AND length(_photos)>0
                                                         order by _date_avail ASC 
                                                         limit 5""",self.T.eng)
             if not len(items):                      return
@@ -211,10 +257,69 @@ class PP_Functions:
                     break
                 update_pgsql_with_post_data(self,prop,D)
             return
-
         def craigslist(self):
-            i_trace()
-            pass
+            items                               =   self.T.pd.read_sql("""                  
+                                                        select * from properties 
+                                                        where 
+                                                            last_cl is null
+                                                            AND _beds >= 1
+                                                            AND length(_photos)>0
+                                                        order by _date_avail ASC 
+                                                        limit 5""",self.T.eng)
+            if not len(items):                      return
+            for idx,prop in items.iterrows():
+                D                               =   {} if prop.posts is None else prop.posts
+
+                i_trace()
+
+
+                goto_url                        =   self.BASE_URL + "postlets.php?property_ID=%s" % prop['_property_id']
+                self.br.open_page(                  goto_url)
+                self.br.window.find_element_by_name("titlegen").click()
+                self.br.window.find_element_by_name("make_postlet").click()
+
+                # i_trace()
+                # IF POSTLETS LOGIN HERE: re-init webdriver/login/post
+
+                
+                # GET PAGE POST INFO
+                src                             =   self.br.source()
+                a                               =   src.find('<body')
+                b                               =   src.find('>',a) + 1
+                c                               =   src.find('<!--',b)
+                cmts                            =   src[b:c].strip('\n')
+                splitter                        =   '<br />' if cmts.count('<br />') else '<br>'
+                cmts                            =   cmts.split(splitter)[:-1]
+                try:
+                    assert cmts[-1]            ==   'We _might_ review page...'
+                except:
+                    tuid                        =   int((self.T.dt.datetime.now()-epoch).total_seconds())
+                    D.update({                      tuid                :       {'postlets'     :   'ERROR_1'} })
+                    break
+                
+                # ACTIVATE AD
+                activate_postlet_xpath          =   """/html/body[@class='controller-ad view-main browser-ie']/div[@id='main']/div[@class='tablet-margins']/div[@id='postlet-main']/div[@class='postlet-content']/div[@id='postlet_review_form']/a[@class='button button_main']"""
+                self.br.window.find_element_by_xpath(activate_postlet_xpath).click()
+
+                # LOGIN INTO POSTLETS IF NECESSARY
+                self.login_postlets(                )
+
+                # CONFIRMED POST
+                h                               =   self.T.getSoup(self.br.source())
+                res                             =   h.findAll('div',attrs={'id':'activated-dialog'})
+                try:
+                    assert len(res)>0
+                    self.br.window.find_element_by_class_name("closer").click()
+
+                    post_url                    =   self.br.window.find_element_by_class_name('hdp-url').text
+                    tuid                        =   int((self.T.dt.datetime.now()-epoch).total_seconds())
+                    D.update({                      tuid                :       {'postlets'     :   post_url} })
+                except:
+                    tuid                        =   int((self.T.dt.datetime.now()-epoch).total_seconds())
+                    D.update({                      tuid                :       {'postlets'     :   'ERROR_2'} })
+                    break
+                update_pgsql_with_post_data(self,prop,D)
+            return
 
         if not hasattr(self,'logged_in'):
             self.logged_in                      =   self.login()
@@ -254,12 +359,12 @@ class Auto_Poster:
         py_path                             =   py_path
         py_path.append(                         os_environ['HOME'] + '/.scripts')
         from py_classes                     import To_Class
-        from System_Control                 import System_Admin     as SA
-        sys_admin                           =   SA()
+        # from System_Control                 import System_Admin     as SA
+        # sys_admin                           =   SA()
         DB                                  =   'autoposter'
         
-        D                                   =   {'exec_cmds'            :   sys_admin.exec_cmds,
-                                                 'exec_root_cmds'       :   sys_admin.exec_root_cmds,
+        D                                   =   {#'exec_cmds'            :   sys_admin.exec_cmds,
+                                                 #'exec_root_cmds'       :   sys_admin.exec_root_cmds,
                                                  'browser_type'         :   browser_type,
                                                  'guid'                 :   str(get_guid().hex)[:7],
                                                  'user'                 :   os_environ['USER'],
