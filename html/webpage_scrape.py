@@ -60,29 +60,38 @@ class Webdriver():
 
     
     def set_firefox(self,cookies,with_profile=False):
-        from selenium import webdriver
+        from selenium           import webdriver
         if with_profile==True:
-            profile = webdriver.firefox.firefox_profile.FirefoxProfile()
-            profile.set_preference('browser.helperApps.neverAsk.saveToDisk', ('application/pdf'))
-            profile.set_preference('browser.helperApps.neverAsk.saveToDisk','application/pdf,application/x-pdf')
-            profile.set_preference('browser.download.folderList', 2)
-            profile.set_preference('browser.download.dir', '/Users/admin/Desktop')
-            profile.set_preference('browser.download.manager.showWhenStarting', False)
-            profile.set_preference('extensions.blocklist.enabled', False)
-            profile.set_preference('pdfjs.disabled', True)
-            self.browser = webdriver.Firefox(firefox_profile=profile)
+            p                   =   webdriver.firefox.firefox_profile.FirefoxProfile()
+            p.set_preference(       'browser.helperApps.neverAsk.saveToDisk', ('application/pdf'))
+            p.set_preference(       'browser.helperApps.neverAsk.saveToDisk','application/pdf,application/x-pdf')
+            p.set_preference(       'browser.download.folderList', 2)
+            p.set_preference(       'browser.download.dir', '/Users/admin/Desktop')
+            p.set_preference(       'browser.download.manager.showWhenStarting', False)
+            p.set_preference(       'extensions.blocklist.enabled', False)
+            p.set_preference(       'pdfjs.disabled', True)
+            self.browser        =   webdriver.Firefox(firefox_profile=profile)
         else:
             # profile = webdriver.firefox.firefox_profile.FirefoxProfile()
-            self.browser = webdriver.Firefox()
+            self.browser        =   webdriver.Firefox()
 
     def set_chrome(self,cookies,with_profile=False):
-        from selenium import webdriver
-        driver = webdriver.Chrome('/Users/admin/Desktop/chromedriver')
-        self.browser = driver
+        from selenium           import webdriver
+        driver                  =   webdriver.Chrome('/Users/admin/Desktop/chromedriver')
+        self.browser            =   driver
     
     def set_phantom(self,cookies):
-        from selenium import webdriver
-        driver = webdriver.PhantomJS(executable_path='/usr/local/bin/phantomjs')
+        from selenium           import webdriver
+        driver                  =   webdriver.PhantomJS(executable_path='/usr/local/bin/phantomjs')
+        user_agent              =   (
+                                        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_4) " +
+                                        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.57 Safari/537.36"
+                                    )
+        i_trace()
+        dcap                    =   dict(DesiredCapabilities.PHANTOMJS)
+        dcap["phantomjs.page.settings.userAgent"] = user_agent
+
+browser = webdriver.PhantomJS(desired_capabilities=dcap)
         #driver.Remote.current_url(self)
         driver.set_window_position(0, 0)
         driver.set_window_size(300, 300)

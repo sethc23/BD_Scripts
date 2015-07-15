@@ -192,6 +192,43 @@ class PP_Functions:
 
         return
 
+    def update_ads_from_email(self):
+        cmd                                     =   """
+                SELECT 
+                    postlets,craiglist,body,orig_msg
+                FROM
+                    (
+                        select 
+                            CASE    WHEN position('postlets' in lower(_fr))>0 THEN true else FALSE END postlets,
+                            CASE    WHEN position('craiglist' in lower(_fr))>0 THEN true else FALSE END craiglist,
+                            CASE    WHEN length(body)>0 THEN body
+                                    WHEN length(body)=0 THEN html END body,
+                            orig_msg
+                        from (
+                            select
+                                trim('"' from (orig_msg::json->'uid')::text)::integer _uid,
+                                --trim('"' from (orig_msg::json->'message_id')::text)::bigint _gmail_id,
+                                to_timestamp((orig_msg::json->'sent_at')::text::double precision) _sent,
+                                --trim('"' from (orig_msg::json->'to'::text)::text) _to,
+                                --trim('"' from (orig_msg::json->'cc'::text)::text) _cc,
+                                trim('"' from (orig_msg::json->'fr'::text)::text) _fr,
+                                trim('"' from (orig_msg::json->'subject')::text) _subject,
+                                trim('"' from (orig_msg::json->'body')::TEXT) body,
+                                trim('"' from (orig_msg::json->'html')::TEXT) html,
+                                orig_msg::json->'_labels' _labels,
+                                --orig_msg::json->'_flags' _flags,
+                                orig_msg
+                            from gmail
+                        ) f1
+                    ) f2
+                WHERE postlets is true or craiglist is true
+        """
+        df                                      =   self.T.pd.read_sql(cmd,self.T.eng)
+
+        
+
+        i_trace()
+
     def get_property_info(self,pd_row):
         self.br.open_page(                 'http://previewbostonrealty.com/admin/property_index.php')
         prop_field                      =   self.br.window.find_element_by_name("searchproperty_IDs")
@@ -534,6 +571,7 @@ class PP_Functions:
         self.upsert_to_pgsql(                   )
 
         return
+
 
     def close_browser(self):
 
