@@ -347,7 +347,7 @@ class PP_Functions:
                                                         order by 
                                                             p2._rent DESC,p2._walk_score DESC,
                                                             p2._beds DESC,p2._avail_date ASC
-                                                        limit 5
+                                                        limit 10
                                                         ) f1
                                                         WHERE p1.uid=f1.uid
                                                         returning p1.*;
@@ -467,6 +467,8 @@ class PP_Functions:
                     update_pgsql_with_post_data(        self,prop,D,'craigslist')
                     self.br.window.close(               )
                     self.br.window.switch_to_window(    orig_window)
+
+                self.T.delay(                       2*60)
 
             return
 
