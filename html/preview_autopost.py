@@ -241,7 +241,7 @@ class PP_Functions:
 
         def update_pgsql_with_post_data(self,prop,D,src):
             # UPDATE PGSQL
-            chk = ', pl_checked_out = false' if src=='postlets' else ', cl_checked_out = false'
+            chk = ', pl_checked_out = null' if src=='postlets' else ', cl_checked_out = null'
             cmd                                 =   """
                                                         UPDATE properties SET
                                                         posts            =   '%s'
@@ -263,7 +263,7 @@ class PP_Functions:
                     pass
 
             items                               =   self.T.pd.read_sql("""                  
-                                                        UPDATE properties p1 SET pl_checked_out = true
+                                                        UPDATE properties p1 SET pl_checked_out = '%s'
                                                         FROM 
                                                         (
                                                         SELECT * FROM properties p2
@@ -271,14 +271,14 @@ class PP_Functions:
                                                             p2.last_postlets is null
                                                             AND p2._beds >= 1
                                                             AND length(p2._photos)>0
-                                                            AND pl_checked_out is false
+                                                            AND pl_checked_out is null
                                                         order by 
                                                             p2._rent DESC,p2._walk_score DESC,
                                                             p2._beds DESC,p2._avail_date ASC
                                                         limit 5
                                                         ) f1
                                                         WHERE p1.uid=f1.uid
-                                                        returning p1.*;""",self.T.eng)
+                                                        returning p1.*;""" % self.T.guid,self.T.eng)
             if not len(items):                      return
             for idx,prop in items.iterrows():
                 D                               =   {} if prop.posts is None else prop.posts                
@@ -305,22 +305,19 @@ class PP_Functions:
                     tuid                        =   int((self.T.dt.datetime.now()-self.T.epoch).total_seconds())
                     D.update({                      tuid                :       {'postlets'     :   'ERROR_1'} })
                     break
-                
-                i_trace()
 
                 # ACTIVATE AD
-                activate_postlet_xpath          =   """/html/body[@class='controller-ad view-main browser-ie']/div[@id='main']/div[@class='tablet-margins']/div[@id='postlet-main']/div[@class='postlet-content']/div[@id='postlet_review_form']/a[@class='button button_main']"""
-                self.br.window.find_element_by_xpath(activate_postlet_xpath).click()
+                self.br.window.find_element_by_partial_link_text('Activate Postlet').click()
 
                 # LOGIN INTO POSTLETS IF NECESSARY
                 login_postlets(                     self)
 
                 # CONFIRMED POST
+                self.br.window.find_element_by_class_name("closer").click()
                 h                               =   self.T.getSoup(self.br.source())
                 res                             =   h.findAll('div',attrs={'id':'activated-dialog'})
                 try:
                     assert len(res)>0
-                    self.br.window.find_element_by_class_name("closer").click()
 
                     post_url                    =   self.br.window.find_element_by_class_name('hdp-url').text
                     tuid                        =   int((self.T.dt.datetime.now()-self.T.epoch).total_seconds())
@@ -338,7 +335,7 @@ class PP_Functions:
                 self.br.window.find_element_by_id("inputPassword").send_keys(self.br.keys.ENTER)
 
             items                               =   self.T.pd.read_sql("""                  
-                                                        UPDATE properties p1 SET cl_checked_out = true
+                                                        UPDATE properties p1 SET cl_checked_out = '%s'
                                                         FROM 
                                                         (
                                                         SELECT * FROM properties p2
@@ -346,7 +343,7 @@ class PP_Functions:
                                                             p2.last_craigslist is null
                                                             AND p2._beds >= 1
                                                             AND length(p2._photos)>0
-                                                            AND cl_checked_out is false
+                                                            AND cl_checked_out is null
                                                         order by 
                                                             p2._rent DESC,p2._walk_score DESC,
                                                             p2._beds DESC,p2._avail_date ASC
@@ -354,7 +351,7 @@ class PP_Functions:
                                                         ) f1
                                                         WHERE p1.uid=f1.uid
                                                         returning p1.*;
-                                                        """,self.T.eng)
+                                                        """%  self.T.guid,self.T.eng)
             if not len(items):                      return
             h                                       =   self.T.getSoup(self.br.source())
             res                                     =   h.findAll('td',attrs={'class':'testimonials'})
