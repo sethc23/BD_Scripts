@@ -52,7 +52,7 @@ class PP_Functions:
     def recent_modified(self):
         if not hasattr(self,'logged_in'):
             self.logged_in                  =   self.login()
-        h                                   =   self.T.codecs_enc(self.br.source(),'utf8','ignore')
+        h                                   =   self.T.codecs.encode(self.br.source(),'utf8','ignore')
         tbls                                =   self.T.getTagsByAttr(h,'table',{'class':'added_table'},contents=False)
         
         drop_cols                           =   ['Link']
@@ -469,7 +469,7 @@ class PP_Functions:
 
     def get_search_results(self):
         # Pull Results
-        h                                   =   self.T.re_sub(r'[^\x00-\x7F]+',' ',self.T.codecs_enc(self.br.source(),'utf8','ignore'))
+        h                                   =   self.T.re_sub(r'[^\x00-\x7F]+',' ',self.T.codecs.encode(self.br.source(),'utf8','ignore'))
         tbls                                =   self.T.getTagsByAttr(h,'table',{'cellpadding':'4'},contents=False)
         try:
             tbl                             =   tbls[0]
@@ -547,7 +547,7 @@ class Auto_Poster:
         from re                             import sub              as re_sub           # self.T.re_sub('patt','repl','str','cnt')
         # from re                             import search           as re_search        # re_search('patt','str')
         from subprocess                     import Popen            as sub_popen
-        from codecs                         import encode           as codecs_enc
+        import                                  codecs
         from subprocess                     import PIPE             as sub_PIPE
         from traceback                      import format_exc       as tb_format_exc
         from sys                            import exc_info         as sys_exc_info
@@ -555,10 +555,13 @@ class Auto_Poster:
         from types                          import NoneType
         from time                           import sleep            as delay
         from os                             import environ          as os_environ
+        from os.path                        import exists           as os_path_exists
+        from os                             import makedirs         as os_makedirs
         from uuid                           import uuid4            as get_guid
         from sys                            import path             as py_path
         py_path                             =   py_path
         py_path.append(                         os_environ['HOME'] + '/.scripts')
+        from System_Control                 import Google
         from py_classes                     import To_Class
         # from System_Control                 import System_Admin     as SA
         # sys_admin                           =   SA()
@@ -590,6 +593,8 @@ class Auto_Poster:
         self.Config                         =   self.Config(self)
         self.Maintenance                    =   self.Maintenance(self)
         self.PP                             =   PP_Functions(self)
+        self.gmail                          =   Google.Gmail(_parent=self,kwargs={'username'    :   'seth.chase.boston@gmail.com',
+                                                                                  'pw'          :   'uwejjozvkkcahgrj'})
         self.B                              =   self
 
         self.logged_in                      =   False
@@ -816,7 +821,6 @@ class Auto_Poster:
                     self.T.cur.execute(                    a.replace('##','%'))
                     return
                     
-
     class Config:
 
         def __init__(self,_parent):
@@ -946,6 +950,8 @@ class Auto_Poster:
             for k in all_imports:
                 if not excludes.count(k):
                     self.T.update(                {k                      :   eval(k) })
+
+
 
 
 from sys import argv
