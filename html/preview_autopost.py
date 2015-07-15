@@ -229,7 +229,9 @@ class PP_Functions:
                                                             last_postlets is null
                                                             AND _beds >= 1
                                                             AND length(_photos)>0
-                                                        order by _avail_date ASC 
+                                                        order by 
+                                                            _rent DESC,_walk_score DESC,
+                                                            _beds DESC,_avail_date ASC
                                                         limit 5""",self.T.eng)
             if not len(items):                      return
             for idx,prop in items.iterrows():
@@ -293,7 +295,9 @@ class PP_Functions:
                                                             last_craigslist is null
                                                             AND _beds >= 1
                                                             AND length(_photos)>0
-                                                        order by _avail_date ASC 
+                                                        order by
+                                                            _rent DESC,_walk_score DESC,
+                                                            _beds DESC,_avail_date ASC
                                                         limit 5""",self.T.eng)
             if not len(items):                      return
             h                                       =   self.T.getSoup(self.br.source())
