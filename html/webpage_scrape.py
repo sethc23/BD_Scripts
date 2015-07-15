@@ -83,29 +83,29 @@ class Webdriver():
     def set_phantom(self,cookies):
         from selenium           import webdriver
         from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
-        D                       =   webdriver.PhantomJS(executable_path='/usr/local/bin/phantomjs')
+        # D                       =   webdriver.PhantomJS()
         user_agent              =   (
                                         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_4) " +
                                         "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.57 Safari/537.36"
                                     )
-        from ipdb import set_trace as i_trace
-        i_trace()
         dcap                    =   dict(DesiredCapabilities.PHANTOMJS)
         dcap["phantomjs.page.settings.userAgent"] = user_agent
-        self.browser            =   webdriver.PhantomJS(desired_capabilities=dcap)
-        #driver.Remote.current_url(self)
-        driver.set_window_position(0, 0)
-        driver.set_window_size(300, 300)
-        driver.desired_capabilities['applicationCacheEnabled'] = True
-        driver.desired_capabilities['locationContextEnabled'] = True
-        driver.desired_capabilities['databaseEnabled'] = True
-        driver.desired_capabilities['webStorageEnabled'] = True
-        driver.desired_capabilities['JavascriptEnabled'] = True
-        driver.desired_capabilities['acceptSslCerts'] = True
-        driver.desired_capabilities['browserConnectionEnabled'] = True
-        driver.desired_capabilities['rotatable'] = True
-        driver.implicitly_wait(120)
-        self.browser = driver
+        d                       =   webdriver.PhantomJS(executable_path='/usr/local/bin/phantomjs',
+                                                        desired_capabilities=dcap)
+        
+        #d.Remote.current_url(       self)
+        d.set_window_position(      0, 0)
+        d.set_window_size(          300, 300)
+        d.desired_capabilities[     'applicationCacheEnabled'] = True
+        d.desired_capabilities[     'locationContextEnabled'] = True
+        d.desired_capabilities[     'databaseEnabled'] = True
+        d.desired_capabilities[     'webStorageEnabled'] = True
+        d.desired_capabilities[     'JavascriptEnabled'] = True
+        d.desired_capabilities[     'acceptSslCerts'] = True
+        d.desired_capabilities[     'browserConnectionEnabled'] = True
+        d.desired_capabilities[     'rotatable'] = True
+        d.implicitly_wait(          120)
+        self.browser            =   d
 
     def Select(self,element):
         """

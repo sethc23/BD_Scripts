@@ -239,13 +239,15 @@ class PP_Functions:
 
     def post_ad(self,post_type):
 
-        def update_pgsql_with_post_data(self,prop,D):
+        def update_pgsql_with_post_data(self,prop,D,src):
             # UPDATE PGSQL
+            chk = ', pl_checked_out = false' if src=='postlets' else ', cl_checked_out = false'
             cmd                                 =   """
                                                         UPDATE properties SET
                                                         posts            =   '%s'
+                                                        %s
                                                         WHERE _property_id = '%s'
-                                                    """ % (self.T.j_dump(D),prop._property_id)
+                                                    """ % (self.T.j_dump(D),chk,prop._property_id)
 
             self.T.conn.set_isolation_level(        0)
             self.T.cur.execute(                     cmd   )
@@ -261,15 +263,22 @@ class PP_Functions:
                     pass
 
             items                               =   self.T.pd.read_sql("""                  
-                                                        select * from properties 
+                                                        UPDATE properties p1 SET pl_checked_out = true
+                                                        FROM 
+                                                        (
+                                                        SELECT * FROM properties p2
                                                         where 
-                                                            last_postlets is null
-                                                            AND _beds >= 1
-                                                            AND length(_photos)>0
+                                                            p2.last_postlets is null
+                                                            AND p2._beds >= 1
+                                                            AND length(p2._photos)>0
+                                                            AND pl_checked_out is false
                                                         order by 
-                                                            _rent DESC,_walk_score DESC,
-                                                            _beds DESC,_avail_date ASC
-                                                        limit 5""",self.T.eng)
+                                                            p2._rent DESC,p2._walk_score DESC,
+                                                            p2._beds DESC,p2._avail_date ASC
+                                                        limit 5
+                                                        ) f1
+                                                        WHERE p1.uid=f1.uid
+                                                        returning p1.*;""",self.T.eng)
             if not len(items):                      return
             for idx,prop in items.iterrows():
                 D                               =   {} if prop.posts is None else prop.posts                
@@ -297,6 +306,8 @@ class PP_Functions:
                     D.update({                      tuid                :       {'postlets'     :   'ERROR_1'} })
                     break
                 
+                i_trace()
+
                 # ACTIVATE AD
                 activate_postlet_xpath          =   """/html/body[@class='controller-ad view-main browser-ie']/div[@id='main']/div[@class='tablet-margins']/div[@id='postlet-main']/div[@class='postlet-content']/div[@id='postlet_review_form']/a[@class='button button_main']"""
                 self.br.window.find_element_by_xpath(activate_postlet_xpath).click()
@@ -318,7 +329,7 @@ class PP_Functions:
                     tuid                        =   int((self.T.dt.datetime.now()-self.T.epoch).total_seconds())
                     D.update({                      tuid                :       {'postlets'     :   'ERROR_2'} })
                     break
-                update_pgsql_with_post_data(self,prop,D)
+                update_pgsql_with_post_data(self,prop,D,'postlets')
             return
         def craigslist(self):
             def login_craigslist(self):
@@ -327,15 +338,23 @@ class PP_Functions:
                 self.br.window.find_element_by_id("inputPassword").send_keys(self.br.keys.ENTER)
 
             items                               =   self.T.pd.read_sql("""                  
-                                                        select * from properties 
+                                                        UPDATE properties p1 SET cl_checked_out = true
+                                                        FROM 
+                                                        (
+                                                        SELECT * FROM properties p2
                                                         where 
-                                                            last_craigslist is null
-                                                            AND _beds >= 1
-                                                            AND length(_photos)>0
-                                                        order by
-                                                            _rent DESC,_walk_score DESC,
-                                                            _beds DESC,_avail_date ASC
-                                                        limit 5""",self.T.eng)
+                                                            p2.last_craigslist is null
+                                                            AND p2._beds >= 1
+                                                            AND length(p2._photos)>0
+                                                            AND cl_checked_out is false
+                                                        order by 
+                                                            p2._rent DESC,p2._walk_score DESC,
+                                                            p2._beds DESC,p2._avail_date ASC
+                                                        limit 5
+                                                        ) f1
+                                                        WHERE p1.uid=f1.uid
+                                                        returning p1.*;
+                                                        """,self.T.eng)
             if not len(items):                      return
             h                                       =   self.T.getSoup(self.br.source())
             res                                     =   h.findAll('td',attrs={'class':'testimonials'})
@@ -398,7 +417,7 @@ class PP_Functions:
                     tuid                        =   int((self.T.dt.datetime.now()-self.T.epoch).total_seconds())
                     D.update({                      tuid                :       {post_type     :   """ERROR: %s""" % msg} })
                     
-                    update_pgsql_with_post_data(    self,prop,D)
+                    update_pgsql_with_post_data(    self,prop,D,'craigslist')
                     self.br.window.close(           )
                     self.br.window.switch_to_window(orig_window)
 
@@ -448,7 +467,7 @@ class PP_Functions:
                     tuid                            =   int((self.T.dt.datetime.now()-self.T.epoch).total_seconds())
                     D.update({                          tuid                :       {post_type     :   post_url} })
                     
-                    update_pgsql_with_post_data(        self,prop,D)
+                    update_pgsql_with_post_data(        self,prop,D,'craigslist')
                     self.br.window.close(               )
                     self.br.window.switch_to_window(    orig_window)
 
