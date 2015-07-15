@@ -82,16 +82,17 @@ class Webdriver():
     
     def set_phantom(self,cookies):
         from selenium           import webdriver
-        driver                  =   webdriver.PhantomJS(executable_path='/usr/local/bin/phantomjs')
+        from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+        D                       =   webdriver.PhantomJS(executable_path='/usr/local/bin/phantomjs')
         user_agent              =   (
                                         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_4) " +
                                         "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.57 Safari/537.36"
                                     )
+        from ipdb import set_trace as i_trace
         i_trace()
         dcap                    =   dict(DesiredCapabilities.PHANTOMJS)
         dcap["phantomjs.page.settings.userAgent"] = user_agent
-
-browser = webdriver.PhantomJS(desired_capabilities=dcap)
+        self.browser            =   webdriver.PhantomJS(desired_capabilities=dcap)
         #driver.Remote.current_url(self)
         driver.set_window_position(0, 0)
         driver.set_window_size(300, 300)
@@ -236,19 +237,20 @@ browser = webdriver.PhantomJS(desired_capabilities=dcap)
     def quit(self):
         self.browser.quit()
 
-
-#     jcode="document.title;"
-#     a=br.execute_script(jcode)
-#     br.find_element_by_name("uid").send_keys(usr)
-#     br.find_element_by_name("upass").send_keys(pw)
-#     br.find_element_by_name("continueButtonExisting").click()
-#     br.find_element_by_xpath("//a[contains(@href,'"+it+"')]").click()  
-#     br.get_window_size('current')
-#     br.switch_to_window(br.window_handles[0])
-#     from selenium.webdriver.common.action_chains import ActionChains
-#     action_chains = ActionChains(br)
-#     q=action_chains.context_click(p).perform()
-#     br.save_screenshot('/Users/admin/Desktop/screen.png')
+    def misc_code():
+        #     jcode="document.title;"
+        #     a=br.execute_script(jcode)
+        #     br.find_element_by_name("uid").send_keys(usr)
+        #     br.find_element_by_name("upass").send_keys(pw)
+        #     br.find_element_by_name("continueButtonExisting").click()
+        #     br.find_element_by_xpath("//a[contains(@href,'"+it+"')]").click()  
+        #     br.get_window_size('current')
+        #     br.switch_to_window(br.window_handles[0])
+        #     from selenium.webdriver.common.action_chains import ActionChains
+        #     action_chains = ActionChains(br)
+        #     q=action_chains.context_click(p).perform()
+        #     br.save_screenshot('/Users/admin/Desktop/screen.png')
+        pass
 
 class Urllib2():
 
