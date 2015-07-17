@@ -278,22 +278,43 @@ class PP_Functions:
                     self.br.window.find_element_by_link_text(str(current_page+1)).click()
 
             assert len(df)                     ==   total_posts
-            df                                  =   df.ix[:,['_status','_posting_title','_posted_date','_id']]
-            df.columns                          =   ['cl'+it for it in df.columns.tolist()]
+            df['_post_title']                   =   df._posting_title
+            df['_post_date']                    =   df._posted_date
+            df                                  =   df.ix[:,['_status','_post_title','_post_date','_id']]
             
-            self.T.conn.set_isolation_level(           0)
-            self.T.cur.execute(                        'drop table if exists %(tmp_tbl)s' % self.T)
+            upd_set                             =   ','.join(['%s = t.%s' % (it,it) for it in df.columns])
+            ins_cols                            =   ','.join(df.columns)
+            sel_cols                            =   ','.join(['t.%s' % it for it in df.columns])
+
+            self.T.update(                          {'upd_set'              :   upd_set,
+                                                     'ins_cols'             :   ins_cols,
+                                                     'sel_cols'             :   sel_cols,})
+
+            self.T.conn.set_isolation_level(        0)
+            self.T.cur.execute(                     'drop table if exists %(tmp_tbl)s' % self.T)
             df.to_sql(                              self.T['tmp_tbl'],self.T.eng)
             
-            # 2. Update cl_status and cl_posted_date from tmp tbl
+            # upsert to craigslist
             cmd                                 =   """
-                                                        UPDATE properties p SET 
-                                                            cl_status = t.cl_status,
-                                                            cl_posted_date = t.cl_posted_date
-                                                        FROM %(tmp_tbl)s t
-                                                        WHERE p.cl_id = t.cl_id
-                                                        AND p.cl_id is not null;
-                                                            """ % self.T
+                                                    with upd as (
+                                                        update craigslist p
+                                                        set
+                                                            %(upd_set)s
+                                                        from %(tmp_tbl)s t
+                                                        where p._id     =   t._id
+                                                        returning t._id _id
+                                                    )
+                                                    insert into craigslist ( %(ins_cols)s )
+                                                    select
+                                                        %(sel_cols)s
+                                                    from
+                                                        %(tmp_tbl)s t,
+                                                        (select array_agg(f._id) upd_ids from upd f) as f1
+                                                    where (not upd_ids && array[t._id]
+                                                        or upd_ids is null);
+
+                                                    DROP TABLE %(tmp_tbl)s;
+                                                    """ % self.T
 
             self.T.conn.set_isolation_level(        0)
             self.T.cur.execute(                     cmd)
@@ -921,17 +942,20 @@ class Auto_Poster:
                         from os                             import system           as os_cmd
                         from traceback                      import format_exc       as tb_format_exc
                         from sys                            import exc_info         as sys_exc_info
-                        import                                  datetime            as dt
-                        epoch                               =   dt.datetime.now().utcfromtimestamp(0)
-                        from dateutil                       import parser           as DU
-                        import pytz
+                        #import                                  datetime            as dt
+                        #epoch                               =   dt.datetime.now().utcfromtimestamp(0)
+                        #from dateutil                       import parser           as DU
+                        #import pytz
 
                         try:
 
-                            CL_cols                     =   [ it for it in TD["new"] if it.find('last_craigslist_')==0 and TD["new"][it] is not None ]
-                            trigger_depth               =   plpy.execute('select pg_trigger_depth() res')[0]['res']
+                            CL_cols                             =   [ it for it in TD["new"] if it.find('last_craigslist_')==0 and TD["new"][it] is not None ]
+                            trigger_depth                       =   plpy.execute('select pg_trigger_depth() res')[0]['res']
                             
-                            if not TD["old"]:               return "OK"
+                            if (not TD["old"]
+                                or TD["new"]["last_craigslist"]==TD["old"]["last_craigslist"]
+                                or trigger_depth>1
+                                ):               return "OK"
 
                             for k,v in TD["new"].iteritems():
                                 
@@ -942,13 +966,13 @@ class Auto_Poster:
                                     TD["new"]["last_craigslist"]    =   v
                                     
                                     D                               =   eval(TD["new"]["posts"])
-                                    latest                          =   sorted(D.keys())
+                                    latest                          =   sorted(D.keys(),reverse=True)
                                     for it in latest:
                                         if D[it].keys()[0].count('craigslist'):
                                             post_link               =   D[it][D[it].keys()[0]]
                                             break
 
-                                    TD["new"]["cl_id"]              =   post_link[post_link.rfind('/')+1:-5]
+                                    TD["new"]["last_craigslist_id"] =   int(post_link[post_link.rfind('/')+1:-5])
 
                                     return "MODIFY"
 
@@ -976,7 +1000,7 @@ class Auto_Poster:
                 def update_last_craigslist_by_cl_status(self):
                     a="""
                         DROP FUNCTION if exists z_update_last_craigslist_by_cl_status() cascade;
-                        DROP TRIGGER if exists update_last_craigslist_by_cl_status ON properties;
+                        DROP TRIGGER if exists update_last_craigslist_by_cl_status ON craigslist;
 
                         CREATE OR REPLACE FUNCTION z_update_last_craigslist_by_cl_status()
                         RETURNS TRIGGER AS $funct$
@@ -989,13 +1013,18 @@ class Auto_Poster:
 
                             trigger_depth               =   plpy.execute('select pg_trigger_depth() res')[0]['res']
                             
-                            if (TD["new"]["cl_status"] == None
-                                or TD["new"]["cl_status"]==TD["old"]["cl_status"]
+                            if (TD["new"]["_status"]==TD["old"]["_status"]
                                 or trigger_depth>1):        return "OK"
 
-                            if TD["new"]["cl_status"]=='Deleted':
-                                TD["new"]["last_craigslist"] = None
-                                return "MODIFY"
+                            if TD["new"]["_status"]=='Deleted':
+                                P = \"\"\"
+                                    
+                                    UPDATE properties p
+                                    SET last_craigslist = NULL
+                                    WHERE last_craigslist_id = %s
+
+                                    \"\"\" % TD["new"]["_id"]
+                                plpy.execute(P)
 
                             return "OK"                             # means unmodified
 
@@ -1008,7 +1037,7 @@ class Auto_Poster:
                         $funct$ language "plpythonu";
 
                         CREATE TRIGGER update_last_craigslist_by_cl_status
-                        BEFORE UPDATE or INSERT ON properties
+                        BEFORE UPDATE or INSERT ON craigslist
                         FOR EACH ROW
                         EXECUTE PROCEDURE z_update_last_craigslist_by_cl_status();
 
