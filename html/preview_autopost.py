@@ -396,10 +396,6 @@ class PP_Functions:
             
         print int((self.T.dt.datetime.now()-self.T.epoch).total_seconds()),'finished'
 
-
-
-
-
     def get_property_info(self,pd_row):
         self.br.open_page(                 'http://previewbostonrealty.com/admin/property_index.php')
         prop_field                      =   self.br.window.find_element_by_name("searchproperty_IDs")
