@@ -20,7 +20,7 @@ class PP_Functions:
             if not self.T.has_key(k):
                 self.T.update(                  {k                      :   eval(k) })
         from webpage_scrape                     import scraper
-        self.br                             =   scraper(self.T.browser_type).browser
+        self.br                             =   None if not self.T.browser_type else scraper(self.T.browser_type).browser
         # self.logged_in                      =   self.login()
 
     def login(self):
@@ -331,6 +331,74 @@ class PP_Functions:
         if account_type.count('postlets'):          postlets(self)
 
         return
+
+    def update_ads_from_urls(self,chk_cnt='All'):
+        """assumption is that this function will run on hourly crons."""
+        start_time                          =   int((self.T.dt.datetime.now()-self.T.epoch).total_seconds())
+        end_time                            =   start_time + (60*55)
+        
+        print start_time,'start'
+        print end_time,'end'
+        qry                                 =   """
+                                                    with prop_data as (
+                                                        SELECT
+                                                            last_craigslist_id,
+                                                            CASE 
+                                                                WHEN (select res::json->>json_object_keys(res::json) ilike 'http%%')=true
+                                                                THEN res::json->>json_object_keys(res::json)
+                                                                ELSE Null
+                                                            END cl_url
+                                                        FROM
+                                                            properties p,
+                                                            (
+                                                                select uid,posts->>EXTRACT(EPOCH FROM last_craigslist)::text res
+                                                                from properties
+                                                                where last_craigslist is not null
+                                                            ) f1
+                                                        WHERE p.uid = f1.uid
+                                                        AND last_craigslist_id is not null
+                                                    )
+                                                    SELECT c.uid cl_uid,p.cl_url
+                                                    FROM craigslist c,prop_data p
+                                                    WHERE c._id = p.last_craigslist_id
+                                                    AND c._status = 'Active'
+                                                """
+        df                                  =   self.T.pd.read_sql(qry,self.T.eng)
+        chk_cnt                             =   len(df) if chk_cnt=='All' else chk_cnt
+        df['idx']                           =   df.cl_uid.map(lambda s: self.T.randrange(0,len(df)*3))
+        df                                  =   df.sort('idx').reset_index(drop=True).ix[:chk_cnt,:]
+        all_urls                            =   df.cl_url.tolist()
+        for i in range(0,len(all_urls)):
+            cmd                             =   ' '.join(
+                                                    ['curl -s',
+                                                     '-A "Mozilla/5.0 (Windows; U; Windows NT 5.1; de; rv:1.9.2.3) Gecko/20100401 Firefox/3.6.3"',
+                                                     '%s' % all_urls[i],
+                                                     "| grep 'Seth Chase' | wc -l"]
+                                                 )
+            (_out,_err) = self.T.exec_cmds([cmd])
+            assert _err is None
+            if not _out.strip('\n '):
+                self.T.conn.set_isolation_level(0)
+                self.T.cur.execute(             "UPDATE craigslist SET _status='Deleted' WHERE uid = %s" % df.ix[i,'cl_uid'])
+
+            delay_max = int( ( end_time - int((self.T.dt.datetime.now()-self.T.epoch).total_seconds()) ) /  (len(all_urls)-i) ) - 3 # 3 is transaction time buffer
+            
+            if delay_max>0:
+                this_delay                  =   self.T.randrange(0,delay_max)
+                print i,_out.strip('\n '),this_delay,delay_max
+                self.T.delay(                   this_delay)
+            else:
+                print i,_out.strip('\n '),'no delay'
+
+            if int((self.T.dt.datetime.now()-self.T.epoch).total_seconds())>end_time:
+                print 'finishing early? -- %s of %s' % (i,len(df))
+                break
+            
+        print int((self.T.dt.datetime.now()-self.T.epoch).total_seconds()),'finished'
+
+
+
+
 
     def get_property_info(self,pd_row):
         self.br.open_page(                 'http://previewbostonrealty.com/admin/property_index.php')
@@ -700,7 +768,7 @@ class PP_Functions:
 class Auto_Poster:
     """Main class for initiating AutoPoster"""
 
-    def __init__(self,browser_type='phantom'):
+    def __init__(self,browser_type=None):
         import                                  datetime            as dt
         epoch                               =   dt.datetime.now().utcfromtimestamp(0)
         from dateutil                       import parser           as DU
@@ -725,11 +793,11 @@ class Auto_Poster:
         py_path.append(                         os_environ['HOME'] + '/.scripts')
         from System_Control                 import Google
         from py_classes                     import To_Class
-        # from System_Control                 import System_Admin     as SA
-        # sys_admin                           =   SA()
+        from System_Control                 import System_Admin     as SA
+        sys_admin                           =   SA()
         DB                                  =   'autoposter'
         
-        D                                   =   {#'exec_cmds'            :   sys_admin.exec_cmds,
+        D                                   =   {'exec_cmds'            :   sys_admin.exec_cmds,
                                                  #'exec_root_cmds'       :   sys_admin.exec_root_cmds,
                                                  'browser_type'         :   browser_type,
                                                  'guid'                 :   str(get_guid().hex)[:7],
@@ -1013,7 +1081,8 @@ class Auto_Poster:
 
                             trigger_depth               =   plpy.execute('select pg_trigger_depth() res')[0]['res']
                             
-                            if (TD["new"]["_status"]==TD["old"]["_status"]
+                            if (not TD["old"]
+                                or TD["old"]["_status"]==TD["new"]["_status"]
                                 or trigger_depth>1):        return "OK"
 
                             if TD["new"]["_status"]=='Deleted':
