@@ -437,7 +437,7 @@ class PP_Functions:
                                                         where 
                                                             p2.last_postlets is null
                                                             AND p2._beds >= 1
-                                                            AND length(p2._photos)>0
+                                                            --AND length(p2._photos)>0
                                                             AND pl_checked_out is null
                                                         order by 
                                                             p2._rent DESC,p2._walk_score DESC,
