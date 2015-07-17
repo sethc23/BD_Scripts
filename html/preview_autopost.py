@@ -229,6 +229,88 @@ class PP_Functions:
 
         i_trace()
 
+    def update_ads_from_account(self,account_type):
+        def craigslist(self):
+
+            login_page = 'https://accounts.craigslist.org/'
+            postings_link = 'https://accounts.craigslist.org/login/home?filter_page=%s&filter_cat=0&filter_date=0&filter_active=0&show_tab=postings'
+
+            self.br.window.get(                         login_page)
+            try:
+                self.br.window.find_element_by_id("inputEmailHandle").send_keys('seth.chase.boston@gmail.com')
+                self.br.window.find_element_by_id("inputPassword").send_keys('B*_Realty')
+                self.br.window.find_element_by_id("inputPassword").send_keys(self.br.keys.ENTER)
+            except:
+                pass
+            
+
+            while True:
+                h                               =   self.T.getSoup(self.br.source())
+                postings_info                   =   h.find_all('small')[0].text
+                pages                           =   h.find_all('legend',attrs={'id':'paginator1'})[0]
+                
+                seg_start,seg_end,total_posts   =   [int(it) for it in self.T.re_findall(r'\d+',postings_info)]
+                
+                post_tbl                        =   h.find_all('table',attrs={'class':'accthp_postings'})[0]
+                t                               =   ''.join([it.decode() for it in post_tbl.contents]
+                                                            ).replace('tbody','table')
+                if not locals().keys().count('df'):
+                    df                          =   self.T.pd.read_html(t,header=0)[0]
+                    df.columns                  =   ['_'+it.lstrip('_').lower().replace(' ','_') for it in df.columns.tolist()]
+                    df['_posted_date']          =   df._posted_date.map(lambda d: self.T.DU.parse(d))
+                else:
+                    n_df                        =   self.T.pd.read_html(t,header=0)[0]
+                    n_df.columns                =   ['_'+it.lstrip('_').lower().replace(' ','_') for it in n_df.columns.tolist()]
+                    n_df['_posted_date']        =   n_df._posted_date.map(lambda d: self.T.DU.parse(d))
+                    df                          =   df.append(n_df,ignore_index=True)
+
+                for it in pages.descendants:
+                    if it.name and str(it.text).count('postings'):
+                        break
+                    if it.name=='a' and it.text.isdigit():
+                        last_page_link          =   int(it.text)
+                    if it.name=='b' and it.text.isdigit():
+                        current_page            =   int(it.text)
+                
+                if current_page>last_page_link:
+                    break
+                else:                   
+                    self.br.window.find_element_by_link_text(str(current_page+1)).click()
+
+            assert len(df)                     ==   total_posts
+            df                                  =   df.ix[:,['_status','_posting_title','_posted_date','_id']]
+            df.columns                          =   ['cl'+it for it in df.columns.tolist()]
+            
+            self.T.conn.set_isolation_level(           0)
+            self.T.cur.execute(                        'drop table if exists %(tmp_tbl)s' % self.T)
+            df.to_sql(                              self.T['tmp_tbl'],self.T.eng)
+            
+            # 2. Update cl_status and cl_posted_date from tmp tbl
+            cmd                                 =   """
+                                                        UPDATE properties p SET 
+                                                            cl_status = t.cl_status,
+                                                            cl_posted_date = t.cl_posted_date
+                                                        FROM %(tmp_tbl)s t
+                                                        WHERE p.cl_id = t.cl_id
+                                                        AND p.cl_id is not null;
+                                                            """ % self.T
+
+            self.T.conn.set_isolation_level(        0)
+            self.T.cur.execute(                     cmd)
+            self.T.conn.set_isolation_level(        0)
+            self.T.cur.execute(                     'drop table if exists %(tmp_tbl)s' % self.T)
+
+            return
+
+        def postlets(self):
+            pass
+        
+        account_type                            =   account_type if type(account_type)==list else [account_type]
+        if account_type.count('craigslist'):        craigslist(self)
+        if account_type.count('postlets'):          postlets(self)
+
+        return
+
     def get_property_info(self,pd_row):
         self.br.open_page(                 'http://previewbostonrealty.com/admin/property_index.php')
         prop_field                      =   self.br.window.find_element_by_name("searchproperty_IDs")
@@ -590,7 +672,6 @@ class PP_Functions:
 
         return
 
-
     def close_browser(self):
 
         self.br.quit()
@@ -782,28 +863,28 @@ class Auto_Poster:
                             else:
 
                                 p = \"\"\"
-                                    with res as 
-                                        (
-                                        select 
-                                            uid,to_timestamp(times::double precision) post_time,json_object_keys( posts::json -> times ) post_type,
-                                            ROW_NUMBER() OVER(PARTITION BY f2.uid,f2.post_type ORDER BY times DESC) as rk
-                                        from
+                                        with res as 
                                             (
                                             select 
-                                                uid,_property_id,json_object_keys( posts::json ) times,posts,
-                                                json_object_keys( posts::json -> json_object_keys( posts::json ) ) post_type
-                                            from ( 
+                                                uid,to_timestamp(times::double precision) post_time,json_object_keys( posts::json -> times ) post_type,
+                                                ROW_NUMBER() OVER(PARTITION BY f2.uid,f2.post_type ORDER BY times DESC) as rk
+                                            from
+                                                (
                                                 select 
-                                                    ##(uid)s uid,
-                                                    ##(_property_id)s _property_id,
-                                                    '##(posts)s'::jsonb posts
-                                                ) f1
-                                            ) f2
-                                            where post_type = '%(post_type)s'
-                                        )
-                                    UPDATE properties p SET last_%(post_type)s = s.post_time
-                                    FROM res s
-                                    WHERE s.rk=1 AND p.uid=s.uid
+                                                    uid,_property_id,json_object_keys( posts::json ) times,posts,
+                                                    json_object_keys( posts::json -> json_object_keys( posts::json ) ) post_type
+                                                from ( 
+                                                    select 
+                                                        ##(uid)s uid,
+                                                        ##(_property_id)s _property_id,
+                                                        '##(posts)s'::jsonb posts
+                                                    ) f1
+                                                ) f2
+                                                where post_type = '%(post_type)s'
+                                            )
+                                        UPDATE properties p SET last_%(post_type)s = s.post_time
+                                        FROM res s
+                                        WHERE s.rk=1 AND p.uid=s.uid
                                     \"\"\" ## T
 
                                 # plpy.log(p)
@@ -829,9 +910,7 @@ class Auto_Poster:
                     self.T.conn.set_isolation_level(       0)
                     self.T.cur.execute(                    a.replace('##','%'))
                     return
-
                 def keep_recent_craigslist(self):
-                    # def z_auto_update_timestamp(self,tbl,col):
                     a="""
                         DROP FUNCTION if exists z_keep_recent_craigslist() cascade;
                         DROP TRIGGER if exists update_last_craigslist ON properties;
@@ -842,6 +921,10 @@ class Auto_Poster:
                         from os                             import system           as os_cmd
                         from traceback                      import format_exc       as tb_format_exc
                         from sys                            import exc_info         as sys_exc_info
+                        import                                  datetime            as dt
+                        epoch                               =   dt.datetime.now().utcfromtimestamp(0)
+                        from dateutil                       import parser           as DU
+                        import pytz
 
                         try:
 
@@ -856,7 +939,17 @@ class Auto_Poster:
                                     and CL_cols.count(k)>0 
                                     and v):
                                                                         
-                                    TD["new"]["last_craigslist"] = v
+                                    TD["new"]["last_craigslist"]    =   v
+                                    
+                                    D                               =   eval(TD["new"]["posts"])
+                                    latest                          =   sorted(D.keys())
+                                    for it in latest:
+                                        if D[it].keys()[0].count('craigslist'):
+                                            post_link               =   D[it][D[it].keys()[0]]
+                                            break
+
+                                    TD["new"]["cl_id"]              =   post_link[post_link.rfind('/')+1:-5]
+
                                     return "MODIFY"
 
                             return "OK"                             # means unmodified
@@ -880,7 +973,51 @@ class Auto_Poster:
                     self.T.conn.set_isolation_level(       0)
                     self.T.cur.execute(                    a.replace('##','%'))
                     return
-                    
+                def update_last_craigslist_by_cl_status(self):
+                    a="""
+                        DROP FUNCTION if exists z_update_last_craigslist_by_cl_status() cascade;
+                        DROP TRIGGER if exists update_last_craigslist_by_cl_status ON properties;
+
+                        CREATE OR REPLACE FUNCTION z_update_last_craigslist_by_cl_status()
+                        RETURNS TRIGGER AS $funct$
+
+                        from os                             import system           as os_cmd
+                        from traceback                      import format_exc       as tb_format_exc
+                        from sys                            import exc_info         as sys_exc_info
+
+                        try:
+
+                            trigger_depth               =   plpy.execute('select pg_trigger_depth() res')[0]['res']
+                            
+                            if (TD["new"]["cl_status"] == None
+                                or TD["new"]["cl_status"]==TD["old"]["cl_status"]
+                                or trigger_depth>1):        return "OK"
+
+                            if TD["new"]["cl_status"]=='Deleted':
+                                TD["new"]["last_craigslist"] = None
+                                return "MODIFY"
+
+                            return "OK"                             # means unmodified
+
+                        except plpy.SPIError:
+                            plpy.log('z_keep_recent_craigslist FAILED')
+                            plpy.log(tb_format_exc())
+                            plpy.log(sys_exc_info()[0])
+                            return
+
+                        $funct$ language "plpythonu";
+
+                        CREATE TRIGGER update_last_craigslist_by_cl_status
+                        BEFORE UPDATE or INSERT ON properties
+                        FOR EACH ROW
+                        EXECUTE PROCEDURE z_update_last_craigslist_by_cl_status();
+
+                    """
+
+                    self.T.conn.set_isolation_level(       0)
+                    self.T.cur.execute(                    a.replace('##','%'))
+                    return
+    
     class Config:
 
         def __init__(self,_parent):
