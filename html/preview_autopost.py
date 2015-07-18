@@ -337,8 +337,8 @@ class PP_Functions:
         start_time                          =   int((self.T.dt.datetime.now()-self.T.epoch).total_seconds())
         end_time                            =   start_time + (60*55)
         
-        print start_time,'start'
-        print end_time,'end'
+        #print start_time,'start'
+        #print end_time,'end'
         qry                                 =   """
                                                     with prop_data as (
                                                         SELECT
@@ -385,16 +385,18 @@ class PP_Functions:
             
             if delay_max>0:
                 this_delay                  =   self.T.randrange(0,delay_max)
-                print i,_out.strip('\n '),this_delay,delay_max
+                # print i,_out.strip('\n '),this_delay,delay_max
                 self.T.delay(                   this_delay)
             else:
-                print i,_out.strip('\n '),'no delay'
+                #print i,_out.strip('\n '),'no delay'
+                pass
 
             if int((self.T.dt.datetime.now()-self.T.epoch).total_seconds())>end_time:
-                print 'finishing early? -- %s of %s' % (i,len(df))
+                # print 'finishing early? -- %s of %s' % (i,len(df))
                 break
             
-        print int((self.T.dt.datetime.now()-self.T.epoch).total_seconds()),'finished'
+        # print int((self.T.dt.datetime.now()-self.T.epoch).total_seconds()),'finished'
+        return
 
     def get_property_info(self,pd_row):
         self.br.open_page(                 'http://previewbostonrealty.com/admin/property_index.php')
