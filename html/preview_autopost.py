@@ -336,8 +336,6 @@ class PP_Functions:
         """assumption is that this function will run on hourly crons."""
         start_time                          =   int((self.T.dt.datetime.now()-self.T.epoch).total_seconds())
         end_time                            =   start_time + (60*55)
-
-        end_time = start_time + (60)
         
         #print start_time,'start'
         #print end_time,'end'
@@ -366,7 +364,6 @@ class PP_Functions:
                                                     AND c._status = 'Active'
                                                 """
         df                                  =   self.T.pd.read_sql(qry,self.T.eng)
-        df = df.ix[:10,:]
         chk_cnt                             =   len(df) if chk_cnt=='All' else chk_cnt
         df['idx']                           =   df.cl_uid.map(lambda s: self.T.randrange(0,len(df)*3))
         df                                  =   df.sort('idx').reset_index(drop=True).ix[:chk_cnt,:]
