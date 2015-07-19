@@ -336,6 +336,8 @@ class PP_Functions:
         """assumption is that this function will run on hourly crons."""
         start_time                          =   int((self.T.dt.datetime.now()-self.T.epoch).total_seconds())
         end_time                            =   start_time + (60*55)
+
+        end_time = start_time + (60)
         
         #print start_time,'start'
         #print end_time,'end'
