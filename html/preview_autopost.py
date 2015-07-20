@@ -594,7 +594,9 @@ class PP_Functions:
                         self.br.window.find_element_by_name("titlegen").click()
                     self.T.delay(                       2)
                     self.br.wait_for_page(              )
-                    assert self.br.window.find_element_by_id('title').get_attribute('value') is not None
+                    ad_title                =   self.br.window.find_element_by_id('title').get_attribute('value') 
+                    assert ad_title is not None
+                    D.update(                   {'ad_title'                 :   ad_title})
                     
                     # Submit PP page for CL
                     self.br.window.find_element_by_id("submitbutton").click()
