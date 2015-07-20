@@ -596,7 +596,6 @@ class PP_Functions:
                     self.br.wait_for_page(              )
                     ad_title                =   self.br.window.find_element_by_id('title').get_attribute('value') 
                     assert ad_title is not None
-                    D.update(                   {'ad_title'                 :   ad_title})
                     
                     # Submit PP page for CL
                     self.br.window.find_element_by_id("submitbutton").click()
@@ -633,7 +632,7 @@ class PP_Functions:
                     except:
                         post_url                    =   "ERROR: couldn't obtain link"
                     tuid                            =   int((self.T.dt.datetime.now()-self.T.epoch).total_seconds())
-                    D.update({                          tuid                :       {post_type     :   post_url} })
+                    D.update({                          tuid                :       {post_type     :   {'url':post_url,'ad_title':ad_title} } })
                     
                     update_pgsql_with_post_data(        self,prop,D,'craigslist')
                     self.br.window.close(               )
