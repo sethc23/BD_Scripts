@@ -76,36 +76,38 @@ class Webdriver():
             self.browser        =   webdriver.Firefox()
 
     def set_chrome(self,cookies,with_profile=False):
-        from selenium           import webdriver
-        driver                  =   webdriver.Chrome('/Users/admin/Desktop/chromedriver')
-        self.browser            =   driver
+        from selenium                       import webdriver
+        driver                              =   webdriver.Chrome('/Users/admin/Desktop/chromedriver')
+        self.browser                        =   driver
     
     def set_phantom(self,cookies):
-        from selenium           import webdriver
+        from selenium                       import webdriver
         from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
-        # D                       =   webdriver.PhantomJS()
-        user_agent              =   (
-                                        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_4) " +
-                                        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.57 Safari/537.36"
-                                    )
-        dcap                    =   dict(DesiredCapabilities.PHANTOMJS)
+        # D                                 =   webdriver.PhantomJS()
+        user_agent                          =   (
+                                                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_4) " +
+                                                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.57 Safari/537.36"
+                                                )
+        dcap                                =   dict(DesiredCapabilities.PHANTOMJS)
         dcap["phantomjs.page.settings.userAgent"] = user_agent
-        d                       =   webdriver.PhantomJS(executable_path='/usr/local/bin/phantomjs',
+        d                                   =   webdriver.PhantomJS(executable_path='/usr/local/bin/phantomjs',
                                                         desired_capabilities=dcap)
         
-        #d.Remote.current_url(       self)
-        d.set_window_position(      0, 0)
-        d.set_window_size(          300, 300)
-        d.desired_capabilities[     'applicationCacheEnabled'] = True
-        d.desired_capabilities[     'locationContextEnabled'] = True
-        d.desired_capabilities[     'databaseEnabled'] = True
-        d.desired_capabilities[     'webStorageEnabled'] = True
-        d.desired_capabilities[     'JavascriptEnabled'] = True
-        d.desired_capabilities[     'acceptSslCerts'] = True
-        d.desired_capabilities[     'browserConnectionEnabled'] = True
-        d.desired_capabilities[     'rotatable'] = True
-        d.implicitly_wait(          120)
-        self.browser            =   d
+        #d.Remote.current_url(              self)
+        d.set_window_position(              0, 0)
+        d.set_window_size(                  300, 300)
+        capabilities                        =   ['applicationCacheEnabled',
+                                                 'locationContextEnabled',
+                                                 'databaseEnabled',
+                                                 'webStorageEnabled',
+                                                 'JavascriptEnabled',
+                                                 'acceptSslCerts',
+                                                 'browserConnectionEnabled',
+                                                 'rotatable']
+        for it in capabilities:
+            d.desired_capabilities[it]      =   True
+        d.implicitly_wait(                      120)
+        self.browser                        =   d
 
     def Select(self,element):
         """
