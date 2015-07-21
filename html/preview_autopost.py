@@ -333,7 +333,7 @@ class PP_Functions:
         return
 
     def update_ads_from_urls(self,chk_cnt='All'):
-        """assumption is that this function will run on hourly crons."""
+        """assumption is that this function will run on hourly crons. THIS TRIGGERS 'update_properties_by_cl_status'"""
         start_time                          =   int((self.T.dt.datetime.now()-self.T.epoch).total_seconds())
         end_time                            =   start_time + (60*55)
         
@@ -341,29 +341,48 @@ class PP_Functions:
         #print end_time,'end'
         qry                                 =   """
                                                     with prop_data as (
-                                                        SELECT
-                                                            last_craigslist_id,
-                                                            CASE 
-                                                                WHEN (select res::json->>json_object_keys(res::json) ilike 'http%%')=true
-                                                                THEN res::json->>json_object_keys(res::json)
-                                                                ELSE Null
-                                                            END cl_url
-                                                        FROM
-                                                            properties p,
-                                                            (
-                                                                select uid,posts->>EXTRACT(EPOCH FROM last_craigslist)::text res
-                                                                from properties
-                                                                where last_craigslist is not null
-                                                            ) f1
-                                                        WHERE p.uid = f1.uid
-                                                        AND last_craigslist_id is not null
+                                                        select 
+                                                            uid,url,last_craigslist_id
+                                                            --posts,_keys,entries,entry_keys,
+                                                            --post_data,
+                                                            --url,last_craigslist_id
+                                                        from (
+                                                            select
+                                                                uid,posts,_keys,entries,entry_keys,
+                                                                entries::json->>entry_keys post_data,
+                                                                (entries::json->>entry_keys)::json->>'url' url,
+                                                                last_craigslist_id
+                                                            from (
+                                                                select 
+                                                                    uid,posts,_keys,entries,
+                                                                    json_object_keys(entries::json) entry_keys,
+                                                                    last_craigslist_id
+                                                                from (
+                                                                    select 
+                                                                        uid,posts,_keys,posts->>_keys entries,
+                                                                        last_craigslist_id
+                                                                    from (
+                                                                        select 
+                                                                            uid,posts,json_object_keys(posts::json) _keys,
+                                                                            last_craigslist_id
+                                                                        from properties
+                                                                        where last_craigslist_id is not null
+                                                                    ) f1
+                                                                ) f2
+                                                            ) f3
+                                                        ) f4
+                                                        where entry_keys ~* '^craigs'
+                                                        and url ~* last_craigslist_id::text
                                                     )
-                                                    SELECT c.uid cl_uid,p.cl_url
+                                                    SELECT c.uid cl_uid,p.url cl_url
                                                     FROM craigslist c,prop_data p
                                                     WHERE c._id = p.last_craigslist_id
                                                     AND c._status = 'Active'
                                                 """
         df                                  =   self.T.pd.read_sql(qry,self.T.eng)
+
+        i_trace()
+
         chk_cnt                             =   len(df) if chk_cnt=='All' else chk_cnt
         df['idx']                           =   df.cl_uid.map(lambda s: self.T.randrange(0,len(df)*3))
         df                                  =   df.sort('idx').reset_index(drop=True).ix[:chk_cnt,:]
@@ -377,9 +396,9 @@ class PP_Functions:
                                                  )
             (_out,_err) = self.T.exec_cmds([cmd])
             assert _err is None
-            if not _out.strip('\n '):
+            if not _out.strip('\n ') or _out.strip('\n ')=='0':
                 self.T.conn.set_isolation_level(0)
-                self.T.cur.execute(             "UPDATE craigslist SET _status='Deleted' WHERE uid = %s" % df.ix[i,'cl_uid'])
+                self.T.cur.execute(             "UPDATE craigslist SET _status='Deleted' WHERE uid = %s;" %  df.ix[i,'cl_uid'])
 
             delay_max = int( ( end_time - int((self.T.dt.datetime.now()-self.T.epoch).total_seconds()) ) /  (len(all_urls)-i) ) - 3 # 3 is transaction time buffer
             
@@ -954,7 +973,7 @@ class Auto_Poster:
                                         with res as 
                                             (
                                             select 
-                                                uid,to_timestamp(times::double precision) post_time,json_object_keys( posts::json -> times ) post_type,
+                                                uid,to_timestamp(times::double precision) at time zone 'utc' post_time,json_object_keys( posts::json -> times ) post_type,
                                                 ROW_NUMBER() OVER(PARTITION BY f2.uid,f2.post_type ORDER BY times DESC) as rk
                                             from
                                                 (
@@ -1064,12 +1083,14 @@ class Auto_Poster:
                     self.T.conn.set_isolation_level(       0)
                     self.T.cur.execute(                    a.replace('##','%'))
                     return
-                def update_last_craigslist_by_cl_status(self):
+                def update_properties_by_cl_status(self):
+                    """When 'craiglist' table updated with _status='Deleted', with 'properties': update 'posts' with 'deleted'
+                    clear 'last_craigslist_id', (NOT CLEARING 'last_craigslist'). """
                     a="""
-                        DROP FUNCTION if exists z_update_last_craigslist_by_cl_status() cascade;
-                        DROP TRIGGER if exists update_last_craigslist_by_cl_status ON craigslist;
+                        DROP FUNCTION if exists z_update_properties_by_cl_status() cascade;
+                        DROP TRIGGER if exists update_properties_by_cl_status ON craigslist;
 
-                        CREATE OR REPLACE FUNCTION z_update_last_craigslist_by_cl_status()
+                        CREATE OR REPLACE FUNCTION z_update_properties_by_cl_status()
                         RETURNS TRIGGER AS $funct$
 
                         from os                             import system           as os_cmd
@@ -1087,32 +1108,79 @@ class Auto_Poster:
                             if TD["new"]["_status"]=='Deleted':
                                 P = \"\"\"
                                     
-                                    UPDATE properties p
-                                    SET last_craigslist = NULL
-                                    WHERE last_craigslist_id = %s
+                                    WITH upd as (
 
-                                    \"\"\" % TD["new"]["_id"]
+                                        select
+                                            json_update(
+                                                posts::json,
+                                                    concat(
+                                                    '{"',
+                                                    _keys,
+                                                    '": ',
+
+                                                        concat(
+                                                        '{"',
+                                                        entry_keys,
+                                                        '": ',
+                                                        json_append(post_data::json,concat('{"Deleted":"',(select now())::text,'"}')::json),
+                                                        '}'),
+
+                                                    '}')::json
+                                                ) updated_post,
+                                            uid,posts,_keys,entries,entry_keys,post_data,url
+                                        from (
+                                         select
+                                            uid,posts,_keys,entries,entry_keys,
+                                            entries::json->>entry_keys post_data,
+                                            (entries::json->>entry_keys)::json->>'url' url
+                                            --,json_object_keys( (entries::json->>entry_keys)::json ) post_data_keys
+                                         from (
+                                             select uid,posts,_keys,entries,
+                                             json_object_keys(entries::json) entry_keys
+                                             from (
+                                                 select uid,posts,_keys,posts->>_keys entries
+                                                 from (
+                                                     select uid,posts,json_object_keys(posts::json) _keys
+                                                     from properties
+                                                     where last_craigslist_id = ##(_id)s
+                                                ) f1
+                                             ) f2
+                                         ) f3
+                                         
+                                        ) f4
+                                        where entry_keys ~* '^craigs' and url ~* '##(_id)s.html$'
+                                    )
+
+                                    UPDATE properties p SET 
+                                        posts = u.updated_post::jsonb,
+                                        last_craigslist_id = NULL
+                                        --,last_craigslist = NULL
+                                    FROM upd u
+                                    WHERE p.uid=u.uid
+                                    
+                                    \"\"\" ## {'_id':TD["new"]["_id"]}
+                                plpy.log(P)
                                 plpy.execute(P)
 
                             return "OK"                             # means unmodified
 
                         except plpy.SPIError:
-                            plpy.log('z_keep_recent_craigslist FAILED')
+                            plpy.log('update_properties_by_cl_status FAILED')
                             plpy.log(tb_format_exc())
                             plpy.log(sys_exc_info()[0])
                             return
 
                         $funct$ language "plpythonu";
 
-                        CREATE TRIGGER update_last_craigslist_by_cl_status
+                        CREATE TRIGGER update_properties_by_cl_status
                         BEFORE UPDATE or INSERT ON craigslist
                         FOR EACH ROW
-                        EXECUTE PROCEDURE z_update_last_craigslist_by_cl_status();
+                        EXECUTE PROCEDURE z_update_properties_by_cl_status();
 
                     """
 
                     self.T.conn.set_isolation_level(       0)
-                    self.T.cur.execute(                    a.replace('##','%'))
+                    self.T.cur.execute(                    a.replace('####','%%').replace('##','%'))
                     return
     
     class Config:
