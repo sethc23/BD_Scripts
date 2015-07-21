@@ -339,8 +339,6 @@ class scraper():
         #     self.proxy                      =   self.proxy_server.create_proxy()
             
         #     self.proxy_client               =   Browsermob_Proxy('client')
-        
-        from ipdb import set_trace as i_trace; i_trace()
 
         if browser == 'mechanize':
             t                               =   Mechanize(self,cookies)
