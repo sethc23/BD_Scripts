@@ -380,9 +380,6 @@ class PP_Functions:
                                                     AND c._status = 'Active'
                                                 """
         df                                  =   self.T.pd.read_sql(qry,self.T.eng)
-
-        i_trace()
-
         chk_cnt                             =   len(df) if chk_cnt=='All' else chk_cnt
         df['idx']                           =   df.cl_uid.map(lambda s: self.T.randrange(0,len(df)*3))
         df                                  =   df.sort('idx').reset_index(drop=True).ix[:chk_cnt,:]
