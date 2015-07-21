@@ -135,7 +135,7 @@ class Webdriver():
         for it in capabilities:
             d.desired_capabilities[it]      =   True
         d.implicitly_wait(                      120)
-        d.set_page_load_timeout(                300)
+        d.set_page_load_timeout(                150)
         self.browser                        =   d
 
     def Select(self,element):

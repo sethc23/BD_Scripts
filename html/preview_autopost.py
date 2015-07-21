@@ -11,6 +11,7 @@ class PP_Functions:
 
         self.AP                             =   _parent
         self.T                              =   _parent.T
+        # locals().update(                        self.T.__getdict__())
         self.PP                             =   self
         from HTML_API                           import getTagsByAttr,google,safe_url,getSoup
         from json                               import dumps                as j_dump
@@ -682,29 +683,32 @@ class PP_Functions:
                     self.T.delay(                       2)
                     self.T.br.wait_for_page(              )
                     ad_title                =   str(self.T.br.window.find_element_by_id('title').get_attribute('value')).replace("'","''")
-                    assert ad_title is not None
+                    assert ad_title        is   not None
                     
                     # Submit PP page for CL
                     self.T.br.window.find_element_by_id("submitbutton").click()
-                    self.T.delay(                       2)
-                    self.T.br.wait_for_page(              )
+                    self.T.delay(                2)
+                    self.T.br.wait_for_page(     )
 
                     # ...page runs a script and finally shows a windowed CL page
                     
                     # Submit CL pictures
                     self.T.br.window.find_element_by_name("go").click()
-                    self.T.delay(                       2)
-                    self.T.br.wait_for_page(              )
+                    self.T.delay(                2)
+                    self.T.br.wait_for_page(     )
 
                     try:
                         self.T.br.window.find_element_by_partial_link_text('log in to your account').click()
-                        self.T.delay(                   2)
-                        login_craigslist(               self)
+                        self.T.delay(            2)
+                        login_craigslist(        self)
                     except:
                         pass              
                     
-                    # Option to Change/Re-Order pictures (click bottom button)
-                    self.T.br.window.find_elements_by_tag_name('button')[-1].click()
+                    # Option to Change/Re-Order pictures (click bottom button) [ Scroll to Bottom...]
+                    a                       =   self.br.window.execute_script('return document.body.scrollHeight;')
+                    self.br.window.execute_script("window.scrollTo(%s, document.body.scrollHeight);" % str(a))
+                    # self.T.br.window.find_elements_by_tag_name('button')[-1].click()
+                    self.br.window.find_element_by_class_name('done bigbutton').click()
                     self.T.delay(                       2)
                     self.T.br.wait_for_page(              )
 
@@ -714,31 +718,31 @@ class PP_Functions:
                     self.T.br.wait_for_page(              )
 
                     try:
-                        h                               =   self.T.getSoup(self.T.br.source())
-                        post_url                        =   h.findAll(href=self.T.re.compile('\.html'))[0].get('href')
+                        h                   =   self.T.getSoup(self.T.br.source())
+                        post_url            =   h.findAll(href=self.T.re.compile('\.html'))[0].get('href')
                     except:
-                        post_url                    =   "ERROR: couldn''t obtain link"
-                    tuid                            =   int((self.T.dt.datetime.now()-self.T.epoch).total_seconds())
+                        post_url            =   "ERROR: couldn''t obtain link"
+                    tuid                    =   int((self.T.dt.datetime.now()-self.T.epoch).total_seconds())
                     D.update({                          tuid                :       {post_type     :   {'url':post_url,'ad_title':ad_title} } })
                     
-                    update_pgsql_with_post_data(        self,prop,D,'craigslist')
-                    self.T.br.window.close(               )
+                    update_pgsql_with_post_data(self,prop,D,'craigslist')
+                    self.T.br.window.close(          )
                     self.T.br.window.switch_to_window(    orig_window)
 
-                self.T.delay(                       2*60)
+                self.T.delay(                   2*60)
 
             return
 
         if not hasattr(self,'logged_in'):
-            self.logged_in                      =   self.login()
+            self.logged_in                  =   self.login()
 
-        self.post_settings                      =   eval(self.T.pd.read_sql("""
+        self.post_settings                  =   eval(self.T.pd.read_sql("""
                                                         select _value r 
                                                         from pp_settings 
                                                         where _setting = 'post_urls'
                                                         """,self.T.eng).r.tolist()[0])
 
-        post_type                               =   post_type if type(post_type)==list else [post_type]
+        post_type                           =   post_type if type(post_type)==list else [post_type]
         if post_type.count('postlets'):             postlets(self)
         if post_type.count('craigslist'):           craigslist(self)
 
@@ -1256,91 +1260,32 @@ class Auto_Poster:
         def __init__(self,_parent):
             self.AP                         =   _parent
             self.T                          =   _parent.T
+            
             self.T.update(                      {'page_timeout'             :   30,
-                                                 'try_loop_max_time'        :   2*60,})
+                                                 'try_loop_max_time'        :   2*60})
             self.Config                     =   self
 
-        def get_proxy(self,new=True,timeout=5):
-            df                              =   self.T.pd.read_sql("select _setting,_list from pp_settings where _setting = any(array['working_proxies','failed_proxies'])",self.T.eng)
-            if new or len(df[df._setting=='working_proxies']._list.iloc[0])>25:
-                known_proxies               =   df._list[0] + df._list[1]
-                failed_proxies              =   []
-                user_id                     =   str(self.T.get_guid().hex)
-                url                         =   'http://gimmeproxy.com/api/get/%s/?timeout=%s'%(user_id,timeout)
-                cmd                         =   ' '.join(["curl -s '%s'" % url])
-                self.T.update(                  {'try_loop_start'           :   int((self.T.dt.datetime.now()-self.T.epoch).total_seconds())})
-                while True:
-                    res                     =   self.T.exec_cmds([cmd])[0]
-                    res                     =   eval(res)
-                    proxies                 =   {'http':res['curl']}
+        def update_proxies(self):
+            cmd                             =   ' '.join(['python elite_proxy_finder.py -s 25',
+                                                '| grep "^[[:digit:]]"',
+                                                "| sed -E 's/ .*//g';"])
+            (_out,_err)                     =   self.T.exec_cmds([cmd])
+            self.T["proxies"]               =   ['http://'+it for it in _out.strip('\n').split('\n')]
+            self.T.conn.set_isolation_level(    0)
+            self.T.cur.execute(                 "UPDATE pp_settings SET _list=array%(proxies)s" % self.T)
+            return
 
-                    try:
-                        assert known_proxies.count(proxies['http'])==0
-                        req                 =   self.T.requests.get('https://accounts.craigslist.org/login/home',timeout=timeout,proxies=proxies)
-                        assert req.ok      ==   True
-                        assert req.content.count('<title>craigslist: account log in</title>')>0
-                        break
-                    except:
-                        failed_proxies.append(  proxies['http'])
-                        if int((self.T.dt.datetime.now()-self.T.epoch).total_seconds()) - self.T.try_loop_start > self.T.try_loop_max_time:
-                            raise SystemError
-                            break
-                        else:
-                            pass
-                    # except self.T.requests.exceptions.ConnectionError as e:
-                    #     if e.message.reason.args[0]=='Cannot connect to proxy.':
-                    #         failed_proxies.append(proxies['http'])
-                    #         print 'failed',i
-                    # except self.T.requests.exceptions.Timeout as e:
-                    #     print 'timeout'
-                    #     failed_proxies.append(  proxies['http'])
-                    # except AssertionError:
-                    #     print 'some request error'
-                self.T.update(                  {'try_loop_start'           :   0})
-                if failed_proxies:
-                    cmd                     =   """
-                        WITH upd AS (
-                            UPDATE pp_settings set _list = array_cat(_list,array%(proxy)s)
-                            WHERE _setting = 'failed_proxies'
-                            RETURNING uid
-                            )
-                        INSERT INTO pp_settings (_setting,_list)
-                        SELECT 'failed_proxies',array%(proxy)s
-                        FROM (select array_agg(uid) all_uids from upd) f1
-                        WHERE all_uids is null
-                                                """ % {'proxy':str(failed_proxies)}
-
-                    self.T.conn.set_isolation_level(0)
-                    self.T.cur.execute(          cmd)
-
-                if not locals().keys().count('req'):
-                    raise SystemExit
-                    return False
-
-                if req.ok:
-                    cmd                             =   """
-                        WITH upd AS (
-                            UPDATE pp_settings set _list = array_cat(_list,array%(proxy)s)
-                            WHERE _setting = 'working_proxies'
-                            RETURNING uid
-                            )
-                        INSERT INTO pp_settings (_setting,_list)
-                        SELECT 'working_proxies',array%(proxy)s
-                        FROM (select array_agg(uid) all_uids from upd) f1
-                        WHERE all_uids is null
-                                                        """ % {'proxy':str([proxies['http']])}
-
-                    self.T.conn.set_isolation_level(0)
-                    self.T.cur.execute(         cmd)
-                    return proxies['http']
-                    # self.T.update(              {'proxy'                    :   proxies['http']})
-            else:
-                working_proxies             =   df[df._setting=='working_proxies']._list.iloc[0]
-                random_proxy                =   working_proxies[self.T.randrange(0,len(working_proxies))]
-                # self.T.update(                  {'proxy'                    :   proxies['http']})
-                return random_proxy
+        def get_proxies(self):
+            if not hasattr(self.T,'proxies'):
+                self.T['proxies']           =   self.T.pd.read_sql("""SELECT _list l 
+                                                                      FROM pp_settings 
+                                                                      WHERE _setting='working_proxies'
+                                                                   """,self.T.eng).l[0]
+            if len(self.T['proxies'])==0:
+                self.update_proxies(            )
             
-            return False
+            self.T['proxy']                 =   self.T['proxies'].pop(0)
+            return
 
         def update_build_files(self):
             def make_dir_path(d_path,base_dir):
