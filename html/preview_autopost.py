@@ -232,55 +232,92 @@ class PP_Functions:
     def update_ads_from_account(self,account_type):
         def craigslist(self):
 
-            login_page = 'https://accounts.craigslist.org/'
-            postings_link = 'https://accounts.craigslist.org/login/home?filter_page=%s&filter_cat=0&filter_date=0&filter_active=0&show_tab=postings'
+            login_page                      =   'https://accounts.craigslist.org/'
+            now                             =   self.T.dt.datetime.now()
+            # keep scraping last month and this month for the first week
+            now                             =   now if now.day>7 else now+self.T.DU.relativedelta(months=-1)
+            postings_link                   =   ''.join(['https://accounts.craigslist.org/login/home?',
+                                                         'viewProfile=0&viewAccount=0',
+                                                         'filter_page=%s',
+                                                         '&filter_cat=0',
+                                                         '&filter_active=0',
+                                                         # '&filter_active=active',
+                                                         #'&filter_active=inactive',
+                                                         '&filter_date=%s-%s' % (now.year,"%02d" % now.month),
+                                                         '&show_tab=postings'])
 
-            self.br.window.get(                         login_page)
+            self.br.window.get(                 login_page)
             try:
                 self.br.window.find_element_by_id("inputEmailHandle").send_keys('seth.chase.boston@gmail.com')
                 self.br.window.find_element_by_id("inputPassword").send_keys('B*_Realty')
                 self.br.window.find_element_by_id("inputPassword").send_keys(self.br.keys.ENTER)
             except:
                 pass
-            
+
+            self.br.window.get(                 postings_link % 1)
 
             while True:
-                h                               =   self.T.getSoup(self.br.source())
-                postings_info                   =   h.find_all('small')[0].text
-                pages                           =   h.find_all('legend',attrs={'id':'paginator1'})[0]
-                
+                h                           =   self.T.getSoup(self.br.source())
+                # Get Page/Paging Info
+                postings_info               =   h.find_all('small')[0].text
+                pages                       =   h.find_all('legend',attrs={'id':'paginator1'})[0]
                 seg_start,seg_end,total_posts   =   [int(it) for it in self.T.re_findall(r'\d+',postings_info)]
                 
-                post_tbl                        =   h.find_all('table',attrs={'class':'accthp_postings'})[0]
-                t                               =   ''.join([it.decode() for it in post_tbl.contents]
+                post_tbl                    =   h.find_all('table',attrs={'class':'accthp_postings'})[0]
+                t                           =   ''.join([it.decode() for it in post_tbl.contents]
                                                             ).replace('tbody','table')
+                tbl_rows                    =   post_tbl.find_all('tr')
+
                 if not locals().keys().count('df'):
-                    df                          =   self.T.pd.read_html(t,header=0)[0]
-                    df.columns                  =   ['_'+it.lstrip('_').lower().replace(' ','_') for it in df.columns.tolist()]
-                    df['_posted_date']          =   df._posted_date.map(lambda d: self.T.DU.parse(d))
+                    df                      =   self.T.pd.read_html(t,header=0)[0]
+                    df.columns              =   ['_'+it.lstrip('_').lower().replace(' ','_') for it in df.columns.tolist()]
+                    df['_posted_date']      =   df._posted_date.map(lambda d: self.T.DU.parse(d))
+                    df['_manage']           =   [it.find_all('td')[1].decode() for it in tbl_rows[1:]]
+                    df['_post_link']        =   map(lambda r: None if not r.a else None if not r.a.has_attr('href') else r.a.get('href'), [it.find_all('td')[2] for it in tbl_rows[1:]])
                 else:
-                    n_df                        =   self.T.pd.read_html(t,header=0)[0]
-                    n_df.columns                =   ['_'+it.lstrip('_').lower().replace(' ','_') for it in n_df.columns.tolist()]
-                    n_df['_posted_date']        =   n_df._posted_date.map(lambda d: self.T.DU.parse(d))
-                    df                          =   df.append(n_df,ignore_index=True)
+                    n_df                    =   self.T.pd.read_html(t,header=0)[0]
+                    n_df.columns            =   ['_'+it.lstrip('_').lower().replace(' ','_') for it in n_df.columns.tolist()]
+                    n_df['_posted_date']    =   n_df._posted_date.map(lambda d: self.T.DU.parse(d))
+                    n_df['_post_link']      =   map(lambda r: None if not r.a else None if not r.a.has_attr('href') else r.a.get('href'), [it.find_all('td')[2] for it in tbl_rows[1:]])
+                    n_df['_manage']         =   [it.find_all('td')[1].decode() for it in tbl_rows[1:]]
+                    df                      =   df.append(n_df,ignore_index=True)
 
                 for it in pages.descendants:
                     if it.name and str(it.text).count('postings'):
                         break
                     if it.name=='a' and it.text.isdigit():
-                        last_page_link          =   int(it.text)
+                        last_page_link      =   int(it.text)
                     if it.name=='b' and it.text.isdigit():
-                        current_page            =   int(it.text)
+                        current_page        =   int(it.text)
                 
                 if current_page>last_page_link:
                     break
                 else:                   
                     self.br.window.find_element_by_link_text(str(current_page+1)).click()
 
-            assert len(df)                     ==   total_posts
-            df['_post_title']                   =   df._posting_title
-            df['_post_date']                    =   df._posted_date
-            df                                  =   df.ix[:,['_status','_post_title','_post_date','_id']]
+            assert len(df)                 ==   total_posts
+            df['_post_title']               =   df._posting_title
+            df['_post_date']                =   df._posted_date
+            
+
+            # df['_url_display']              =   df._manage.map(lambda r: None if (len(r.find_all('form'))==1 
+            #                                                                         and not r.input 
+            #                                                                         and not r.input.has_attr('value')) 
+            #                                                                     else r.input.get('value'))
+            # df['_url_delete']               =   df._manage.map(lambda r: None if (len(r.find_all('form'))==3
+            #                                                                         and not all([it.input for it in r.find_all('form')])
+            #                                                                         and not all([it.input.has_attr('value') for it in r.find_all('form')]))
+            #                                                                     else r.find_all('form')[0].input.get('value'))
+            # df['_url_edit']                 =   df._manage.map(lambda r: None if (len(r.find_all('form'))==3
+            #                                                                         and not all([it.input for it in r.find_all('form')])
+            #                                                                         and not all([it.input.has_attr('value') for it in r.find_all('form')])) 
+            #                                                                     else r.find_all('form')[1].input.get('value'))
+            # df['_url_renew']                =   df._manage.map(lambda r: None if (len(r.find_all('form'))==3
+            #                                                                         and not all([it.input for it in r.find_all('form')])
+            #                                                                         and not all([it.input.has_attr('value') for it in r.find_all('form')])) 
+            #                                                                     else r.find_all('form')[2].input.get('value'))
+
+            df                                  =   df.ix[:,['_status','_post_title','_post_link','_post_date','_id','_manage']]
             
             upd_set                             =   ','.join(['%s = t.%s' % (it,it) for it in df.columns])
             ins_cols                            =   ','.join(df.columns)
@@ -1156,7 +1193,6 @@ class Auto_Poster:
                                     WHERE p.uid=u.uid
                                     
                                     \"\"\" ## {'_id':TD["new"]["_id"]}
-                                plpy.log(P)
                                 plpy.execute(P)
 
                             return "OK"                             # means unmodified
