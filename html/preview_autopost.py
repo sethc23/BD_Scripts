@@ -424,18 +424,46 @@ class PP_Functions:
         df['idx']                           =   df.cl_uid.map(lambda s: self.T.randrange(0,len(df)*3))
         df                                  =   df.sort('idx').reset_index(drop=True).ix[:chk_cnt,:]
         all_urls                            =   df.cl_url.tolist()
+        self.T.update(                          {'proxy'                    :   self.AP.Config.get_proxy()})
         for i in range(0,len(all_urls)):
-            cmd                             =   ' '.join(
+            
+            self.T.update(                      {'try_loop_start'           :   int((self.T.dt.datetime.now()-self.T.epoch).total_seconds())})
+            while True:
+                try:
+                    cmd                     =   ' '.join(
                                                     ['curl -s',
+                                                     '-x "%s"' % self.T.proxy,
+                                                     '--max-time %s' % self.T.page_timeout,
+                                                     '-H "Proxy-Connection:"',
                                                      '-A "Mozilla/5.0 (Windows; U; Windows NT 5.1; de; rv:1.9.2.3) Gecko/20100401 Firefox/3.6.3"',
-                                                     '%s' % all_urls[i],
+                                                     '"%s"' % all_urls[i],
+                                                     '2>&1 || exit 9',
                                                      "| grep 'Seth Chase' | wc -l"]
                                                  )
-            (_out,_err) = self.T.exec_cmds([cmd])
-            assert _err is None
+                
+                    (_out,_err) = self.T.exec_cmds([cmd])
+                    assert _out.count('Timeout was reached')==0
+                    assert _err is None
+                    break
+                except:
+                    if int((self.T.dt.datetime.now()-self.T.epoch).total_seconds()) - self.T.try_loop_start > self.T.try_loop_max_time:
+                        raise SystemError
+                        break
+                    else:
+                        self.T.update(          {'proxy'                    :   self.AP.Config.get_proxy()})
+            self.T.update(                      {'try_loop_start'           :   0})
+
             if not _out.strip('\n ') or _out.strip('\n ')=='0':
                 self.T.conn.set_isolation_level(0)
-                self.T.cur.execute(             "UPDATE craigslist SET _status='Deleted' WHERE uid = %s;" %  df.ix[i,'cl_uid'])
+                self.T.cur.execute(             """
+                                                with upd as (
+                                                    UPDATE craigslist SET _status='Deleted' WHERE uid = %s
+                                                    RETURNING _property_id
+                                                    )
+                                                UPDATE properties SET cl_last_deleted=now() 
+                                                FROM upd u
+                                                WHERE _property_id = u._property_id;
+                                                """ %  df.ix[i,'cl_uid'])
 
             delay_max = int( ( end_time - int((self.T.dt.datetime.now()-self.T.epoch).total_seconds()) ) /  (len(all_urls)-i) ) - 3 # 3 is transaction time buffer
             
@@ -1225,17 +1253,20 @@ class Auto_Poster:
         def __init__(self,_parent):
             self.AP                         =   _parent
             self.T                          =   _parent.T
+            self.T.update(                      {'page_timeout'             :   30,
+                                                 'try_loop_max_time'        :   2*60,})
             self.Config                     =   self
 
-        def get_proxy(self,new=True,timeout=5,seek_limit=20):
+        def get_proxy(self,new=True,timeout=5):
             df                              =   self.T.pd.read_sql("select _setting,_list from pp_settings where _setting = any(array['working_proxies','failed_proxies'])",self.T.eng)
-            if new:
+            if new or len(df[df._setting=='working_proxies']._list.iloc[0])>25:
                 known_proxies               =   df._list[0] + df._list[1]
                 failed_proxies              =   []
                 user_id                     =   str(self.T.get_guid().hex)
                 url                         =   'http://gimmeproxy.com/api/get/%s/?timeout=%s'%(user_id,timeout)
                 cmd                         =   ' '.join(["curl -s '%s'" % url])
-                for i in range(seek_limit):
+                self.T.update(                  {'try_loop_start'           :   int((self.T.dt.datetime.now()-self.T.epoch).total_seconds())})
+                while True:
                     res                     =   self.T.exec_cmds([cmd])[0]
                     res                     =   eval(res)
                     proxies                 =   {'http':res['curl']}
@@ -1243,18 +1274,25 @@ class Auto_Poster:
                     try:
                         assert known_proxies.count(proxies['http'])==0
                         req                 =   self.T.requests.get('http://ipchicken.com',timeout=timeout,proxies=proxies)
-                        assert req.ok==True
+                        assert req.ok      ==   True
                         break
-                    except self.T.requests.exceptions.ConnectionError as e:
-                        if e.message.reason.args[0]=='Cannot connect to proxy.':
-                            failed_proxies.append(proxies['http'])
-                            print 'failed',i
-                    except self.T.requests.exceptions.Timeout as e:
-                        print 'timeout'
+                    except:
                         failed_proxies.append(  proxies['http'])
-                    except AssertionError:
-                        print 'some request error'
-
+                        if int((self.T.dt.datetime.now()-self.T.epoch).total_seconds()) - self.T.try_loop_start > self.T.try_loop_max_time:
+                            raise SystemError
+                            break
+                        else:
+                            pass
+                    # except self.T.requests.exceptions.ConnectionError as e:
+                    #     if e.message.reason.args[0]=='Cannot connect to proxy.':
+                    #         failed_proxies.append(proxies['http'])
+                    #         print 'failed',i
+                    # except self.T.requests.exceptions.Timeout as e:
+                    #     print 'timeout'
+                    #     failed_proxies.append(  proxies['http'])
+                    # except AssertionError:
+                    #     print 'some request error'
+                self.T.update(                  {'try_loop_start'           :   0})
                 if failed_proxies:
                     cmd                     =   """
                         WITH upd AS (
