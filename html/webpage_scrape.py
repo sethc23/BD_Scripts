@@ -47,19 +47,19 @@ class Mechanize():
 
 class Webdriver():
 
-    def __init__(self,browser,cookies):
+    def __init__(self,browser,cookies,proxy):
         self.browser            =   '  '
         self.type               =   browser
         self.cookies            =   ''
-        if browser == 'firefox':    self.set_firefox(cookies)
-        if browser == 'phantom':    self.set_phantom(cookies)
-        if browser == 'chrome':     self.set_chrome(cookies)
+        self.proxy              =   proxy
+        if browser == 'firefox':    self.set_firefox(cookies,proxy)
+        if browser == 'phantom':    self.set_phantom(cookies,proxy)
+        if browser == 'chrome':     self.set_chrome(cookies,proxy)
         self.window             =   self.browser
         from selenium.webdriver.common.keys import Keys 
         self.keys               =   Keys
-
     
-    def set_firefox(self,cookies,with_profile=False):
+    def set_firefox(self,cookies,proxy,with_profile=False):
         from selenium           import webdriver
         if with_profile==True:
             p                   =   webdriver.firefox.firefox_profile.FirefoxProfile()
@@ -75,12 +75,18 @@ class Webdriver():
             # profile = webdriver.firefox.firefox_profile.FirefoxProfile()
             self.browser        =   webdriver.Firefox()
 
-    def set_chrome(self,cookies,with_profile=False):
+    def set_chrome(self,cookies,proxy,with_profile=False):
         from selenium                       import webdriver
-        driver                              =   webdriver.Chrome('/Users/admin/Desktop/chromedriver')
+        if proxy:
+            opts                            =   webdriver.ChromeOptions()
+            opts.add_argument(                  '--proxy-server=%s'%proxy)
+        else:
+            opts                            =   ''
+        driver                              =   webdriver.Chrome(executable_path='/Users/admin/Desktop/chromedriver',
+                                                                 chrome_options=opts)
         self.browser                        =   driver
     
-    def set_phantom(self,cookies):
+    def set_phantom(self,cookies,proxy):
         from selenium                       import webdriver
         from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
         # D                                 =   webdriver.PhantomJS()
@@ -90,8 +96,11 @@ class Webdriver():
                                                 )
         dcap                                =   dict(DesiredCapabilities.PHANTOMJS)
         dcap["phantomjs.page.settings.userAgent"] = user_agent
+        service_args                        =   ['--proxy=%s' % proxy,
+                                                 '--proxy-type=http']
         d                                   =   webdriver.PhantomJS(executable_path='/usr/local/bin/phantomjs',
-                                                        desired_capabilities=dcap)
+                                                                    desired_capabilities=dcap,
+                                                                    service_args=service_args)
         
         #d.Remote.current_url(              self)
         d.set_window_position(              0, 0)
@@ -305,13 +314,14 @@ class EXTRAS():
 
 class scraper():
 
-    def __init__(self,browser,cookies=''):
+    def __init__(self,browser,cookies='',proxy=''):
         if browser == 'mechanize':
-            t = Mechanize(self,cookies)
-            self.browser,self.browserType = t.browser,t.browserType
-        if browser == 'firefox' or browser == 'phantom' or browser == 'chrome':
-            self.browser=Webdriver(browser,cookies)
-        if browser == 'urllib2': self.browser = Urllib2(self,cookies)
+            t                               =   Mechanize(self,cookies)
+            self.browser,self.browserType   =   t.browser,t.browserType
+        if ['firefox','phantom','chrome'].count(browser):
+            self.browser                    =   Webdriver(browser,cookies,proxy)
+        if browser == 'urllib2': 
+            self.browser                    =   Urllib2(self,cookies)
 
     
 
