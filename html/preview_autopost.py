@@ -374,11 +374,7 @@ class PP_Functions:
 
     def update_ads_from_urls(self,chk_cnt='All'):
         """assumption is that this function will run on hourly crons. THIS TRIGGERS 'update_properties_by_cl_status'"""
-        start_time                          =   int((self.T.dt.datetime.now()-self.T.epoch).total_seconds())
-        end_time                            =   start_time + (60*55)
         
-        #print start_time,'start'
-        #print end_time,'end'
         qry                                 =   """
                                                     with prop_data as (
                                                         select 
@@ -423,10 +419,13 @@ class PP_Functions:
         chk_cnt                             =   len(df) if chk_cnt=='All' else chk_cnt
         df['idx']                           =   df.cl_uid.map(lambda s: self.T.randrange(0,len(df)*3))
         df                                  =   df.sort('idx').reset_index(drop=True).ix[:chk_cnt,:]
+        start_time                          =   int((self.T.dt.datetime.now()-self.T.epoch).total_seconds())
+        # endtime based on checking 100 ads / 40 min
+        end_time                            =   start_time + ( int(round(len(df)/100.00,0)) * (60*40) )
         all_urls                            =   df.cl_url.tolist()
         self.T.update(                          {'proxy'                    :   self.AP.Config.get_proxy()})
         for i in range(0,len(all_urls)):
-            
+
             self.T.update(                      {'try_loop_start'           :   int((self.T.dt.datetime.now()-self.T.epoch).total_seconds())})
             while True:
                 try:
