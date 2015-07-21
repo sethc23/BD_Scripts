@@ -133,6 +133,7 @@ class Webdriver():
         for it in capabilities:
             d.desired_capabilities[it]      =   True
         d.implicitly_wait(                      120)
+        d.set_page_load_timeout(                30)
         self.browser                        =   d
 
     def Select(self,element):
@@ -339,6 +340,8 @@ class scraper():
             
         #     self.proxy_client               =   Browsermob_Proxy('client')
         
+        from ipdb import set_trace as i_trace; i_trace()
+
         if browser == 'mechanize':
             t                               =   Mechanize(self,cookies)
             self.browser,self.browserType   =   t.browser,t.browserType

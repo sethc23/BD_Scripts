@@ -25,6 +25,7 @@ class PP_Functions:
         for k in all_imports:
             if not self.T.has_key(k):
                 self.T.update(                  {k                      :   eval(k) })
+        globals().update(                       self.T.__getdict__())
 
     def login(self):
         url                                 =   'http://previewbostonrealty.com/admin/login.php'
@@ -678,7 +679,7 @@ class PP_Functions:
                         self.br.window.find_element_by_name("titlegen").click()
                     self.T.delay(                       2)
                     self.br.wait_for_page(              )
-                    ad_title                =   self.br.window.find_element_by_id('title').get_attribute('value') 
+                    ad_title                =   str(self.br.window.find_element_by_id('title').get_attribute('value')).replace("'","''")
                     assert ad_title is not None
                     
                     # Submit PP page for CL
@@ -714,7 +715,7 @@ class PP_Functions:
                         h                               =   self.T.getSoup(self.br.source())
                         post_url                        =   h.findAll(href=self.T.re.compile('\.html'))[0].get('href')
                     except:
-                        post_url                    =   "ERROR: couldn't obtain link"
+                        post_url                    =   "ERROR: couldn''t obtain link"
                     tuid                            =   int((self.T.dt.datetime.now()-self.T.epoch).total_seconds())
                     D.update({                          tuid                :       {post_type     :   {'url':post_url,'ad_title':ad_title} } })
                     
