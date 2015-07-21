@@ -15,16 +15,16 @@ class PP_Functions:
         from json                               import dumps                as j_dump
         import re
         from random                             import randrange
+        proxy                               =   self.AP.Config.get_proxy()
+        assert              proxy          !=   False
+        assert              type(proxy)    is   str
+        self.T['proxy']                     =   proxy
+        from webpage_scrape                     import scraper
+        self.br                             =   None if not self.T.browser_type else scraper(self.T.browser_type,proxy=self.T.proxy).browser
         all_imports                         =   locals().keys()
         for k in all_imports:
             if not self.T.has_key(k):
                 self.T.update(                  {k                      :   eval(k) })
-        from webpage_scrape                     import scraper
-        if self.T.browser_type:
-            res                             =   self.AP.Config.get_proxy()
-            assert              res        !=   False
-            self.T.update(                      {'proxy'                    :   res})
-        self.br                             =   None if not self.T.browser_type else scraper(self.T.browser_type,proxy=self.T.proxy).browser
 
     def login(self):
         url                                 =   'http://previewbostonrealty.com/admin/login.php'
@@ -592,7 +592,8 @@ class PP_Functions:
                                                         (
                                                         SELECT * FROM properties p2
                                                         where 
-                                                            p2.last_craigslist is null
+                                                            p2.last_craigslist_id is null
+                                                            AND p2.cl_post_cnt < 2
                                                             AND p2._beds >= 1
                                                             AND length(p2._photos)>0
                                                             AND cl_checked_out is null
@@ -1272,8 +1273,9 @@ class Auto_Poster:
 
                     try:
                         assert known_proxies.count(proxies['http'])==0
-                        req                 =   self.T.requests.get('http://ipchicken.com',timeout=timeout,proxies=proxies)
+                        req                 =   self.T.requests.get('https://accounts.craigslist.org/login/home',timeout=timeout,proxies=proxies)
                         assert req.ok      ==   True
+                        assert req.content.count('<title>craigslist: account log in</title>')>0
                         break
                     except:
                         failed_proxies.append(  proxies['http'])

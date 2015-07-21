@@ -1,13 +1,13 @@
 
-from time                       import sleep
-from sys                        import argv, path
-path.append(                    '../appscript')
-path.append(                    '..')
+from time                                   import sleep
+from sys                                    import argv, path
+path.append(                                    '../appscript')
+path.append(                                    '..')
 # import                             Safari_API
-from handle_cookies             import getFirefoxCookie,set_cookies_from_text
+from handle_cookies                         import getFirefoxCookie,set_cookies_from_text
 import mechanize
-from time                       import time             as TIME
-from time                       import sleep            as delay
+from time                                   import time             as TIME
+from time                                   import sleep            as delay
 
 
 class Mechanize():
@@ -45,6 +45,22 @@ class Mechanize():
     def get_file(self,filePath,savePath):
         self.browser.retrieve(filePath, savePath,timeout=3600)[0]
 
+class Browsermob_Proxy():
+    
+    def __init__(self,package_type='server'):
+        if package_type=='server':
+            self                            =   self.Server()
+        elif package_type=='client':
+            self                            =   self.Client()
+        
+    def Server(self):
+        from browsermobproxy                import Server
+        self                                =   Server("/usr/local/bin/browsermob-proxy",options={'port':11001})
+
+    def Client(self):
+        from browsermobproxy                import Client
+        self                                =   Client('%(scheme)s://%(remote_ip)s:%(remote_port)s' % self.prox_client_data)
+     
 class Webdriver():
 
     def __init__(self,browser,cookies,proxy):
@@ -96,8 +112,9 @@ class Webdriver():
                                                 )
         dcap                                =   dict(DesiredCapabilities.PHANTOMJS)
         dcap["phantomjs.page.settings.userAgent"] = user_agent
-        service_args                        =   ['--proxy=%s' % proxy,
-                                                 '--proxy-type=http']
+        service_args                        =   ['--proxy=%s' % self.proxy[7:],
+                                                 '--proxy-type=http',
+                                                 '--local-to-remote-url-access=true']
         d                                   =   webdriver.PhantomJS(executable_path='/usr/local/bin/phantomjs',
                                                                     desired_capabilities=dcap,
                                                                     service_args=service_args)
@@ -315,11 +332,20 @@ class EXTRAS():
 class scraper():
 
     def __init__(self,browser,cookies='',proxy=''):
+        # if proxy:
+        #     self.proxy_server               =   Browsermob_Proxy('server')
+        #     self.proxy_server.start(            )
+        #     self.proxy                      =   self.proxy_server.create_proxy()
+            
+        #     self.proxy_client               =   Browsermob_Proxy('client')
+        
         if browser == 'mechanize':
             t                               =   Mechanize(self,cookies)
             self.browser,self.browserType   =   t.browser,t.browserType
+        
         if ['firefox','phantom','chrome'].count(browser):
             self.browser                    =   Webdriver(browser,cookies,proxy)
+        
         if browser == 'urllib2': 
             self.browser                    =   Urllib2(self,cookies)
 
