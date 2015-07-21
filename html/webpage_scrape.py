@@ -114,7 +114,9 @@ class Webdriver():
         dcap["phantomjs.page.settings.userAgent"] = user_agent
         service_args                        =   ['--proxy=%s' % self.proxy[7:],
                                                  '--proxy-type=http',
-                                                 '--local-to-remote-url-access=true']
+                                                 '--webdriver-loglevel=DEBUG'
+                                                 # '--local-to-remote-url-access=true',
+                                                 ]
         d                                   =   webdriver.PhantomJS(executable_path='/usr/local/bin/phantomjs',
                                                                     desired_capabilities=dcap,
                                                                     service_args=service_args)
@@ -133,7 +135,7 @@ class Webdriver():
         for it in capabilities:
             d.desired_capabilities[it]      =   True
         d.implicitly_wait(                      120)
-        d.set_page_load_timeout(                30)
+        d.set_page_load_timeout(                300)
         self.browser                        =   d
 
     def Select(self,element):

@@ -8,6 +8,7 @@ from ipdb import set_trace as i_trace
 class PP_Functions:
 
     def __init__(self,_parent):
+
         self.AP                             =   _parent
         self.T                              =   _parent.T
         self.PP                             =   self
@@ -20,21 +21,22 @@ class PP_Functions:
         assert              type(proxy)    is   str
         self.T['proxy']                     =   proxy
         from webpage_scrape                     import scraper
-        self.br                             =   None if not self.T.browser_type else scraper(self.T.browser_type,proxy=self.T.proxy).browser
+        self.T['br']                        =   None if not self.T.browser_type else scraper(self.T.browser_type,proxy=self.T.proxy).browser
         all_imports                         =   locals().keys()
         for k in all_imports:
             if not self.T.has_key(k):
                 self.T.update(                  {k                      :   eval(k) })
         globals().update(                       self.T.__getdict__())
+        i_trace()
 
     def login(self):
         url                                 =   'http://previewbostonrealty.com/admin/login.php'
-        self.br.open_page(                      url)
-        uname                               =   self.br.window.find_element_by_name("ap_username")
+        self.T.br.open_page(                      url)
+        uname                               =   self.T.br.window.find_element_by_name("ap_username")
         if uname.is_displayed():
             uname.send_keys('schase')
-            self.br.window.find_element_by_name("ap_password").send_keys('B*_Realty')
-            self.br.window.find_element_by_name("Submit").click()
+            self.T.br.window.find_element_by_name("ap_password").send_keys('B*_Realty')
+            self.T.br.window.find_element_by_name("Submit").click()
         return True
 
     def _clean_cols(self,pd_table_from_html,key_items):
@@ -56,7 +58,7 @@ class PP_Functions:
     def recent_modified(self):
         if not hasattr(self,'logged_in'):
             self.logged_in                  =   self.login()
-        h                                   =   self.T.codecs.encode(self.br.source(),'utf8','ignore')
+        h                                   =   self.T.codecs.encode(self.T.br.source(),'utf8','ignore')
         tbls                                =   self.T.getTagsByAttr(h,'table',{'class':'added_table'},contents=False)
         
         drop_cols                           =   ['Link']
@@ -132,9 +134,9 @@ class PP_Functions:
         """updates pgSQL with current url destinations for 'Post Ad' feature"""
         if not hasattr(self,'logged_in'):
             self.logged_in                      =   self.login()
-        if not self.br.get_url()==self.T.BASE_URL:
-            self.br.open_page(self.T.BASE_URL)
-        h                                       =   self.T.getSoup(self.br.source())
+        if not self.T.br.get_url()==self.T.BASE_URL:
+            self.T.br.open_page(self.T.BASE_URL)
+        h                                       =   self.T.getSoup(self.T.br.source())
         res                                     =   h.findAll('td',attrs={'class':'testimonials'})
         assert len(res)>0
         res                                     =   res[1]
@@ -250,18 +252,18 @@ class PP_Functions:
                                                          '&filter_date=%s-%s' % (now.year,"%02d" % now.month),
                                                          '&show_tab=postings'])
 
-            self.br.window.get(                 login_page)
+            self.T.br.window.get(                 login_page)
             try:
-                self.br.window.find_element_by_id("inputEmailHandle").send_keys('seth.chase.boston@gmail.com')
-                self.br.window.find_element_by_id("inputPassword").send_keys('B*_Realty')
-                self.br.window.find_element_by_id("inputPassword").send_keys(self.br.keys.ENTER)
+                self.T.br.window.find_element_by_id("inputEmailHandle").send_keys('seth.chase.boston@gmail.com')
+                self.T.br.window.find_element_by_id("inputPassword").send_keys('B*_Realty')
+                self.T.br.window.find_element_by_id("inputPassword").send_keys(self.T.br.keys.ENTER)
             except:
                 pass
 
-            self.br.window.get(                 postings_link % 1)
+            self.T.br.window.get(                 postings_link % 1)
 
             while True:
-                h                           =   self.T.getSoup(self.br.source())
+                h                           =   self.T.getSoup(self.T.br.source())
                 # Get Page/Paging Info
                 postings_info               =   h.find_all('small')[0].text
                 pages                       =   h.find_all('legend',attrs={'id':'paginator1'})[0]
@@ -297,7 +299,7 @@ class PP_Functions:
                 if current_page>last_page_link:
                     break
                 else:                   
-                    self.br.window.find_element_by_link_text(str(current_page+1)).click()
+                    self.T.br.window.find_element_by_link_text(str(current_page+1)).click()
 
             assert len(df)                 ==   total_posts
             df['_post_title']               =   df._posting_title
@@ -483,11 +485,11 @@ class PP_Functions:
         return
 
     def get_property_info(self,pd_row):
-        self.br.open_page(                 'http://previewbostonrealty.com/admin/property_index.php')
-        prop_field                      =   self.br.window.find_element_by_name("searchproperty_IDs")
+        self.T.br.open_page(                 'http://previewbostonrealty.com/admin/property_index.php')
+        prop_field                      =   self.T.br.window.find_element_by_name("searchproperty_IDs")
         if prop_field.is_displayed():
             prop_field.send_keys(           pd_row['_property_id'])
-            prop_field.send_keys(           self.br.keys.ENTER)
+            prop_field.send_keys(           self.T.br.keys.ENTER)
         return
 
     def post_ad(self,post_type):
@@ -507,11 +509,11 @@ class PP_Functions:
         def postlets(self):
             def login_postlets(self):
                 try:
-                    uname                       =   self.br.window.find_element_by_id('username')
+                    uname                       =   self.T.br.window.find_element_by_id('username')
                     if uname.is_displayed():
                         uname.send_keys(            'seth.chase.boston@gmail.com')
-                        self.br.window.find_element_by_id('password').send_keys('B*_Realty')
-                        self.br.window.find_element_by_id('password').send_keys(self.br.keys.ENTER)
+                        self.T.br.window.find_element_by_id('password').send_keys('B*_Realty')
+                        self.T.br.window.find_element_by_id('password').send_keys(self.T.br.keys.ENTER)
                 except:
                     pass
 
@@ -536,16 +538,16 @@ class PP_Functions:
             for idx,prop in items.iterrows():
                 D                               =   {} if prop.posts is None else prop.posts                
                 goto_url                        =   self.T.BASE_URL + "postlets.php?property_ID=%s" % prop['_property_id']
-                self.br.open_page(                  goto_url)
-                self.br.window.find_element_by_name("titlegen").click()
-                self.br.window.find_element_by_name("make_postlet").click()
+                self.T.br.open_page(                  goto_url)
+                self.T.br.window.find_element_by_name("titlegen").click()
+                self.T.br.window.find_element_by_name("make_postlet").click()
 
                 # i_trace()
                 # IF POSTLETS LOGIN HERE: re-init webdriver/login/post
 
                 
                 # GET PAGE POST INFO
-                src                             =   self.br.source()
+                src                             =   self.T.br.source()
                 a                               =   src.find('<body')
                 b                               =   src.find('>',a) + 1
                 c                               =   src.find('<!--',b)
@@ -560,19 +562,19 @@ class PP_Functions:
                     break
 
                 # ACTIVATE AD
-                self.br.window.find_element_by_partial_link_text('Activate Postlet').click()
+                self.T.br.window.find_element_by_partial_link_text('Activate Postlet').click()
 
                 # LOGIN INTO POSTLETS IF NECESSARY
                 login_postlets(                     self)
 
                 # CONFIRMED POST
-                self.br.window.find_element_by_class_name("closer").click()
-                h                               =   self.T.getSoup(self.br.source())
+                self.T.br.window.find_element_by_class_name("closer").click()
+                h                               =   self.T.getSoup(self.T.br.source())
                 res                             =   h.findAll('div',attrs={'id':'activated-dialog'})
                 try:
                     assert len(res)>0
 
-                    post_url                    =   self.br.window.find_element_by_class_name('hdp-url').text
+                    post_url                    =   self.T.br.window.find_element_by_class_name('hdp-url').text
                     tuid                        =   int((self.T.dt.datetime.now()-self.T.epoch).total_seconds())
                     D.update({                      tuid                :       {'postlets'     :   post_url} })
                 except:
@@ -583,9 +585,9 @@ class PP_Functions:
             return
         def craigslist(self):
             def login_craigslist(self):
-                self.br.window.find_element_by_id("inputEmailHandle").send_keys('seth.chase.boston@gmail.com')
-                self.br.window.find_element_by_id("inputPassword").send_keys('B*_Realty')
-                self.br.window.find_element_by_id("inputPassword").send_keys(self.br.keys.ENTER)
+                self.T.br.window.find_element_by_id("inputEmailHandle").send_keys('seth.chase.boston@gmail.com')
+                self.T.br.window.find_element_by_id("inputPassword").send_keys('B*_Realty')
+                self.T.br.window.find_element_by_id("inputPassword").send_keys(self.T.br.keys.ENTER)
 
             items                               =   self.T.pd.read_sql("""                  
                                                         UPDATE properties p1 SET cl_checked_out = '%s'
@@ -607,7 +609,7 @@ class PP_Functions:
                                                         returning p1.*;
                                                         """%  self.T.guid,self.T.eng)
             if not len(items):                      return
-            h                                       =   self.T.getSoup(self.br.source())
+            h                                       =   self.T.getSoup(self.T.br.source())
             res                                     =   h.findAll('td',attrs={'class':'testimonials'})
             assert                      len(res)    >   0
             res                                     =   res[1]
@@ -631,37 +633,37 @@ class PP_Functions:
                                                                 "/tbody/tr[4]/td[@class='testimonials']"])
                 # Change name and id of select tag
                 select_path                     =   first_row_path + "/select"
-                select_tag                      =   self.br.window.find_element_by_xpath(select_path)
+                select_tag                      =   self.T.br.window.find_element_by_xpath(select_path)
                 to_name                         =   select_tag.get_attribute('name').replace(str(res_id),str(prop['_property_id']))
-                self.br.window.execute_script(      "arguments[0].setAttribute('name', arguments[1])", select_tag, to_name)
+                self.T.br.window.execute_script(      "arguments[0].setAttribute('name', arguments[1])", select_tag, to_name)
                 to_id                           =   select_tag.get_attribute('id').replace(str(res_id),str(prop['_property_id']))
-                self.br.window.execute_script(      "arguments[0].setAttribute('id', arguments[1])", select_tag, to_id)
+                self.T.br.window.execute_script(      "arguments[0].setAttribute('id', arguments[1])", select_tag, to_id)
                 # Change value of first option
                 option_1_path                   =   select_path + "/option[1]"
-                option_1_tag                    =   self.br.window.find_element_by_xpath(option_1_path)
-                self.br.window.execute_script(      "arguments[0].setAttribute('value', arguments[1])", option_1_tag, goto_url)
+                option_1_tag                    =   self.T.br.window.find_element_by_xpath(option_1_path)
+                self.T.br.window.execute_script(      "arguments[0].setAttribute('value', arguments[1])", option_1_tag, goto_url)
                 # Change name and onclick for submit button
                 button_path                     =   first_row_path + "/input"
-                button_tag                      =   self.br.window.find_element_by_xpath(button_path)
+                button_tag                      =   self.T.br.window.find_element_by_xpath(button_path)
                 to_name                         =   button_tag.get_attribute('name').replace(str(res_id),str(prop['_property_id']))
-                self.br.window.execute_script(      "arguments[0].setAttribute('name', arguments[1])", button_tag, to_name)
+                self.T.br.window.execute_script(      "arguments[0].setAttribute('name', arguments[1])", button_tag, to_name)
                 to_onclick                      =   button_tag.get_attribute('onclick').replace(str(res_id),str(prop['_property_id']))
-                self.br.window.execute_script(      "arguments[0].setAttribute('onclick', arguments[1])", button_tag, to_onclick)
+                self.T.br.window.execute_script(      "arguments[0].setAttribute('onclick', arguments[1])", button_tag, to_onclick)
                 # Update Replace Marker
                 res_id                          =   str(prop['_property_id'])
                 button_tag.click(                   )
 
                 # Move to new window
                 self.T.delay(                       2)
-                self.br.wait_for_page(              )
-                assert self.br.window_count()   ==  2
-                orig_window                     =   self.br.window.current_window_handle
-                new_window                      =   [it for it in self.br.window.window_handles if it!=orig_window][0]
-                self.br.window.switch_to_window(    new_window)
+                self.T.br.wait_for_page(              )
+                assert self.T.br.window_count()   ==  2
+                orig_window                     =   self.T.br.window.current_window_handle
+                new_window                      =   [it for it in self.T.br.window.window_handles if it!=orig_window][0]
+                self.T.br.window.switch_to_window(    new_window)
                 
                 # Check for Errors
-                if self.br.source().find('posting aborted')!=-1:
-                    x                           =   self.br.source()
+                if self.T.br.source().find('posting aborted')!=-1:
+                    x                           =   self.T.br.source()
                     b                           =   x.find('posting aborted')
                     a                           =   x[:b].rfind('<br')+3
                     msg                         =   x[a:b].strip('/ <>\n-').replace("'","")
@@ -669,50 +671,50 @@ class PP_Functions:
                     D.update({                      tuid                :       {post_type     :   """ERROR: %s""" % msg} })
                     
                     update_pgsql_with_post_data(    self,prop,D,'craigslist')
-                    self.br.window.close(           )
-                    self.br.window.switch_to_window(orig_window)
+                    self.T.br.window.close(           )
+                    self.T.br.window.switch_to_window(orig_window)
 
                 else:
 
                     # Make title for ad
                     for i in range(3):
-                        self.br.window.find_element_by_name("titlegen").click()
+                        self.T.br.window.find_element_by_name("titlegen").click()
                     self.T.delay(                       2)
-                    self.br.wait_for_page(              )
-                    ad_title                =   str(self.br.window.find_element_by_id('title').get_attribute('value')).replace("'","''")
+                    self.T.br.wait_for_page(              )
+                    ad_title                =   str(self.T.br.window.find_element_by_id('title').get_attribute('value')).replace("'","''")
                     assert ad_title is not None
                     
                     # Submit PP page for CL
-                    self.br.window.find_element_by_id("submitbutton").click()
+                    self.T.br.window.find_element_by_id("submitbutton").click()
                     self.T.delay(                       2)
-                    self.br.wait_for_page(              )
+                    self.T.br.wait_for_page(              )
 
                     # ...page runs a script and finally shows a windowed CL page
                     
                     # Submit CL pictures
-                    self.br.window.find_element_by_name("go").click()
+                    self.T.br.window.find_element_by_name("go").click()
                     self.T.delay(                       2)
-                    self.br.wait_for_page(              )
+                    self.T.br.wait_for_page(              )
 
                     try:
-                        self.br.window.find_element_by_partial_link_text('log in to your account').click()
+                        self.T.br.window.find_element_by_partial_link_text('log in to your account').click()
                         self.T.delay(                   2)
                         login_craigslist(               self)
                     except:
                         pass              
                     
                     # Option to Change/Re-Order pictures (click bottom button)
-                    self.br.window.find_elements_by_tag_name('button')[-1].click()
+                    self.T.br.window.find_elements_by_tag_name('button')[-1].click()
                     self.T.delay(                       2)
-                    self.br.wait_for_page(              )
+                    self.T.br.wait_for_page(              )
 
                     # Click to publish ad
-                    self.br.window.find_elements_by_tag_name('button')[0].click()
+                    self.T.br.window.find_elements_by_tag_name('button')[0].click()
                     self.T.delay(                       2)
-                    self.br.wait_for_page(              )
+                    self.T.br.wait_for_page(              )
 
                     try:
-                        h                               =   self.T.getSoup(self.br.source())
+                        h                               =   self.T.getSoup(self.T.br.source())
                         post_url                        =   h.findAll(href=self.T.re.compile('\.html'))[0].get('href')
                     except:
                         post_url                    =   "ERROR: couldn''t obtain link"
@@ -720,8 +722,8 @@ class PP_Functions:
                     D.update({                          tuid                :       {post_type     :   {'url':post_url,'ad_title':ad_title} } })
                     
                     update_pgsql_with_post_data(        self,prop,D,'craigslist')
-                    self.br.window.close(               )
-                    self.br.window.switch_to_window(    orig_window)
+                    self.T.br.window.close(               )
+                    self.T.br.window.switch_to_window(    orig_window)
 
                 self.T.delay(                       2*60)
 
@@ -745,7 +747,7 @@ class PP_Functions:
     def run_search(self,**kwargs):
         if not hasattr(self,'logged_in'):
             self.logged_in                      =   self.login()
-        self.br.open_page(                          self.T.SEARCH_URL)
+        self.T.br.open_page(                          self.T.SEARCH_URL)
 
         i_trace()
 
@@ -783,7 +785,7 @@ class PP_Functions:
 
     def get_search_results(self):
         # Pull Results
-        h                                   =   self.T.re_sub(r'[^\x00-\x7F]+',' ',self.T.codecs.encode(self.br.source(),'utf8','ignore'))
+        h                                   =   self.T.re_sub(r'[^\x00-\x7F]+',' ',self.T.codecs.encode(self.T.br.source(),'utf8','ignore'))
         tbls                                =   self.T.getTagsByAttr(h,'table',{'cellpadding':'4'},contents=False)
         try:
             tbl                             =   tbls[0]
@@ -847,7 +849,7 @@ class PP_Functions:
 
     def close_browser(self):
 
-        self.br.quit()
+        self.T.br.quit()
 
 class Auto_Poster:
     """Main class for initiating AutoPoster"""
