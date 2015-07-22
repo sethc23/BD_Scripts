@@ -17,10 +17,7 @@ class PP_Functions:
         from json                               import dumps                as j_dump
         import re
         from random                             import randrange
-        proxy                               =   self.AP.Config.get_proxy()
-        assert              proxy          !=   False
-        assert              type(proxy)    is   str
-        self.T['proxy']                     =   proxy
+        self                                =   self.AP.Config.get_proxies(self)
         from webpage_scrape                     import scraper
         self.T['br']                        =   None if not self.T.browser_type else scraper(self.T.browser_type,proxy=self.T.proxy).browser
         all_imports                         =   locals().keys()
@@ -28,7 +25,6 @@ class PP_Functions:
             if not self.T.has_key(k):
                 self.T.update(                  {k                      :   eval(k) })
         globals().update(                       self.T.__getdict__())
-        i_trace()
 
     def login(self):
         url                                 =   'http://previewbostonrealty.com/admin/login.php'
@@ -1275,17 +1271,17 @@ class Auto_Poster:
             self.T.cur.execute(                 "UPDATE pp_settings SET _list=array%(proxies)s" % self.T)
             return
 
-        def get_proxies(self):
-            if not hasattr(self.T,'proxies'):
-                self.T['proxies']           =   self.T.pd.read_sql("""SELECT _list l 
+        def get_proxies(self,_parent):
+            if not hasattr(_parent.T,'proxies'):
+                _parent.T['proxies']        =   _parent.T.pd.read_sql("""SELECT _list l 
                                                                       FROM pp_settings 
                                                                       WHERE _setting='working_proxies'
-                                                                   """,self.T.eng).l[0]
-            if len(self.T['proxies'])==0:
-                self.update_proxies(            )
+                                                                      """,_parent.T.eng).l[0]
+            if len(_parent.T['proxies'])==0:
+                _parent.update_proxies(         )
             
-            self.T['proxy']                 =   self.T['proxies'].pop(0)
-            return
+            _parent.T['proxy']              =   _parent.T['proxies'].pop(0)
+            return _parent
 
         def update_build_files(self):
             def make_dir_path(d_path,base_dir):
