@@ -1,0 +1,1666 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE pdf2xml SYSTEM "pdf2xml.dtd">
+
+<pdf2xml producer="poppler" version="0.24.5">
+<page number="4" position="absolute" top="0" left="0" height="1188" width="918">
+	<fontspec id="0" size="34" family="Times" color="#000000"/>
+	<fontspec id="1" size="34" family="Times" color="#649a41"/>
+	<fontspec id="2" size="19" family="Times" color="#221e20"/>
+	<fontspec id="3" size="11" family="Times" color="#221e20"/>
+	<fontspec id="4" size="10" family="Times" color="#221e20"/>
+	<fontspec id="5" size="10" family="Times" color="#000000"/>
+	<fontspec id="6" size="11" family="Times" color="#000000"/>
+<text top="54" left="54" width="215" height="42" font="0">CHAPTER 2:</text>
+<text top="110" left="54" width="448" height="42" font="1"><b>ELEMENT DICTIONARY</b></text>
+<text top="182" left="54" width="142" height="23" font="2"><b>Element Index</b></text>
+<text top="213" left="54" width="801" height="15" font="3">This dictionary provides details of each element, including whether or not the element is required. (many tags are not required, but we </text>
+<text top="231" left="54" width="404" height="15" font="3">recommend as much information as possible to ensure richer data) </text>
+<text top="256" left="54" width="181" height="13" font="4"><b>Tier 1 = Core listing information</b></text>
+<text top="270" left="54" width="136" height="13" font="4"><b>Tier 2 = Property details</b></text>
+<text top="284" left="54" width="296" height="13" font="4"><b>Tier 3 = Ancillary and specialized listing information</b></text>
+<text top="316" left="54" width="423" height="13" font="4"><b>Enumerated format types MUST contain one of the provided value options</b></text>
+<text top="366" left="65" width="83" height="13" font="5"><b>Element Name</b></text>
+<text top="366" left="304" width="52" height="13" font="5"><b>Required</b></text>
+<text top="366" left="394" width="22" height="13" font="5"><b>Tier</b></text>
+<text top="366" left="441" width="181" height="13" font="5"><b>Format | Description (if unclear)</b></text>
+<text top="366" left="693" width="164" height="13" font="5"><b>Enumerations/Sample Value </b></text>
+<text top="393" left="65" width="84" height="15" font="6">&lt;listing-type/&gt;</text>
+<text top="393" left="304" width="17" height="15" font="6">No</text>
+<text top="393" left="394" width="8" height="15" font="6">1</text>
+<text top="393" left="441" width="74" height="15" font="6">Enumerated</text>
+<text top="384" left="693" width="166" height="15" font="6"> ( resale | foreclosure | new </text>
+<text top="402" left="693" width="87" height="15" font="6">home | rental )</text>
+<text top="446" left="65" width="55" height="15" font="6">&lt;status/&gt;</text>
+<text top="446" left="304" width="22" height="15" font="6">Yes</text>
+<text top="446" left="394" width="8" height="15" font="6">1</text>
+<text top="446" left="441" width="77" height="15" font="6">Enumerated </text>
+<text top="419" left="693" width="165" height="15" font="6">( for rent | for sale | pending</text>
+<text top="437" left="693" width="155" height="15" font="6">| active contingent | sold | </text>
+<text top="455" left="693" width="140" height="15" font="6">withdrawn | rented | off </text>
+<text top="473" left="693" width="49" height="15" font="6">market )</text>
+<text top="543" left="65" width="127" height="15" font="6">&lt;foreclosure-status/&gt;</text>
+<text top="543" left="304" width="17" height="15" font="6">No</text>
+<text top="543" left="394" width="8" height="15" font="6">3</text>
+<text top="543" left="441" width="77" height="15" font="6">Enumerated </text>
+<text top="490" left="693" width="107" height="15" font="6">( notice of default </text>
+<text top="507" left="693" width="127" height="15" font="6">(pre-foreclosure) | lis </text>
+<text top="525" left="693" width="166" height="15" font="6">pendens (pre-foreclosure) | </text>
+<text top="543" left="693" width="128" height="15" font="6">notice of trustee sale </text>
+<text top="561" left="693" width="118" height="15" font="6">(auction) | notice of </text>
+<text top="579" left="693" width="159" height="15" font="6">foreclosure sale (auction)| </text>
+<text top="597" left="693" width="113" height="15" font="6">reo - bank owned )</text>
+<text top="615" left="65" width="66" height="15" font="6">&lt;location/&gt;</text>
+<text top="642" left="87" width="91" height="15" font="6">&lt;unit-number/&gt;</text>
+<text top="642" left="335" width="17" height="15" font="6">No</text>
+<text top="642" left="408" width="8" height="15" font="6">1</text>
+<text top="634" left="441" width="224" height="15" font="6">If the listing is in a multi-unit building, </text>
+<text top="650" left="441" width="173" height="15" font="6">provide the unit number here</text>
+<text top="642" left="693" width="25" height="15" font="6">21D</text>
+<text top="667" left="87" width="106" height="15" font="6">&lt;street-address/&gt;</text>
+<text top="667" left="335" width="17" height="15" font="6">No</text>
+<text top="667" left="408" width="8" height="15" font="6">1</text>
+<text top="667" left="441" width="111" height="15" font="6">Full street address</text>
+<text top="667" left="693" width="72" height="15" font="6">123 Main St</text>
+<text top="699" left="87" width="114" height="15" font="6">&lt;display-address/&gt;</text>
+<text top="699" left="335" width="17" height="15" font="6">No</text>
+<text top="699" left="408" width="8" height="15" font="6">1</text>
+<text top="684" left="441" width="239" height="15" font="6">Boolean value. Display or hide property </text>
+<text top="699" left="441" width="239" height="15" font="6">address. If no, “Address Not Disclosed” </text>
+<text top="715" left="441" width="136" height="15" font="6">will appear on property</text>
+<text top="699" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="732" left="86" width="78" height="15" font="6">&lt;city-name/&gt;</text>
+<text top="732" left="333" width="22" height="15" font="6">Yes</text>
+<text top="732" left="408" width="8" height="15" font="6">1</text>
+<text top="732" left="441" width="39" height="15" font="6">String </text>
+<text top="732" left="693" width="86" height="15" font="6">San Francisco</text>
+<text top="749" left="86" width="66" height="15" font="6">&lt;zipcode/&gt;</text>
+<text top="749" left="333" width="22" height="15" font="6">Yes</text>
+<text top="749" left="408" width="8" height="15" font="6">1</text>
+<text top="749" left="441" width="115" height="15" font="6">Five-digit postal zip</text>
+<text top="749" left="693" width="38" height="15" font="6">94105</text>
+<text top="766" left="86" width="59" height="15" font="6">&lt;county/&gt;</text>
+<text top="766" left="335" width="17" height="15" font="6">No</text>
+<text top="766" left="408" width="8" height="15" font="6">1</text>
+<text top="766" left="441" width="35" height="15" font="6">String</text>
+<text top="766" left="693" width="53" height="15" font="6">Alameda</text>
+<text top="783" left="86" width="83" height="15" font="6">&lt;state-code/&gt;</text>
+<text top="783" left="335" width="17" height="15" font="6">No</text>
+<text top="783" left="408" width="8" height="15" font="6">1</text>
+<text top="783" left="441" width="169" height="15" font="6">Two-letter state abbreviation</text>
+<text top="783" left="693" width="19" height="15" font="6">CA</text>
+<text top="831" left="86" width="71" height="15" font="6">&lt;parcel-id/&gt;</text>
+<text top="831" left="335" width="17" height="15" font="6">No</text>
+<text top="831" left="408" width="8" height="15" font="6">3</text>
+<text top="800" left="441" width="221" height="15" font="6">Assessor’s Parcel Number or Parcel </text>
+<text top="815" left="441" width="230" height="15" font="6">Identification Number assigned by the </text>
+<text top="831" left="441" width="240" height="15" font="6">county assessor to identify and expedite</text>
+<text top="847" left="441" width="212" height="15" font="6">the locating of parcels. Format and </text>
+<text top="862" left="441" width="156" height="15" font="6">composition varies widely.</text>
+<text top="831" left="693" width="77" height="15" font="6">222-333-444</text>
+<text top="887" left="86" width="104" height="15" font="6">&lt;building-name/&gt;</text>
+<text top="887" left="335" width="17" height="15" font="6">No</text>
+<text top="887" left="408" width="8" height="15" font="6">3</text>
+<text top="879" left="441" width="217" height="15" font="6">String | If the property is in a named </text>
+<text top="895" left="441" width="209" height="15" font="6">building, provide the building name</text>
+<text top="887" left="693" width="93" height="15" font="6">Market Building</text>
+<text top="912" left="86" width="86" height="15" font="6">&lt;subdivision/&gt;</text>
+<text top="912" left="335" width="17" height="15" font="6">No</text>
+<text top="912" left="408" width="8" height="15" font="6">3</text>
+<text top="912" left="441" width="35" height="15" font="6">String</text>
+<text top="912" left="693" width="72" height="15" font="6">Cottonwood</text>
+<text top="929" left="86" width="140" height="15" font="6">&lt;neighborhood-name/&gt;</text>
+<text top="929" left="335" width="17" height="15" font="6">No</text>
+<text top="929" left="408" width="8" height="15" font="6">3</text>
+<text top="929" left="441" width="35" height="15" font="6">String</text>
+<text top="929" left="693" width="68" height="15" font="6">The Marina</text>
+<text top="946" left="87" width="172" height="15" font="6">&lt;neighborhood-description/&gt;</text>
+<text top="946" left="335" width="17" height="15" font="6">No</text>
+<text top="946" left="408" width="8" height="15" font="6">3</text>
+<text top="946" left="441" width="35" height="15" font="6">String</text>
+<text top="946" left="693" width="144" height="15" font="6">Northern part of the city.</text>
+<text top="963" left="86" width="74" height="15" font="6">&lt;elevation/&gt;</text>
+<text top="963" left="335" width="17" height="15" font="6">No</text>
+<text top="963" left="408" width="8" height="15" font="6">3</text>
+<text top="963" left="441" width="42" height="15" font="6">Integer</text>
+<text top="963" left="693" width="53" height="15" font="6">40,000 ft</text>
+<text top="980" left="86" width="74" height="15" font="6">&lt;longitude/&gt;</text>
+<text top="980" left="335" width="17" height="15" font="6">No</text>
+<text top="980" left="408" width="8" height="15" font="6">3</text>
+<text top="980" left="441" width="49" height="15" font="6">Decimal</text>
+<text top="980" left="693" width="64" height="15" font="6">33.333333</text>
+<text top="997" left="87" width="63" height="15" font="6">&lt;latitude/&gt;</text>
+<text top="997" left="335" width="17" height="15" font="6">No</text>
+<text top="997" left="408" width="8" height="15" font="6">3</text>
+<text top="997" left="441" width="49" height="15" font="6">Decimal</text>
+<text top="997" left="693" width="56" height="15" font="6">22.22222</text>
+<text top="1021" left="87" width="101" height="15" font="6">&lt;geocode-type/&gt;</text>
+<text top="1021" left="335" width="17" height="15" font="6">No</text>
+<text top="1021" left="408" width="8" height="15" font="6">3</text>
+<text top="1014" left="441" width="239" height="15" font="6">Enumerated | If left empty, will default to</text>
+<text top="1029" left="441" width="38" height="15" font="6">‘exact’</text>
+<text top="1014" left="693" width="144" height="15" font="6">( exact | offset | approxi-</text>
+<text top="1029" left="693" width="38" height="15" font="6">mate )</text>
+<text top="1070" left="92" width="77" height="15" font="6">&lt;directions/&gt;</text>
+<text top="1070" left="335" width="17" height="15" font="6">No</text>
+<text top="1070" left="408" width="8" height="15" font="6">3</text>
+<text top="1070" left="441" width="175" height="15" font="6">String / Directions to property</text>
+<text top="1046" left="693" width="148" height="15" font="6">Take the Main St exit off </text>
+<text top="1062" left="693" width="153" height="15" font="6">Highway 1, travel north 2 </text>
+<text top="1077" left="693" width="157" height="15" font="6">miles and turn left on Mar-</text>
+<text top="1093" left="693" width="161" height="15" font="6">ket St. Last house on right.</text>
+<text top="1112" left="65" width="58" height="15" font="6">&lt;details/&gt;</text>
+</page>
+<page number="5" position="absolute" top="0" left="0" height="1188" width="918">
+	<fontspec id="7" size="11" family="Times" color="#000000"/>
+	<fontspec id="8" size="10" family="Times" color="#000000"/>
+	<fontspec id="9" size="11" family="Symbol" color="#000000"/>
+	<fontspec id="10" size="11" family="Times" color="#000000"/>
+	<fontspec id="11" size="11" family="Times" color="#000000"/>
+<text top="71" left="65" width="83" height="13" font="5"><b>Element Name</b></text>
+<text top="71" left="304" width="52" height="13" font="5"><b>Required</b></text>
+<text top="71" left="394" width="22" height="13" font="5"><b>Tier</b></text>
+<text top="71" left="441" width="181" height="13" font="5"><b>Format | Description (if unclear)</b></text>
+<text top="71" left="693" width="164" height="13" font="5"><b>Enumerations/Sample Value </b></text>
+<text top="97" left="87" width="49" height="15" font="6">&lt;price/&gt;</text>
+<text top="97" left="333" width="22" height="15" font="6">Yes</text>
+<text top="97" left="408" width="8" height="15" font="6">1</text>
+<text top="89" left="441" width="235" height="15" font="6">Decimal | Current asking price (<b>NO</b> dol-</text>
+<text top="105" left="441" width="125" height="15" font="6">lar signs or commas)</text>
+<text top="97" left="693" width="45" height="15" font="6">950000</text>
+<text top="122" left="87" width="110" height="15" font="6">&lt;num-bedrooms/&gt;</text>
+<text top="122" left="335" width="17" height="15" font="6">No</text>
+<text top="122" left="408" width="8" height="15" font="6">1</text>
+<text top="122" left="441" width="49" height="15" font="6">Decimal</text>
+<text top="122" left="693" width="11" height="15" font="6">4 </text>
+<text top="139" left="87" width="136" height="15" font="6">&lt;num-full-bathrooms/&gt;</text>
+<text top="139" left="335" width="17" height="15" font="6">No</text>
+<text top="139" left="408" width="8" height="15" font="6">1</text>
+<text top="139" left="441" width="49" height="15" font="6">Decimal</text>
+<text top="139" left="693" width="8" height="15" font="6">2</text>
+<text top="156" left="87" width="140" height="15" font="6">&lt;num-half-bathrooms/&gt;</text>
+<text top="156" left="335" width="17" height="15" font="6">No</text>
+<text top="156" left="408" width="8" height="15" font="6">1</text>
+<text top="156" left="441" width="49" height="15" font="6">Decimal</text>
+<text top="156" left="693" width="8" height="15" font="6">1</text>
+<text top="173" left="87" width="114" height="15" font="6">&lt;num-bathrooms/&gt;</text>
+<text top="173" left="335" width="17" height="15" font="6">No</text>
+<text top="173" left="408" width="8" height="15" font="6">1</text>
+<text top="173" left="441" width="49" height="15" font="6">Decimal</text>
+<text top="173" left="693" width="8" height="15" font="6">2</text>
+<text top="198" left="87" width="155" height="15" font="6">&lt;living-area-square-feet/&gt;</text>
+<text top="198" left="335" width="17" height="15" font="6">No</text>
+<text top="198" left="408" width="8" height="15" font="6">1</text>
+<text top="190" left="441" width="236" height="15" font="6">Integer | Total livable square feet of the </text>
+<text top="205" left="441" width="85" height="15" font="6">listed property</text>
+<text top="198" left="693" width="30" height="15" font="6">1500</text>
+<text top="223" left="87" width="82" height="15" font="6">&lt;date-listed/&gt;</text>
+<text top="223" left="335" width="17" height="15" font="6">No</text>
+<text top="223" left="408" width="8" height="15" font="6">1</text>
+<text top="223" left="441" width="86" height="15" font="6">YYYY-MM-DD</text>
+<text top="223" left="693" width="69" height="15" font="6">2012-02-25</text>
+<text top="294" left="87" width="99" height="15" font="6">&lt;property-type/&gt;</text>
+<text top="294" left="335" width="17" height="15" font="6">No</text>
+<text top="294" left="408" width="8" height="15" font="6">1</text>
+<text top="280" left="441" width="115" height="15" font="6">Enumerated Value </text>
+<text top="281" left="556" width="116" height="13" font="8">(Please use the most </text>
+<text top="295" left="441" width="228" height="13" font="8">specific value possible, i.e &#34;condo&#34; instead </text>
+<text top="309" left="441" width="164" height="13" font="8">&#34;apartment/condo/townhouse&#34;)</text>
+<text top="239" left="693" width="146" height="15" font="6">( apartment/condo/town-</text>
+<text top="255" left="693" width="165" height="15" font="6">house | condo | townhouse </text>
+<text top="271" left="693" width="166" height="15" font="6">| coop | apartment | loft | tic </text>
+<text top="286" left="693" width="144" height="15" font="6">| mobile/manufactured | </text>
+<text top="302" left="693" width="155" height="15" font="6">farm/ranch | multi-family | </text>
+<text top="317" left="693" width="165" height="15" font="6">income/investment | house-</text>
+<text top="333" left="693" width="167" height="15" font="6">boat | lot/land | single-family</text>
+<text top="348" left="693" width="42" height="15" font="6">home )</text>
+<text top="373" left="87" width="85" height="15" font="6">&lt;description/&gt;</text>
+<text top="373" left="335" width="17" height="15" font="6">No</text>
+<text top="373" left="408" width="8" height="15" font="6">1</text>
+<text top="373" left="441" width="235" height="15" font="6">String | Short paragraph about property</text>
+<text top="365" left="693" width="144" height="15" font="6">Brand new home, great </text>
+<text top="381" left="693" width="33" height="15" font="6">price.</text>
+<text top="398" left="87" width="119" height="15" font="6">&lt;listing-disclaimer/&gt;</text>
+<text top="398" left="335" width="17" height="15" font="6">No</text>
+<text top="398" left="408" width="8" height="15" font="6">3</text>
+<text top="398" left="441" width="148" height="15" font="6">String | Copyright notice </text>
+<text top="398" left="693" width="131" height="15" font="6">Listing copyright 2013</text>
+<text top="415" left="87" width="52" height="15" font="6">&lt;mlsId/&gt;</text>
+<text top="415" left="335" width="17" height="15" font="6">No</text>
+<text top="415" left="408" width="8" height="15" font="6">1</text>
+<text top="415" left="441" width="205" height="15" font="6">String | Current MLS ID or number</text>
+<text top="415" left="693" width="68" height="15" font="6">987654321</text>
+<text top="463" left="87" width="118" height="15" font="6">&lt;provider-listingid/&gt;</text>
+<text top="463" left="335" width="17" height="15" font="6">No</text>
+<text top="463" left="408" width="8" height="15" font="6">1</text>
+<text top="432" left="441" width="237" height="15" font="6">String | This is unique ID that MUST be </text>
+<text top="447" left="441" width="237" height="15" font="6">included for each property if there is no </text>
+<text top="463" left="441" width="215" height="15" font="6">unique landing page URL.  Must be </text>
+<text top="478" left="441" width="239" height="15" font="6">unique and persistent per listing i.e. not </text>
+<text top="494" left="441" width="104" height="15" font="6">re-used/recycled.</text>
+<text top="463" left="693" width="45" height="15" font="6">123456</text>
+<text top="511" left="87" width="76" height="15" font="6">&lt;mlsName/&gt;</text>
+<text top="511" left="335" width="17" height="15" font="6">No</text>
+<text top="511" left="408" width="8" height="15" font="6">2</text>
+<text top="511" left="441" width="39" height="15" font="6">String </text>
+<text top="511" left="693" width="118" height="15" font="6">San Francisco MLS</text>
+<text top="554" left="87" width="62" height="15" font="6">&lt;lot-size/&gt;</text>
+<text top="554" left="335" width="17" height="15" font="6">No</text>
+<text top="554" left="408" width="8" height="15" font="6">2</text>
+<text top="547" left="441" width="238" height="15" font="6">String | Can be provided in square feet, </text>
+<text top="562" left="441" width="128" height="15" font="6">acres, or dimensions.</text>
+<text top="528" left="720" width="6" height="18" font="9">•</text>
+<text top="529" left="747" width="95" height="15" font="6">Sq Ft: 8000 sqft</text>
+<text top="545" left="720" width="6" height="18" font="9">•</text>
+<text top="547" left="747" width="78" height="15" font="6">Dimensions: </text>
+<text top="563" left="747" width="44" height="15" font="6">100x80</text>
+<text top="578" left="720" width="6" height="18" font="9">•</text>
+<text top="580" left="747" width="105" height="15" font="6">Acres: 0.24 acres</text>
+<text top="598" left="87" width="79" height="15" font="6">&lt;listing-title/&gt;</text>
+<text top="598" left="335" width="17" height="15" font="6">No</text>
+<text top="598" left="408" width="8" height="15" font="6">2</text>
+<text top="598" left="441" width="182" height="15" font="6">Short sentence about property</text>
+<text top="598" left="693" width="156" height="15" font="6">Two-story Victorian home.</text>
+<text top="615" left="87" width="75" height="15" font="6">&lt;year-built/&gt;</text>
+<text top="615" left="335" width="17" height="15" font="6">No</text>
+<text top="615" left="408" width="8" height="15" font="6">2</text>
+<text top="615" left="441" width="87" height="15" font="6">Four-digit year</text>
+<text top="615" left="693" width="30" height="15" font="6">2001</text>
+<text top="632" left="87" width="104" height="15" font="6">&lt;date-available/&gt;</text>
+<text top="632" left="335" width="17" height="15" font="6">No</text>
+<text top="632" left="408" width="8" height="15" font="6">3</text>
+<text top="632" left="441" width="89" height="15" font="6">YYYY-MM-DD </text>
+<text top="632" left="693" width="69" height="15" font="6">2013-06-15</text>
+<text top="657" left="87" width="75" height="15" font="6">&lt;date-sold/&gt;</text>
+<text top="657" left="335" width="17" height="15" font="6">No</text>
+<text top="657" left="408" width="8" height="15" font="6">3</text>
+<text top="649" left="441" width="238" height="15" font="6">YYYY-MM-DD | Date sold(for sold prop-</text>
+<text top="664" left="441" width="37" height="15" font="6">erties)</text>
+<text top="657" left="693" width="69" height="15" font="6">2012-02-02</text>
+<text top="689" left="87" width="78" height="15" font="6">&lt;sale-price/&gt;</text>
+<text top="689" left="335" width="17" height="15" font="6">No</text>
+<text top="689" left="408" width="8" height="15" font="6">3</text>
+<text top="682" left="441" width="238" height="15" font="6">Decimal | Price sold for (for sold proper-</text>
+<text top="697" left="441" width="196" height="15" font="6">ties, <i><b>NO</b> </i>dollar signs or commas)</text>
+<text top="689" left="693" width="45" height="15" font="6">555555</text>
+<text top="716" left="65" width="98" height="15" font="6">&lt;landing-page/&gt;</text>
+<text top="758" left="87" width="49" height="15" font="6">&lt;lp-url/&gt;</text>
+<text top="758" left="333" width="22" height="15" font="6">Yes</text>
+<text top="758" left="408" width="8" height="15" font="6">1</text>
+<text top="734" left="441" width="223" height="15" font="6">Static URL links to property's landing </text>
+<text top="750" left="441" width="214" height="15" font="6">page on your website. If there is no </text>
+<text top="766" left="441" width="149" height="15" font="6">unique lp-URL, a unique </text>
+<text top="781" left="441" width="229" height="15" font="6">&lt;provider-listingid&gt; must be provided. </text>
+<text top="750" left="693" width="151" height="15" font="6">www.listing.come/proper-</text>
+<text top="766" left="693" width="59" height="15" font="6">tyid12345</text>
+<text top="800" left="65" width="37" height="15" font="6">&lt;site&gt;</text>
+<text top="819" left="87" width="60" height="15" font="6">&lt;site-url/&gt;</text>
+<text top="819" left="335" width="17" height="15" font="6">No</text>
+<text top="819" left="408" width="8" height="15" font="6">1</text>
+<text top="819" left="441" width="27" height="15" font="6">URL</text>
+<text top="819" left="693" width="153" height="15" font="6">www.realestateoffice.com</text>
+<text top="836" left="87" width="79" height="15" font="6">&lt;site-name/&gt;</text>
+<text top="836" left="335" width="17" height="15" font="6">No</text>
+<text top="836" left="408" width="8" height="15" font="6">2</text>
+<text top="836" left="441" width="35" height="15" font="6">String</text>
+<text top="836" left="693" width="109" height="15" font="6">Real Estate Office</text>
+<text top="854" left="65" width="67" height="15" font="6">&lt;pictures/&gt;</text>
+<text top="873" left="87" width="186" height="15" font="6">&lt;picture/&gt;<i>Container for picture.</i></text>
+<text top="873" left="332" width="277" height="15" font="10"><i><b>Repeatable tag, at least one photo required</b></i></text>
+<text top="898" left="109" width="79" height="15" font="6">&lt;picture-url/&gt;</text>
+<text top="898" left="335" width="17" height="15" font="6">No</text>
+<text top="898" left="408" width="8" height="15" font="6">1</text>
+<text top="898" left="441" width="27" height="15" font="6">URL</text>
+<text top="890" left="693" width="163" height="15" font="6">http://www.broker.com/phot</text>
+<text top="906" left="693" width="30" height="15" font="6">o234</text>
+<text top="923" left="109" width="108" height="15" font="6">&lt;picture-caption/&gt;</text>
+<text top="923" left="335" width="17" height="15" font="6">No</text>
+<text top="923" left="408" width="8" height="15" font="6">3</text>
+<text top="923" left="441" width="226" height="15" font="6">String | Short phrase describing photo</text>
+<text top="923" left="693" width="87" height="15" font="6">Front of house</text>
+<text top="963" left="109" width="130" height="15" font="6">&lt;picture-description/&gt;</text>
+<text top="963" left="335" width="17" height="15" font="6">No</text>
+<text top="963" left="408" width="8" height="15" font="6">3</text>
+<text top="955" left="441" width="213" height="15" font="6">String | Short paragraph describing </text>
+<text top="971" left="441" width="34" height="15" font="6">photo</text>
+<text top="940" left="693" width="149" height="15" font="6">Snapshot of living room, </text>
+<text top="955" left="693" width="136" height="15" font="6">which contains freshly </text>
+<text top="971" left="693" width="151" height="15" font="6">painted walls and remod-</text>
+<text top="986" left="693" width="84" height="15" font="6">eled fireplace.</text>
+<text top="1003" left="109" width="137" height="15" font="6">&lt;picture-seq-number/&gt;</text>
+<text top="1003" left="335" width="17" height="15" font="6">No</text>
+<text top="1003" left="408" width="8" height="15" font="6">3</text>
+<text top="1003" left="441" width="173" height="15" font="6">Integer | Order of importance</text>
+<text top="1003" left="693" width="8" height="15" font="6">1</text>
+<text top="1022" left="65" width="90" height="15" font="6">&lt;virtual-tours/&gt;</text>
+<text top="1041" left="87" width="83" height="15" font="6">&lt;virtual-tour/&gt;</text>
+<text top="1041" left="347" width="248" height="15" font="11"><i>Container for virtual tour. <b>Repeatable tag</b></i></text>
+<text top="1058" left="109" width="103" height="15" font="6">&lt;virtual-tour-url/&gt;</text>
+<text top="1058" left="335" width="17" height="15" font="6">No</text>
+<text top="1058" left="408" width="8" height="15" font="6">1</text>
+<text top="1058" left="441" width="27" height="15" font="6">URL</text>
+<text top="1058" left="693" width="120" height="15" font="6">www.virtualtour.com</text>
+<text top="1075" left="109" width="131" height="15" font="6">&lt;virtual-tour-caption/&gt;</text>
+<text top="1075" left="335" width="17" height="15" font="6">No</text>
+<text top="1075" left="408" width="8" height="15" font="6">3</text>
+<text top="1075" left="441" width="35" height="15" font="6">String</text>
+<text top="1075" left="693" width="112" height="15" font="6">Virtual tour caption</text>
+<text top="1092" left="109" width="153" height="15" font="6">&lt;virtual-tour-description/&gt;</text>
+<text top="1092" left="335" width="17" height="15" font="6">No</text>
+<text top="1092" left="408" width="8" height="15" font="6">3</text>
+<text top="1092" left="441" width="35" height="15" font="6">String</text>
+<text top="1092" left="693" width="134" height="15" font="6">Virtual tour description</text>
+<text top="1109" left="109" width="160" height="15" font="6">&lt;virtual-tour-seq-number/&gt;</text>
+<text top="1109" left="335" width="17" height="15" font="6">No</text>
+<text top="1109" left="408" width="8" height="15" font="6">3</text>
+<text top="1109" left="441" width="173" height="15" font="6">Integer | Order of importance</text>
+<text top="1109" left="693" width="8" height="15" font="6">1</text>
+</page>
+<page number="6" position="absolute" top="0" left="0" height="1188" width="918">
+<text top="71" left="65" width="83" height="13" font="5"><b>Element Name</b></text>
+<text top="71" left="304" width="52" height="13" font="5"><b>Required</b></text>
+<text top="71" left="394" width="22" height="13" font="5"><b>Tier</b></text>
+<text top="71" left="441" width="181" height="13" font="5"><b>Format | Description (if unclear)</b></text>
+<text top="71" left="693" width="164" height="13" font="5"><b>Enumerations/Sample Value </b></text>
+<text top="91" left="65" width="58" height="15" font="6">&lt;videos/&gt;</text>
+<text top="110" left="87" width="52" height="15" font="6">&lt;video/&gt;</text>
+<text top="110" left="362" width="218" height="15" font="11"><i>Container for video. <b>Repeatable tag</b></i></text>
+<text top="127" left="109" width="71" height="15" font="6">&lt;video-url/&gt;</text>
+<text top="127" left="335" width="17" height="15" font="6">No</text>
+<text top="127" left="408" width="8" height="15" font="6">3</text>
+<text top="127" left="441" width="27" height="15" font="6">URL</text>
+<text top="127" left="693" width="94" height="15" font="6">www.video.com</text>
+<text top="144" left="109" width="100" height="15" font="6">&lt;video-caption/&gt;</text>
+<text top="144" left="335" width="17" height="15" font="6">No</text>
+<text top="144" left="408" width="8" height="15" font="6">3</text>
+<text top="144" left="441" width="35" height="15" font="6">String</text>
+<text top="144" left="693" width="82" height="15" font="6">Video caption</text>
+<text top="161" left="109" width="122" height="15" font="6">&lt;video-description/&gt;</text>
+<text top="161" left="335" width="17" height="15" font="6">No</text>
+<text top="161" left="408" width="8" height="15" font="6">3</text>
+<text top="161" left="441" width="35" height="15" font="6">String</text>
+<text top="161" left="693" width="103" height="15" font="6">Video descriotion</text>
+<text top="178" left="109" width="128" height="15" font="6">&lt;video-seq-number/&gt;</text>
+<text top="178" left="335" width="17" height="15" font="6">No</text>
+<text top="178" left="408" width="8" height="15" font="6">3</text>
+<text top="178" left="441" width="173" height="15" font="6">Integer | Order of importance</text>
+<text top="178" left="693" width="8" height="15" font="6">1</text>
+<text top="197" left="65" width="91" height="15" font="6">&lt;open-homes&gt;</text>
+<text top="197" left="441" width="156" height="15" font="6">Container for open homes</text>
+<text top="215" left="87" width="88" height="15" font="6">&lt;open-home/&gt;</text>
+<text top="215" left="344" width="253" height="15" font="11"><i>Container for open home. <b>Repeatable tag</b></i></text>
+<text top="232" left="109" width="76" height="15" font="6">&lt;start-time/&gt;</text>
+<text top="232" left="335" width="17" height="15" font="6">No</text>
+<text top="232" left="408" width="8" height="15" font="6">2</text>
+<text top="232" left="441" width="236" height="15" font="11"><i>Preferred</i> format: HH:mm (military time)</text>
+<text top="232" left="693" width="34" height="15" font="6">12:00</text>
+<text top="249" left="109" width="72" height="15" font="6">&lt;end-time/&gt;</text>
+<text top="249" left="335" width="17" height="15" font="6">No</text>
+<text top="249" left="408" width="8" height="15" font="6">2</text>
+<text top="249" left="441" width="236" height="15" font="11"><i>Preferred</i> format: HH:mm (military time)</text>
+<text top="249" left="693" width="34" height="15" font="6">14:00</text>
+<text top="266" left="109" width="46" height="15" font="6">&lt;date/&gt;</text>
+<text top="266" left="335" width="17" height="15" font="6">No</text>
+<text top="266" left="408" width="8" height="15" font="6">2</text>
+<text top="266" left="441" width="86" height="15" font="6">YYYY-MM-DD</text>
+<text top="266" left="693" width="69" height="15" font="6">2013-03-01</text>
+<text top="283" left="109" width="58" height="15" font="6">&lt;details/&gt;</text>
+<text top="283" left="335" width="17" height="15" font="6">No</text>
+<text top="283" left="408" width="8" height="15" font="6">2</text>
+<text top="283" left="441" width="35" height="15" font="6">String</text>
+<text top="283" left="693" width="125" height="15" font="6">House is on Main St.</text>
+<text top="301" left="109" width="176" height="15" font="6">&lt;open-home-appointment-re-</text>
+<text top="316" left="65" width="49" height="15" font="6">quired/&gt;</text>
+<text top="308" left="335" width="17" height="15" font="6">No</text>
+<text top="308" left="408" width="8" height="15" font="6">2</text>
+<text top="308" left="441" width="210" height="15" font="6">Boolean | If no value, default to NO</text>
+<text top="308" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="333" left="65" width="52" height="15" font="6">&lt;taxes/&gt;</text>
+<text top="350" left="87" width="37" height="15" font="6">&lt;tax/&gt;</text>
+<text top="350" left="369" width="203" height="15" font="11"><i>Container for tax. <b>Repeatable tag</b></i></text>
+<text top="367" left="109" width="67" height="15" font="6">&lt;tax-type/&gt;</text>
+<text top="367" left="335" width="17" height="15" font="6">No</text>
+<text top="367" left="408" width="8" height="15" font="6">2</text>
+<text top="367" left="441" width="35" height="15" font="6">String</text>
+<text top="367" left="693" width="57" height="15" font="6">Water tax</text>
+<text top="384" left="109" width="68" height="15" font="6">&lt;tax-year/&gt;</text>
+<text top="384" left="335" width="17" height="15" font="6">No</text>
+<text top="384" left="408" width="8" height="15" font="6">2</text>
+<text top="384" left="441" width="67" height="15" font="6">Year XXXX</text>
+<text top="384" left="693" width="30" height="15" font="6">2012</text>
+<text top="401" left="109" width="87" height="15" font="6">&lt;tax-amount/&gt;</text>
+<text top="401" left="335" width="17" height="15" font="6">No</text>
+<text top="401" left="408" width="8" height="15" font="6">2</text>
+<text top="401" left="441" width="223" height="15" font="6">Decimal | <b>NO</b> dollar signs or commas</text>
+<text top="401" left="693" width="23" height="15" font="6">600</text>
+<text top="418" left="109" width="107" height="15" font="6">&lt;tax-description/&gt;</text>
+<text top="418" left="335" width="17" height="15" font="6">No</text>
+<text top="418" left="408" width="8" height="15" font="6">2</text>
+<text top="418" left="441" width="35" height="15" font="6">String</text>
+<text top="418" left="693" width="80" height="15" font="6">paid annually</text>
+<text top="435" left="109" width="68" height="15" font="6">&lt;hoa-fees&gt;</text>
+<text top="452" left="109" width="65" height="15" font="6">&lt;hoa-fee/&gt;</text>
+<text top="452" left="335" width="17" height="15" font="6">No</text>
+<text top="452" left="408" width="8" height="15" font="6">2</text>
+<text top="452" left="441" width="223" height="15" font="6">Decimal | <b>NO</b> dollar signs or commas</text>
+<text top="452" left="693" width="23" height="15" font="6">500</text>
+<text top="469" left="109" width="84" height="15" font="6">&lt;hoa-period/&gt;</text>
+<text top="469" left="335" width="17" height="15" font="6">No</text>
+<text top="469" left="408" width="8" height="15" font="6">2</text>
+<text top="469" left="441" width="39" height="15" font="6">String </text>
+<text top="469" left="693" width="163" height="15" font="6">monthly, annually, quarterly</text>
+<text top="488" left="109" width="112" height="15" font="6">&lt;hoa-description/&gt;</text>
+<text top="488" left="335" width="17" height="15" font="6">No</text>
+<text top="488" left="408" width="8" height="15" font="6">2</text>
+<text top="488" left="693" width="93" height="15" font="6">Covers all dues</text>
+<text top="508" left="65" width="104" height="15" font="6">&lt;additional-fees&gt;</text>
+<text top="527" left="87" width="41" height="15" font="6">&lt;fees&gt;</text>
+<text top="527" left="366" width="211" height="15" font="11"><i>Container for fees. <b>Repeatable tag</b></i></text>
+<text top="544" left="109" width="68" height="15" font="6">&lt;fee-type/&gt;</text>
+<text top="544" left="335" width="17" height="15" font="6">No</text>
+<text top="544" left="408" width="8" height="15" font="6">3</text>
+<text top="544" left="441" width="116" height="15" font="6">String |  Type of fee</text>
+<text top="544" left="693" width="67" height="15" font="6">Electric fee</text>
+<text top="561" left="109" width="88" height="15" font="6">&lt;fee-amount/&gt;</text>
+<text top="561" left="335" width="17" height="15" font="6">No</text>
+<text top="561" left="408" width="8" height="15" font="6">3</text>
+<text top="561" left="441" width="223" height="15" font="6">Decimal | <b>NO</b> dollar signs or commas</text>
+<text top="561" left="693" width="23" height="15" font="6">200</text>
+<text top="578" left="109" width="80" height="15" font="6">&lt;fee-period/&gt;</text>
+<text top="578" left="335" width="17" height="15" font="6">No</text>
+<text top="578" left="408" width="8" height="15" font="6">3</text>
+<text top="578" left="441" width="35" height="15" font="6">String</text>
+<text top="578" left="693" width="47" height="15" font="6">Monthly</text>
+<text top="603" left="109" width="108" height="15" font="6">&lt;fee-description/&gt;</text>
+<text top="603" left="335" width="17" height="15" font="6">No</text>
+<text top="603" left="408" width="8" height="15" font="6">3</text>
+<text top="603" left="441" width="35" height="15" font="6">String</text>
+<text top="595" left="693" width="152" height="15" font="6">Flat rate to cover all elec-</text>
+<text top="611" left="693" width="35" height="15" font="6">tricity.</text>
+<text top="630" left="65" width="65" height="15" font="6">&lt;schools/&gt;</text>
+<text top="648" left="87" width="102" height="15" font="6">&lt;school-district/&gt;</text>
+<text top="648" left="337" width="267" height="15" font="11"><i>Container for school district. <b>Repeatable tag</b></i></text>
+<text top="665" left="109" width="86" height="15" font="6">&lt;elementary/&gt;</text>
+<text top="665" left="335" width="17" height="15" font="6">No</text>
+<text top="665" left="408" width="8" height="15" font="6">3</text>
+<text top="665" left="441" width="144" height="15" font="6">String  | Name of school</text>
+<text top="665" left="693" width="27" height="15" font="6">Clay</text>
+<text top="682" left="109" width="59" height="15" font="6">&lt;middle/&gt;</text>
+<text top="682" left="335" width="17" height="15" font="6">No</text>
+<text top="682" left="408" width="8" height="15" font="6">3</text>
+<text top="682" left="441" width="144" height="15" font="6">String  | Name of school</text>
+<text top="682" left="693" width="95" height="15" font="6">James Madison</text>
+<text top="699" left="109" width="78" height="15" font="6">&lt;juniorhigh/&gt;</text>
+<text top="699" left="335" width="17" height="15" font="6">No</text>
+<text top="699" left="408" width="8" height="15" font="6">3</text>
+<text top="699" left="441" width="144" height="15" font="6">String  | Name of school</text>
+<text top="699" left="693" width="113" height="15" font="6">San Francisco City</text>
+<text top="716" left="109" width="45" height="15" font="6">&lt;high/&gt;</text>
+<text top="716" left="335" width="17" height="15" font="6">No</text>
+<text top="716" left="408" width="8" height="15" font="6">3</text>
+<text top="716" left="441" width="144" height="15" font="6">String  | Name of school</text>
+<text top="716" left="693" width="46" height="15" font="6">Mission</text>
+<text top="733" left="109" width="97" height="15" font="6">&lt;district-name/&gt;</text>
+<text top="733" left="335" width="17" height="15" font="6">No</text>
+<text top="733" left="408" width="8" height="15" font="6">3</text>
+<text top="733" left="441" width="35" height="15" font="6">String</text>
+<text top="733" left="693" width="46" height="15" font="6">SFUSD</text>
+<text top="751" left="109" width="109" height="15" font="6">&lt;district-website/&gt;</text>
+<text top="751" left="335" width="17" height="15" font="6">No</text>
+<text top="751" left="408" width="8" height="15" font="6">3</text>
+<text top="751" left="441" width="27" height="15" font="6">URL</text>
+<text top="751" left="693" width="139" height="15" font="6">www.schooldistrict.com</text>
+<text top="775" left="109" width="151" height="15" font="6">&lt;district-phone-number/&gt;</text>
+<text top="775" left="335" width="17" height="15" font="6">No</text>
+<text top="775" left="408" width="8" height="15" font="6">3</text>
+<text top="767" left="441" width="228" height="15" font="11"><i>Preferably</i> in XXX-XXX-XXXX format, </text>
+<text top="783" left="441" width="121" height="15" font="6">without parentheses</text>
+<text top="775" left="693" width="84" height="15" font="6">123-456-7897</text>
+<text top="802" left="65" width="119" height="15" font="6">&lt;floorplan-layouts/&gt;</text>
+<text top="821" left="87" width="112" height="15" font="6">&lt;floorplan-layout/&gt;</text>
+<text top="821" left="328" width="284" height="15" font="11"><i>Container for floorplan layouts. <b>Repeatable tag</b></i></text>
+<text top="838" left="109" width="131" height="15" font="6">&lt;floorplan-layout-url/&gt;</text>
+<text top="838" left="335" width="17" height="15" font="6">No</text>
+<text top="838" left="408" width="8" height="15" font="6">3</text>
+<text top="838" left="441" width="27" height="15" font="6">URL</text>
+<text top="838" left="693" width="113" height="15" font="6">www.floorplan.com</text>
+<text top="855" left="109" width="160" height="15" font="6">&lt;floorplan-layout-caption/&gt;</text>
+<text top="855" left="335" width="17" height="15" font="6">No</text>
+<text top="855" left="408" width="8" height="15" font="6">3</text>
+<text top="855" left="441" width="35" height="15" font="6">String</text>
+<text top="855" left="693" width="104" height="15" font="6">Floorplan caption</text>
+<text top="872" left="109" width="182" height="15" font="6">&lt;floorplan-layout-description/&gt;</text>
+<text top="872" left="335" width="17" height="15" font="6">No</text>
+<text top="872" left="408" width="8" height="15" font="6">3</text>
+<text top="872" left="441" width="35" height="15" font="6">String</text>
+<text top="872" left="693" width="125" height="15" font="6">Floorplan description</text>
+<text top="889" left="109" width="180" height="15" font="6">&lt;floorplan-layout-seq-number/</text>
+<text top="904" left="65" width="8" height="15" font="6">&gt;</text>
+<text top="896" left="335" width="17" height="15" font="6">No</text>
+<text top="896" left="408" width="8" height="15" font="6">3</text>
+<text top="896" left="441" width="173" height="15" font="6">Integer | Order of importance</text>
+<text top="896" left="693" width="8" height="15" font="6">1</text>
+<text top="923" left="65" width="45" height="15" font="6">&lt;plan/&gt;</text>
+<text top="943" left="87" width="60" height="15" font="6">&lt;plan-id/&gt;</text>
+<text top="943" left="335" width="17" height="15" font="6">No</text>
+<text top="943" left="408" width="8" height="15" font="6">3</text>
+<text top="943" left="693" width="45" height="15" font="6">123456</text>
+<text top="964" left="87" width="83" height="15" font="6">&lt;plan-name/&gt;</text>
+<text top="964" left="335" width="17" height="15" font="6">No</text>
+<text top="964" left="408" width="8" height="15" font="6">3</text>
+<text top="964" left="693" width="65" height="15" font="6">Plan name</text>
+<text top="984" left="87" width="75" height="15" font="6">&lt;plan-type/&gt;</text>
+<text top="984" left="335" width="17" height="15" font="6">No</text>
+<text top="984" left="408" width="8" height="15" font="6">3</text>
+<text top="984" left="693" width="56" height="15" font="6">Plan type</text>
+<text top="1005" left="87" width="113" height="15" font="6">&lt;plan-base-price/&gt;</text>
+<text top="1005" left="335" width="17" height="15" font="6">No</text>
+<text top="1005" left="408" width="8" height="15" font="6">3</text>
+<text top="1005" left="693" width="23" height="15" font="6">200</text>
+<text top="1025" left="65" width="44" height="15" font="6">&lt;spec&gt;</text>
+<text top="1046" left="87" width="100" height="15" font="6">&lt;is-spec-home/&gt;</text>
+<text top="1046" left="335" width="17" height="15" font="6">No</text>
+<text top="1046" left="408" width="8" height="15" font="6">3</text>
+<text top="1046" left="693" width="21" height="15" font="6">yes</text>
+<text top="1066" left="87" width="63" height="15" font="6">&lt;spec-id/&gt;</text>
+<text top="1066" left="335" width="17" height="15" font="6">No</text>
+<text top="1066" left="408" width="8" height="15" font="6">3</text>
+<text top="1066" left="693" width="45" height="15" font="6">123456</text>
+<text top="1085" left="65" width="49" height="15" font="6">&lt;agent&gt;</text>
+<text top="1102" left="87" width="92" height="15" font="6">&lt;agent-name/&gt;</text>
+<text top="1102" left="333" width="22" height="15" font="6">Yes</text>
+<text top="1102" left="408" width="8" height="15" font="6">1</text>
+<text top="1102" left="441" width="113" height="15" font="6">String | First + Last</text>
+<text top="1102" left="693" width="68" height="15" font="6">John Smith</text>
+</page>
+<page number="7" position="absolute" top="0" left="0" height="1188" width="918">
+<text top="71" left="65" width="83" height="13" font="5"><b>Element Name</b></text>
+<text top="71" left="304" width="52" height="13" font="5"><b>Required</b></text>
+<text top="71" left="394" width="22" height="13" font="5"><b>Tier</b></text>
+<text top="71" left="441" width="181" height="13" font="5"><b>Format | Description (if unclear)</b></text>
+<text top="71" left="693" width="164" height="13" font="5"><b>Enumerations/Sample Value </b></text>
+<text top="113" left="87" width="90" height="15" font="6">&lt;agent-email/&gt;</text>
+<text top="113" left="333" width="22" height="15" font="6">Yes</text>
+<text top="113" left="408" width="8" height="15" font="6">1</text>
+<text top="89" left="441" width="218" height="15" font="6">Required for all <b>for sale</b> listings. Re-</text>
+<text top="105" left="441" width="224" height="15" font="6">quired for all <b>for rent</b> listings ONLY if </text>
+<text top="120" left="441" width="228" height="15" font="6">&lt;property-manager-email&gt; field is not </text>
+<text top="136" left="441" width="56" height="15" font="6">provided.</text>
+<text top="113" left="693" width="123" height="15" font="6">agent@website.com</text>
+<text top="161" left="87" width="95" height="15" font="6">&lt;agent-phone/&gt;</text>
+<text top="161" left="335" width="17" height="15" font="6">No</text>
+<text top="161" left="408" width="8" height="15" font="6">2</text>
+<text top="153" left="441" width="228" height="15" font="11"><i>Preferably</i> in XXX-XXX-XXXX format, </text>
+<text top="168" left="441" width="125" height="15" font="6">without parentheses </text>
+<text top="161" left="693" width="84" height="15" font="6">123-456-7894</text>
+<text top="185" left="87" width="147" height="15" font="6">&lt;agent-alternate-email/&gt;</text>
+<text top="185" left="335" width="17" height="15" font="6">No</text>
+<text top="185" left="408" width="8" height="15" font="6">3</text>
+<text top="185" left="441" width="147" height="15" font="6">Alternate email for agent</text>
+<text top="185" left="693" width="164" height="15" font="6">sendemail@realestate.com</text>
+<text top="202" left="87" width="118" height="15" font="6">&lt;agent-picture-url/&gt;</text>
+<text top="202" left="335" width="17" height="15" font="6">No</text>
+<text top="202" left="408" width="8" height="15" font="6">3</text>
+<text top="202" left="441" width="27" height="15" font="6">URL</text>
+<text top="202" left="693" width="133" height="15" font="6">www.agent.com/photo</text>
+<text top="220" left="87" width="68" height="15" font="6">&lt;agent-id/&gt;</text>
+<text top="220" left="335" width="17" height="15" font="6">No</text>
+<text top="220" left="408" width="8" height="15" font="6">3</text>
+<text top="220" left="441" width="177" height="15" font="6">Identifier number for an agent</text>
+<text top="220" left="693" width="45" height="15" font="6">123456</text>
+<text top="236" left="87" width="107" height="15" font="6">&lt;agent-licenses/&gt;</text>
+<text top="236" left="385" width="172" height="15" font="11"><i>Container for agent licenses.</i></text>
+<text top="254" left="109" width="100" height="15" font="6">&lt;agent-license/&gt;</text>
+<text top="254" left="338" width="265" height="15" font="11"><i>Container for agent license. <b>Repeatable tag</b></i></text>
+<text top="272" left="130" width="154" height="15" font="6">&lt;agent-license-number /&gt;</text>
+<text top="272" left="335" width="17" height="15" font="6">No</text>
+<text top="272" left="408" width="8" height="15" font="6">3</text>
+<text top="272" left="693" width="38" height="15" font="6">56984</text>
+<text top="293" left="130" width="160" height="15" font="6">&lt;agent-license-category /&gt;</text>
+<text top="293" left="335" width="17" height="15" font="6">No</text>
+<text top="293" left="408" width="8" height="15" font="6">3</text>
+<text top="293" left="693" width="34" height="15" font="6">agent</text>
+<text top="313" left="130" width="137" height="15" font="6">&lt;agent-license-state /&gt;</text>
+<text top="313" left="335" width="17" height="15" font="6">No</text>
+<text top="313" left="408" width="8" height="15" font="6">3</text>
+<text top="313" left="693" width="19" height="15" font="6">CA</text>
+<text top="334" left="65" width="80" height="15" font="6">&lt;brokerage/&gt;</text>
+<text top="360" left="87" width="119" height="15" font="6">&lt;brokerage-name/&gt;</text>
+<text top="360" left="335" width="17" height="15" font="6">No</text>
+<text top="360" left="408" width="8" height="15" font="6">2</text>
+<text top="352" left="441" width="228" height="15" font="6">The DBA of the listing brokerage com-</text>
+<text top="368" left="441" width="29" height="15" font="6">pany</text>
+<text top="360" left="693" width="148" height="15" font="6">ReMax of San Francisco</text>
+<text top="393" left="87" width="117" height="15" font="6">&lt;brokerage-email/&gt;</text>
+<text top="393" left="335" width="17" height="15" font="6">No</text>
+<text top="393" left="408" width="8" height="15" font="6">2</text>
+<text top="385" left="693" width="156" height="15" font="6">sfremaxbroker@sfremax.-</text>
+<text top="401" left="693" width="26" height="15" font="6">com</text>
+<text top="418" left="87" width="161" height="15" font="6">&lt;brokerage-broker-name/&gt;</text>
+<text top="418" left="335" width="17" height="15" font="6">No</text>
+<text top="418" left="408" width="8" height="15" font="6">3</text>
+<text top="418" left="441" width="179" height="15" font="6">The name of the listing broker</text>
+<text top="418" left="693" width="97" height="15" font="6">Martha Johnson</text>
+<text top="436" left="87" width="95" height="15" font="6">&lt;brokerage-id/&gt;</text>
+<text top="436" left="335" width="17" height="15" font="6">No</text>
+<text top="436" left="408" width="8" height="15" font="6">3</text>
+<text top="436" left="693" width="60" height="15" font="6">12345567</text>
+<text top="457" left="87" width="140" height="15" font="6">&lt;brokerage-mls-code/&gt;</text>
+<text top="457" left="335" width="17" height="15" font="6">No</text>
+<text top="457" left="408" width="8" height="15" font="6">3</text>
+<text top="457" left="693" width="73" height="15" font="6">MS9876542</text>
+<text top="483" left="87" width="122" height="15" font="6">&lt;brokerage-phone/&gt;</text>
+<text top="483" left="335" width="17" height="15" font="6">No</text>
+<text top="483" left="408" width="8" height="15" font="6">3</text>
+<text top="476" left="441" width="228" height="15" font="11"><i>Preferably</i> in XXX-XXX-XXXX format, </text>
+<text top="491" left="441" width="125" height="15" font="6">without parentheses </text>
+<text top="483" left="693" width="84" height="15" font="6">123-456-7894</text>
+<text top="508" left="87" width="131" height="15" font="6">&lt;brokerage-website/&gt;</text>
+<text top="508" left="335" width="17" height="15" font="6">No</text>
+<text top="508" left="408" width="8" height="15" font="6">3</text>
+<text top="508" left="441" width="130" height="15" font="6">String | website name</text>
+<text top="508" left="693" width="109" height="15" font="6">www.sfremax.com</text>
+<text top="533" left="87" width="130" height="15" font="6">&lt;brokerage-logo-url/&gt;</text>
+<text top="533" left="335" width="17" height="15" font="6">No</text>
+<text top="533" left="408" width="8" height="15" font="6">3</text>
+<text top="533" left="441" width="27" height="15" font="6">URL</text>
+<text top="525" left="693" width="159" height="15" font="6">www.sfremax.com/brokerl-</text>
+<text top="541" left="693" width="23" height="15" font="6">ogo</text>
+<text top="558" left="87" width="133" height="15" font="6">&lt;brokerage-address/&gt;</text>
+<text top="558" left="374" width="194" height="15" font="11"><i>Container for brokerage address</i></text>
+<text top="575" left="109" width="171" height="15" font="6">&lt;brokerage-street-address/&gt;</text>
+<text top="575" left="335" width="17" height="15" font="6">No</text>
+<text top="575" left="408" width="8" height="15" font="6">3</text>
+<text top="575" left="441" width="160" height="15" font="6">String | Full Street Address</text>
+<text top="575" left="693" width="88" height="15" font="6">123 Market St.</text>
+<text top="592" left="109" width="143" height="15" font="6">&lt;brokerage-city-name/&gt;</text>
+<text top="592" left="335" width="17" height="15" font="6">No</text>
+<text top="592" left="408" width="8" height="15" font="6">3</text>
+<text top="592" left="441" width="35" height="15" font="6">String</text>
+<text top="592" left="693" width="86" height="15" font="6">San Francisco</text>
+<text top="609" left="109" width="131" height="15" font="6">&lt;brokerage-zipcode/&gt;</text>
+<text top="609" left="335" width="17" height="15" font="6">No</text>
+<text top="609" left="408" width="8" height="15" font="6">3</text>
+<text top="609" left="441" width="127" height="15" font="6">Five-digit postal code</text>
+<text top="609" left="693" width="38" height="15" font="6">94122</text>
+<text top="626" left="109" width="148" height="15" font="6">&lt;brokerage-state-code/&gt;</text>
+<text top="626" left="335" width="17" height="15" font="6">No</text>
+<text top="626" left="408" width="8" height="15" font="6">3</text>
+<text top="626" left="441" width="164" height="15" font="6">Two-digit state abbreviation</text>
+<text top="626" left="693" width="19" height="15" font="6">CA</text>
+<text top="643" left="65" width="51" height="15" font="6">&lt;office/&gt;</text>
+<text top="643" left="357" width="228" height="15" font="10"><i><b>Only add if different than brokerage</b></i></text>
+<text top="668" left="87" width="90" height="15" font="6">&lt;office-name/&gt;</text>
+<text top="668" left="335" width="17" height="15" font="6">No</text>
+<text top="668" left="408" width="8" height="15" font="6">3</text>
+<text top="660" left="693" width="158" height="15" font="6">Re/Max of SF - Marina Of-</text>
+<text top="675" left="693" width="21" height="15" font="6">fice</text>
+<text top="694" left="87" width="67" height="15" font="6">&lt;office-id/&gt;</text>
+<text top="694" left="335" width="17" height="15" font="6">No</text>
+<text top="694" left="408" width="8" height="15" font="6">2</text>
+<text top="694" left="693" width="38" height="15" font="6">32165</text>
+<text top="715" left="87" width="111" height="15" font="6">&lt;office-mls-code/&gt;</text>
+<text top="715" left="335" width="17" height="15" font="6">No</text>
+<text top="715" left="408" width="8" height="15" font="6">3</text>
+<text top="715" left="693" width="45" height="15" font="6">123456</text>
+<text top="735" left="87" width="109" height="15" font="6">&lt;office-broker-id/&gt;</text>
+<text top="735" left="335" width="17" height="15" font="6">No</text>
+<text top="735" left="408" width="8" height="15" font="6">3</text>
+<text top="735" left="693" width="45" height="15" font="6">321654</text>
+<text top="761" left="87" width="94" height="15" font="6">&lt;office-phone/&gt;</text>
+<text top="761" left="335" width="17" height="15" font="6">No</text>
+<text top="761" left="408" width="8" height="15" font="6">3</text>
+<text top="754" left="441" width="228" height="15" font="11"><i>Preferably</i> in XXX-XXX-XXXX format, </text>
+<text top="769" left="441" width="125" height="15" font="6">without parentheses </text>
+<text top="761" left="693" width="84" height="15" font="6">123-456-7894</text>
+<text top="786" left="87" width="88" height="15" font="6">&lt;office-email/&gt;</text>
+<text top="786" left="335" width="17" height="15" font="6">No</text>
+<text top="786" left="408" width="8" height="15" font="6">3</text>
+<text top="786" left="441" width="175" height="15" font="6">String | email format with “@”</text>
+<text top="786" left="693" width="164" height="15" font="6">marinaoffice@remaxsf.com</text>
+<text top="805" left="87" width="102" height="15" font="6">&lt;office-website/&gt;</text>
+<text top="805" left="335" width="17" height="15" font="6">No</text>
+<text top="805" left="408" width="8" height="15" font="6">3</text>
+<text top="805" left="693" width="161" height="15" font="6">www.marinaremaxsite.com</text>
+<text top="824" left="87" width="104" height="15" font="6">&lt;office-address/&gt;</text>
+<text top="824" left="388" width="166" height="15" font="11"><i>Container for office address</i></text>
+<text top="841" left="109" width="142" height="15" font="6">&lt;office-street-address/&gt;</text>
+<text top="841" left="335" width="17" height="15" font="6">No</text>
+<text top="841" left="408" width="8" height="15" font="6">3</text>
+<text top="841" left="441" width="160" height="15" font="6">String | Full Street Address</text>
+<text top="841" left="693" width="76" height="15" font="6">123 Main St.</text>
+<text top="858" left="109" width="115" height="15" font="6">&lt;office-city-name/&gt;</text>
+<text top="858" left="335" width="17" height="15" font="6">No</text>
+<text top="858" left="408" width="8" height="15" font="6">3</text>
+<text top="858" left="441" width="35" height="15" font="6">String</text>
+<text top="858" left="693" width="86" height="15" font="6">San Francisco</text>
+<text top="875" left="109" width="103" height="15" font="6">&lt;office-zipcode/&gt;</text>
+<text top="875" left="335" width="17" height="15" font="6">No</text>
+<text top="875" left="408" width="8" height="15" font="6">3</text>
+<text top="875" left="441" width="127" height="15" font="6">Five-digit postal code</text>
+<text top="875" left="693" width="38" height="15" font="6">94122</text>
+<text top="892" left="109" width="119" height="15" font="6">&lt;office-state-code/&gt;</text>
+<text top="892" left="335" width="17" height="15" font="6">No</text>
+<text top="892" left="408" width="8" height="15" font="6">3</text>
+<text top="892" left="441" width="164" height="15" font="6">Two-digit state abbreviation</text>
+<text top="892" left="693" width="19" height="15" font="6">CA</text>
+<text top="911" left="65" width="74" height="15" font="6">&lt;franchise/&gt;</text>
+<text top="931" left="87" width="113" height="15" font="6">&lt;franchise-name/&gt;</text>
+<text top="931" left="335" width="17" height="15" font="6">No</text>
+<text top="931" left="408" width="8" height="15" font="6">3</text>
+<text top="931" left="693" width="149" height="15" font="6">San Francisco Franchise</text>
+<text top="958" left="87" width="116" height="15" font="6">&lt;franchise-phone/&gt;</text>
+<text top="958" left="335" width="17" height="15" font="6">No</text>
+<text top="958" left="408" width="8" height="15" font="6">3</text>
+<text top="950" left="441" width="228" height="15" font="11"><i>Preferably</i> in XXX-XXX-XXXX format, </text>
+<text top="965" left="441" width="125" height="15" font="6">without parentheses </text>
+<text top="958" left="693" width="84" height="15" font="6">123-456-7894</text>
+<text top="982" left="87" width="111" height="15" font="6">&lt;franchise-email/&gt;</text>
+<text top="982" left="335" width="17" height="15" font="6">No</text>
+<text top="982" left="408" width="8" height="15" font="6">3</text>
+<text top="982" left="441" width="175" height="15" font="6">String | email format with “@”</text>
+<text top="982" left="693" width="108" height="15" font="6">sf@franchise.com</text>
+<text top="1000" left="87" width="125" height="15" font="6">&lt;franchise-website/&gt;</text>
+<text top="1000" left="335" width="17" height="15" font="6">No</text>
+<text top="1000" left="408" width="8" height="15" font="6">3</text>
+<text top="1000" left="441" width="180" height="15" font="6">String | URL format with http://</text>
+<text top="1000" left="693" width="142" height="15" font="6">http://www.frachise.com</text>
+<text top="1024" left="87" width="124" height="15" font="6">&lt;franchise-logo-url/&gt;</text>
+<text top="1024" left="335" width="17" height="15" font="6">No</text>
+<text top="1024" left="408" width="8" height="15" font="6">3</text>
+<text top="1024" left="441" width="180" height="15" font="6">String | URL format with http://</text>
+<text top="1016" left="693" width="164" height="15" font="6">http://www.frachise.com/log</text>
+<text top="1032" left="693" width="8" height="15" font="6">o</text>
+<text top="1051" left="65" width="60" height="15" font="6">&lt;builder/&gt;</text>
+<text top="1071" left="87" width="75" height="15" font="6">&lt;builder-id/&gt;</text>
+<text top="1071" left="335" width="17" height="15" font="6">No</text>
+<text top="1071" left="408" width="8" height="15" font="6">3</text>
+<text top="1071" left="693" width="53" height="15" font="6">1234156</text>
+<text top="1092" left="87" width="98" height="15" font="6">&lt;builder-name/&gt;</text>
+<text top="1092" left="335" width="17" height="15" font="6">No</text>
+<text top="1092" left="408" width="8" height="15" font="6">3</text>
+<text top="1092" left="693" width="76" height="15" font="6">Mary Builder</text>
+<text top="1111" left="87" width="102" height="15" font="6">&lt;builder-phone/&gt;</text>
+<text top="1111" left="335" width="17" height="15" font="6">No</text>
+<text top="1111" left="408" width="8" height="15" font="6">3</text>
+<text top="1111" left="441" width="228" height="15" font="11"><i>Preferably</i> in XXX-XXX-XXXX format, </text>
+<text top="1111" left="693" width="84" height="15" font="6">123-456-7894</text>
+</page>
+<page number="8" position="absolute" top="0" left="0" height="1188" width="918">
+<text top="71" left="65" width="83" height="13" font="5"><b>Element Name</b></text>
+<text top="71" left="304" width="52" height="13" font="5"><b>Required</b></text>
+<text top="71" left="394" width="22" height="13" font="5"><b>Tier</b></text>
+<text top="71" left="441" width="181" height="13" font="5"><b>Format | Description (if unclear)</b></text>
+<text top="71" left="693" width="164" height="13" font="5"><b>Enumerations/Sample Value </b></text>
+<text top="89" left="441" width="125" height="15" font="6">without parentheses </text>
+<text top="106" left="87" width="97" height="15" font="6">&lt;builder-email/&gt;</text>
+<text top="106" left="335" width="17" height="15" font="6">No</text>
+<text top="106" left="408" width="8" height="15" font="6">3</text>
+<text top="106" left="441" width="175" height="15" font="6">String | email format with “@”</text>
+<text top="106" left="693" width="124" height="15" font="6">marybuilder@sf.com</text>
+<text top="123" left="87" width="127" height="15" font="6">&lt;builder-lead-email/&gt;</text>
+<text top="123" left="335" width="17" height="15" font="6">No</text>
+<text top="123" left="408" width="8" height="15" font="6">3</text>
+<text top="123" left="441" width="175" height="15" font="6">String | email format with “@”</text>
+<text top="123" left="693" width="138" height="15" font="6">secondemail@me.com</text>
+<text top="140" left="87" width="110" height="15" font="6">&lt;builder-website/&gt;</text>
+<text top="140" left="335" width="17" height="15" font="6">No</text>
+<text top="140" left="408" width="8" height="15" font="6">3</text>
+<text top="140" left="441" width="132" height="15" font="6">String | Website name</text>
+<text top="140" left="693" width="100" height="15" font="6">www.buildsf.com</text>
+<text top="157" left="87" width="110" height="15" font="6">&lt;builder-logo-url/&gt;</text>
+<text top="157" left="335" width="17" height="15" font="6">No</text>
+<text top="157" left="408" width="8" height="15" font="6">3</text>
+<text top="157" left="441" width="27" height="15" font="6">URL</text>
+<text top="157" left="693" width="130" height="15" font="6">www.buildsf.com/logo</text>
+<text top="174" left="87" width="113" height="15" font="6">&lt;builder-address/&gt;</text>
+<text top="174" left="383" width="174" height="15" font="11"><i>Container for builder address</i></text>
+<text top="191" left="109" width="151" height="15" font="6">&lt;builder-street-address/&gt;</text>
+<text top="191" left="335" width="17" height="15" font="6">No</text>
+<text top="191" left="408" width="8" height="15" font="6">3</text>
+<text top="191" left="441" width="157" height="15" font="6">String | Full street address</text>
+<text top="191" left="693" width="76" height="15" font="6">123 Main St.</text>
+<text top="208" left="109" width="123" height="15" font="6">&lt;builder-city-name/&gt;</text>
+<text top="208" left="335" width="17" height="15" font="6">No</text>
+<text top="208" left="408" width="8" height="15" font="6">3</text>
+<text top="208" left="441" width="35" height="15" font="6">String</text>
+<text top="208" left="693" width="70" height="15" font="6">SF Builders</text>
+<text top="226" left="109" width="111" height="15" font="6">&lt;builder-zipcode/&gt;</text>
+<text top="226" left="335" width="17" height="15" font="6">No</text>
+<text top="226" left="408" width="8" height="15" font="6">3</text>
+<text top="226" left="441" width="76" height="15" font="6">Five-digit zip</text>
+<text top="226" left="693" width="38" height="15" font="6">12345</text>
+<text top="242" left="109" width="128" height="15" font="6">&lt;builder-state-code/&gt;</text>
+<text top="242" left="335" width="17" height="15" font="6">No</text>
+<text top="242" left="408" width="8" height="15" font="6">3</text>
+<text top="242" left="441" width="169" height="15" font="6">Two-letter state abbreviation</text>
+<text top="242" left="693" width="19" height="15" font="6">CA</text>
+<text top="260" left="65" width="127" height="15" font="6">&lt;property-manager/&gt;</text>
+<text top="278" left="87" width="165" height="15" font="6">&lt;property-manager-name/&gt;</text>
+<text top="278" left="335" width="17" height="15" font="6">No</text>
+<text top="278" left="408" width="8" height="15" font="6">3</text>
+<text top="278" left="693" width="84" height="15" font="6">John Johnson</text>
+<text top="297" left="87" width="175" height="15" font="6">&lt;property-management-com-</text>
+<text top="313" left="65" width="79" height="15" font="6">pany-name/&gt;</text>
+<text top="305" left="335" width="17" height="15" font="6">No</text>
+<text top="305" left="408" width="8" height="15" font="6">3</text>
+<text top="305" left="693" width="136" height="15" font="6">San Francisco Rentals</text>
+<text top="337" left="87" width="169" height="15" font="6">&lt;property-manager-phone/&gt;</text>
+<text top="337" left="335" width="17" height="15" font="6">No</text>
+<text top="337" left="408" width="8" height="15" font="6">3</text>
+<text top="330" left="441" width="228" height="15" font="11"><i>Preferably</i> in XXX-XXX-XXXX format, </text>
+<text top="345" left="441" width="125" height="15" font="6">without parentheses </text>
+<text top="337" left="693" width="84" height="15" font="6">123-456-7894</text>
+<text top="362" left="87" width="164" height="15" font="6">&lt;property-manager-email/&gt;</text>
+<text top="362" left="335" width="17" height="15" font="6">No</text>
+<text top="362" left="408" width="8" height="15" font="6">3</text>
+<text top="362" left="441" width="175" height="15" font="6">String | email format with “@”</text>
+<text top="362" left="693" width="94" height="15" font="6">sf@rentals.com</text>
+<text top="379" left="87" width="194" height="15" font="6">&lt;property-manager-lead-email/&gt;</text>
+<text top="379" left="335" width="17" height="15" font="6">No</text>
+<text top="379" left="408" width="8" height="15" font="6">3</text>
+<text top="379" left="441" width="175" height="15" font="6">String | email format with “@”</text>
+<text top="379" left="693" width="117" height="15" font="6">sfrentals@rent.com</text>
+<text top="398" left="87" width="177" height="15" font="6">&lt;property-manager-website/&gt;</text>
+<text top="398" left="335" width="17" height="15" font="6">No</text>
+<text top="398" left="408" width="8" height="15" font="6">3</text>
+<text top="398" left="693" width="124" height="15" font="6">www.sfrentstest.com</text>
+<text top="417" left="87" width="176" height="15" font="6">&lt;property-manager-logo-url/&gt;</text>
+<text top="417" left="335" width="17" height="15" font="6">No</text>
+<text top="417" left="408" width="8" height="15" font="6">3</text>
+<text top="417" left="441" width="27" height="15" font="6">URL</text>
+<text top="417" left="693" width="153" height="15" font="6">www.sfrentstest.com/logo</text>
+<text top="434" left="87" width="202" height="15" font="6">&lt;property-manager-office-hours/&gt;</text>
+<text top="434" left="339" width="262" height="15" font="11"><i>Container for property manager office hours</i></text>
+<text top="451" left="109" width="78" height="15" font="6">&lt;office-day/&gt;</text>
+<text top="451" left="349" width="242" height="15" font="11"><i>Container for office day. <b>Repeatable tag</b></i></text>
+<text top="475" left="130" width="116" height="15" font="6">&lt;day-of-the-week/&gt;</text>
+<text top="475" left="335" width="17" height="15" font="6">No</text>
+<text top="475" left="408" width="8" height="15" font="6">3</text>
+<text top="475" left="441" width="110" height="15" font="6">Enumerated value</text>
+<text top="468" left="693" width="166" height="15" font="6">(sun | mon | tue | wed | thu |</text>
+<text top="483" left="693" width="45" height="15" font="6">fri | sat)</text>
+<text top="508" left="130" width="112" height="15" font="6">&lt;office-start-time/&gt;</text>
+<text top="508" left="335" width="17" height="15" font="6">No</text>
+<text top="508" left="408" width="8" height="15" font="6">3</text>
+<text top="500" left="441" width="196" height="15" font="11"><i>Preferably</i> in military time and in </text>
+<text top="516" left="441" width="91" height="15" font="6">HH:mm  format</text>
+<text top="508" left="693" width="34" height="15" font="6">14:00</text>
+<text top="541" left="130" width="109" height="15" font="6">&lt;office-end-time/&gt;</text>
+<text top="541" left="335" width="17" height="15" font="6">No</text>
+<text top="541" left="408" width="8" height="15" font="6">3</text>
+<text top="533" left="441" width="196" height="15" font="11"><i>Preferably</i> in military time and in </text>
+<text top="548" left="441" width="91" height="15" font="6">HH:mm  format</text>
+<text top="541" left="693" width="34" height="15" font="6">16:30</text>
+<text top="565" left="130" width="75" height="15" font="6">&lt;comment/&gt;</text>
+<text top="565" left="335" width="17" height="15" font="6">No</text>
+<text top="565" left="408" width="8" height="15" font="6">3</text>
+<text top="565" left="441" width="35" height="15" font="6">String</text>
+<text top="565" left="693" width="155" height="15" font="6">Please call ahead of time.</text>
+<text top="582" left="65" width="158" height="15" font="6">&lt;detailed-characteristics/&gt;</text>
+<text top="599" left="87" width="84" height="15" font="6">&lt;appliances/&gt;</text>
+<text top="599" left="397" width="146" height="15" font="11"><i>Container for appliances</i></text>
+<text top="616" left="109" width="89" height="15" font="6">&lt;has-washer/&gt;</text>
+<text top="616" left="335" width="17" height="15" font="6">No</text>
+<text top="616" left="408" width="8" height="15" font="6">2</text>
+<text top="616" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="616" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="634" left="109" width="76" height="15" font="6">&lt;has-dryer/&gt;</text>
+<text top="634" left="335" width="17" height="15" font="6">No</text>
+<text top="634" left="408" width="8" height="15" font="6">2</text>
+<text top="634" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="634" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="650" left="109" width="114" height="15" font="6">&lt;has-dishwasher/&gt;</text>
+<text top="650" left="335" width="17" height="15" font="6">No</text>
+<text top="650" left="408" width="8" height="15" font="6">2</text>
+<text top="650" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="650" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="668" left="109" width="112" height="15" font="6">&lt;has-refrigerator/&gt;</text>
+<text top="668" left="335" width="17" height="15" font="6">No</text>
+<text top="668" left="408" width="8" height="15" font="6">2</text>
+<text top="668" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="668" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="685" left="109" width="95" height="15" font="6">&lt;has-disposal/&gt;</text>
+<text top="685" left="335" width="17" height="15" font="6">No</text>
+<text top="685" left="408" width="8" height="15" font="6">2</text>
+<text top="685" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="685" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="702" left="109" width="110" height="15" font="6">&lt;has-microwave/&gt;</text>
+<text top="702" left="335" width="17" height="15" font="6">No</text>
+<text top="702" left="408" width="8" height="15" font="6">2</text>
+<text top="702" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="702" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="719" left="109" width="84" height="15" font="6">&lt;range-type/&gt;</text>
+<text top="719" left="335" width="17" height="15" font="6">No</text>
+<text top="719" left="408" width="8" height="15" font="6">2</text>
+<text top="719" left="441" width="77" height="15" font="6">Enumerated </text>
+<text top="719" left="693" width="126" height="15" font="6">(gas | electric | other)</text>
+<text top="736" left="109" width="151" height="15" font="6">&lt;appliances-comments/&gt;</text>
+<text top="736" left="335" width="17" height="15" font="6">No</text>
+<text top="736" left="408" width="8" height="15" font="6">3</text>
+<text top="736" left="441" width="35" height="15" font="6">String</text>
+<text top="736" left="693" width="160" height="15" font="6">See remarks for more info.</text>
+<text top="753" left="87" width="146" height="15" font="6">&lt;additional-appliances/&gt;</text>
+<text top="753" left="364" width="212" height="15" font="11"><i>Container for additional appliances.</i></text>
+<text top="770" left="109" width="140" height="15" font="6">&lt;additional-appliance/&gt;</text>
+<text top="770" left="301" width="338" height="15" font="11"><i>Container for each additional appliance. <b>Repeatable tag</b></i></text>
+<text top="787" left="130" width="103" height="15" font="6">&lt;additional-appli-</text>
+<text top="802" left="65" width="79" height="15" font="6">ance-name/&gt;</text>
+<text top="794" left="335" width="17" height="15" font="6">No</text>
+<text top="794" left="408" width="8" height="15" font="6">2</text>
+<text top="794" left="441" width="35" height="15" font="6">String</text>
+<text top="794" left="693" width="47" height="15" font="6">Blender</text>
+<text top="819" left="130" width="152" height="15" font="6">&lt;additional-appliance-de-</text>
+<text top="835" left="65" width="62" height="15" font="6">scription/&gt;</text>
+<text top="827" left="335" width="17" height="15" font="6">No</text>
+<text top="827" left="408" width="8" height="15" font="6">2</text>
+<text top="827" left="441" width="35" height="15" font="6">String</text>
+<text top="827" left="693" width="167" height="15" font="6">Home comes with a blender</text>
+<text top="852" left="87" width="116" height="15" font="6">&lt;cooling-systems/&gt;</text>
+<text top="852" left="381" width="178" height="15" font="11"><i>Container for cooling systems</i></text>
+<text top="869" left="109" width="137" height="15" font="6">&lt;has-air-conditioning/&gt;</text>
+<text top="869" left="335" width="17" height="15" font="6">No</text>
+<text top="869" left="408" width="8" height="15" font="6">2</text>
+<text top="869" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="869" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="886" left="109" width="107" height="15" font="6">&lt;has-ceiling-fan/&gt;</text>
+<text top="886" left="335" width="17" height="15" font="6">No</text>
+<text top="886" left="408" width="8" height="15" font="6">2</text>
+<text top="886" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="886" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="903" left="109" width="98" height="15" font="6">&lt;other-cooling/&gt;</text>
+<text top="903" left="335" width="17" height="15" font="6">No</text>
+<text top="903" left="408" width="8" height="15" font="6">2</text>
+<text top="903" left="441" width="35" height="15" font="6">String</text>
+<text top="903" left="693" width="51" height="15" font="6">Wall unit</text>
+<text top="920" left="87" width="118" height="15" font="6">&lt;heating-systems/&gt;</text>
+<text top="920" left="380" width="179" height="15" font="11"><i>Container for heating systems</i></text>
+<text top="937" left="109" width="97" height="15" font="6">&lt;has-fireplace/&gt;</text>
+<text top="937" left="335" width="17" height="15" font="6">No</text>
+<text top="937" left="408" width="8" height="15" font="6">2</text>
+<text top="937" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="937" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="962" left="109" width="100" height="15" font="6">&lt;fireplace-type/&gt;</text>
+<text top="962" left="335" width="17" height="15" font="6">No</text>
+<text top="962" left="408" width="8" height="15" font="6">2</text>
+<text top="962" left="441" width="77" height="15" font="6">Enumerated </text>
+<text top="954" left="693" width="161" height="15" font="6">(gas | wood | electric | dec-</text>
+<text top="970" left="693" width="45" height="15" font="6">orative)</text>
+<text top="994" left="109" width="111" height="15" font="6">&lt;heating-system/&gt;</text>
+<text top="994" left="335" width="17" height="15" font="6">No</text>
+<text top="994" left="408" width="8" height="15" font="6">2</text>
+<text top="994" left="441" width="77" height="15" font="6">Enumerated </text>
+<text top="986" left="693" width="143" height="15" font="6">(gas | electric | radiant | </text>
+<text top="1002" left="693" width="35" height="15" font="6">other)</text>
+<text top="1035" left="109" width="90" height="15" font="6">&lt;heating-fuel/&gt;</text>
+<text top="1035" left="335" width="17" height="15" font="6">No</text>
+<text top="1035" left="408" width="8" height="15" font="6">2</text>
+<text top="1035" left="441" width="74" height="15" font="6">Enumerated</text>
+<text top="1019" left="693" width="151" height="15" font="6">(coal | oil | gas | electric | </text>
+<text top="1035" left="693" width="153" height="15" font="6">propane | butane | solar | </text>
+<text top="1050" left="693" width="152" height="15" font="6">woodpellet | other | none)</text>
+<text top="1083" left="87" width="108" height="15" font="6">&lt;floor-coverings/&gt;</text>
+<text top="1083" left="335" width="17" height="15" font="6">No</text>
+<text top="1083" left="408" width="8" height="15" font="6">3</text>
+<text top="1083" left="441" width="134" height="15" font="6">Recommended values</text>
+<text top="1067" left="693" width="164" height="15" font="6">( Carpet | Hardwood | Tile | </text>
+<text top="1083" left="693" width="168" height="15" font="6">Vinyl | Concrete | Linoleum |</text>
+<text top="1098" left="693" width="161" height="15" font="6">Laminate | Marble | Other )</text>
+<text top="1115" left="87" width="167" height="15" font="6">&lt;total-unit-parking-spaces/&gt;</text>
+<text top="1115" left="335" width="17" height="15" font="6">No</text>
+<text top="1115" left="408" width="8" height="15" font="6">2</text>
+<text top="1115" left="441" width="42" height="15" font="6">Integer</text>
+<text top="1115" left="693" width="8" height="15" font="6">5</text>
+</page>
+<page number="9" position="absolute" top="0" left="0" height="1188" width="918">
+<text top="71" left="65" width="83" height="13" font="5"><b>Element Name</b></text>
+<text top="71" left="304" width="52" height="13" font="5"><b>Required</b></text>
+<text top="71" left="394" width="22" height="13" font="5"><b>Tier</b></text>
+<text top="71" left="441" width="181" height="13" font="5"><b>Format | Description (if unclear)</b></text>
+<text top="71" left="693" width="164" height="13" font="5"><b>Enumerations/Sample Value </b></text>
+<text top="89" left="87" width="88" height="15" font="6">&lt;has-garage/&gt;</text>
+<text top="89" left="335" width="17" height="15" font="6">No</text>
+<text top="89" left="408" width="8" height="15" font="6">2</text>
+<text top="89" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="89" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="106" left="87" width="92" height="15" font="6">&lt;garage-type/&gt;</text>
+<text top="106" left="335" width="17" height="15" font="6">No</text>
+<text top="106" left="408" width="8" height="15" font="6">3</text>
+<text top="106" left="441" width="77" height="15" font="6">Enumerated </text>
+<text top="106" left="693" width="127" height="15" font="6">(attached | detached)</text>
+<text top="123" left="87" width="100" height="15" font="6">&lt;parking-types/&gt;</text>
+<text top="123" left="389" width="162" height="15" font="11"><i>Container for parking types</i></text>
+<text top="156" left="109" width="94" height="15" font="6">&lt;parking-type/&gt;</text>
+<text top="156" left="335" width="17" height="15" font="6">No</text>
+<text top="156" left="408" width="8" height="15" font="6">3</text>
+<text top="156" left="441" width="181" height="15" font="6">Enumerated | <i><b>Repeatable tag</b></i></text>
+<text top="140" left="693" width="149" height="15" font="6">(surface lot | garage lot | </text>
+<text top="156" left="693" width="168" height="15" font="6">covered lot | street | carport </text>
+<text top="171" left="693" width="84" height="15" font="6">| none | other)</text>
+<text top="188" left="87" width="189" height="15" font="6">&lt;has-assigned-parking-space/&gt;</text>
+<text top="188" left="335" width="17" height="15" font="6">No</text>
+<text top="188" left="408" width="8" height="15" font="6">2</text>
+<text top="188" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="188" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="205" left="87" width="128" height="15" font="6">&lt;parking-space-fee/&gt;</text>
+<text top="205" left="335" width="17" height="15" font="6">No</text>
+<text top="205" left="408" width="8" height="15" font="6">3</text>
+<text top="205" left="441" width="77" height="15" font="6">Enumerated </text>
+<text top="205" left="693" width="114" height="15" font="6">( free | paid | both )</text>
+<text top="230" left="87" width="192" height="15" font="6">&lt;assigned-parking-space-cost/&gt;</text>
+<text top="230" left="335" width="17" height="15" font="6">No</text>
+<text top="230" left="408" width="8" height="15" font="6">3</text>
+<text top="223" left="441" width="235" height="15" font="6">Decimal | Current asking price (<b>NO</b> dol-</text>
+<text top="238" left="441" width="125" height="15" font="6">lar signs or commas)</text>
+<text top="230" left="693" width="23" height="15" font="6">400</text>
+<text top="255" left="87" width="124" height="15" font="6">&lt;parking-comment/&gt;</text>
+<text top="255" left="335" width="17" height="15" font="6">No</text>
+<text top="255" left="408" width="8" height="15" font="6">3</text>
+<text top="255" left="441" width="35" height="15" font="6">String</text>
+<text top="255" left="693" width="151" height="15" font="6">Street parking is metered</text>
+<text top="303" left="87" width="113" height="15" font="6">&lt;foundation-type/&gt;</text>
+<text top="303" left="335" width="17" height="15" font="6">No</text>
+<text top="303" left="408" width="8" height="15" font="6">2</text>
+<text top="303" left="441" width="134" height="15" font="6">Recommended values</text>
+<text top="272" left="693" width="166" height="15" font="6">( Concrete | Concrete Block</text>
+<text top="288" left="693" width="158" height="15" font="6">| Raised | Crossed Walls | </text>
+<text top="303" left="693" width="144" height="15" font="6">Earth | Footing | Other | </text>
+<text top="319" left="693" width="166" height="15" font="6">Piers | Piling | Slab | Stone |</text>
+<text top="334" left="693" width="43" height="15" font="6">Wood )</text>
+<text top="351" left="87" width="73" height="15" font="6">&lt;roof-type/&gt;</text>
+<text top="351" left="335" width="17" height="15" font="6">No</text>
+<text top="351" left="408" width="8" height="15" font="6">2</text>
+<text top="351" left="441" width="35" height="15" font="6">String</text>
+<text top="351" left="693" width="45" height="15" font="6">Shingle</text>
+<text top="422" left="87" width="122" height="15" font="6">&lt;architecture-style/&gt;</text>
+<text top="422" left="335" width="17" height="15" font="6">No</text>
+<text top="422" left="408" width="8" height="15" font="6">2</text>
+<text top="422" left="441" width="134" height="15" font="6">Recommended values</text>
+<text top="368" left="693" width="141" height="15" font="6">( A-Frame | Bungalow | </text>
+<text top="384" left="693" width="156" height="15" font="6">Colonial | Contemporary | </text>
+<text top="399" left="693" width="163" height="15" font="6">Cottage | Custom | Dome | </text>
+<text top="415" left="693" width="158" height="15" font="6">High-rise | Historical | Log </text>
+<text top="430" left="693" width="158" height="15" font="6">Cabin | Mansion | Mediter-</text>
+<text top="446" left="693" width="98" height="15" font="6">ranean | Other | </text>
+<text top="461" left="693" width="153" height="15" font="6">Prefab/Modular | Ranch | </text>
+<text top="477" left="693" width="120" height="15" font="6">Spanish | Victorian )</text>
+<text top="541" left="87" width="94" height="15" font="6">&lt;exterior-type/&gt;</text>
+<text top="541" left="335" width="17" height="15" font="6">No</text>
+<text top="541" left="408" width="8" height="15" font="6">2</text>
+<text top="541" left="441" width="134" height="15" font="6">Recommended values</text>
+<text top="494" left="693" width="165" height="15" font="6">( Adobe | Asbestos Shingle </text>
+<text top="509" left="693" width="136" height="15" font="6">| Brick | Brick Veneer | </text>
+<text top="525" left="693" width="165" height="15" font="6">Block | Concrete | Concrete</text>
+<text top="541" left="693" width="168" height="15" font="6">Block | Glass | Log | Marble </text>
+<text top="556" left="693" width="159" height="15" font="6">| Masonry | Metal | Other | </text>
+<text top="572" left="693" width="165" height="15" font="6">Rock/Stone | Stucco | Tile | </text>
+<text top="587" left="693" width="43" height="15" font="6">Wood )</text>
+<text top="604" left="87" width="88" height="15" font="6">&lt;room-count/&gt;</text>
+<text top="604" left="335" width="17" height="15" font="6">No</text>
+<text top="604" left="408" width="8" height="15" font="6">2</text>
+<text top="604" left="441" width="42" height="15" font="6">Integer</text>
+<text top="604" left="693" width="8" height="15" font="6">3</text>
+<text top="621" left="87" width="57" height="15" font="6">&lt;rooms/&gt;</text>
+<text top="621" left="393" width="154" height="15" font="11"><i>Container for other rooms</i></text>
+<text top="638" left="95" width="50" height="15" font="6">&lt;room/&gt;</text>
+<text top="638" left="348" width="246" height="15" font="11"><i>Container for other room. <b>repeatable tag</b></i></text>
+<text top="655" left="130" width="80" height="15" font="6">&lt;room-type/&gt;</text>
+<text top="655" left="335" width="17" height="15" font="6">No</text>
+<text top="655" left="408" width="8" height="15" font="6">3</text>
+<text top="655" left="441" width="125" height="15" font="6">String | Type of room</text>
+<text top="655" left="693" width="53" height="15" font="6">bedroom</text>
+<text top="672" left="130" width="79" height="15" font="6">&lt;room-size/&gt;</text>
+<text top="672" left="335" width="17" height="15" font="6">No</text>
+<text top="672" left="408" width="8" height="15" font="6">3</text>
+<text top="672" left="441" width="195" height="15" font="6">String | Room dimensions in feet</text>
+<text top="672" left="693" width="44" height="15" font="6">15 x 12</text>
+<text top="689" left="130" width="120" height="15" font="6">&lt;room-description/&gt;</text>
+<text top="689" left="335" width="17" height="15" font="6">No</text>
+<text top="689" left="408" width="8" height="15" font="6">3</text>
+<text top="689" left="441" width="35" height="15" font="6">String</text>
+<text top="689" left="693" width="146" height="15" font="6">Has large sunny window</text>
+<text top="706" left="87" width="99" height="15" font="6">&lt;year-updated/&gt;</text>
+<text top="706" left="335" width="17" height="15" font="6">No</text>
+<text top="706" left="408" width="8" height="15" font="6">3</text>
+<text top="706" left="441" width="27" height="15" font="6">Year</text>
+<text top="706" left="693" width="30" height="15" font="6">2013</text>
+<text top="723" left="87" width="144" height="15" font="6">&lt;total-units-in-building/&gt;</text>
+<text top="723" left="335" width="17" height="15" font="6">No</text>
+<text top="723" left="408" width="8" height="15" font="6">3</text>
+<text top="723" left="441" width="42" height="15" font="6">Integer</text>
+<text top="723" left="693" width="8" height="15" font="6">2</text>
+<text top="740" left="87" width="149" height="15" font="6">&lt;total-floors-in-building/&gt;</text>
+<text top="740" left="335" width="17" height="15" font="6">No</text>
+<text top="740" left="408" width="8" height="15" font="6">3</text>
+<text top="740" left="441" width="42" height="15" font="6">Integer</text>
+<text top="740" left="693" width="8" height="15" font="6">2</text>
+<text top="757" left="87" width="125" height="15" font="6">&lt;num-floors-in-unit/&gt;</text>
+<text top="757" left="335" width="17" height="15" font="6">No</text>
+<text top="757" left="408" width="8" height="15" font="6">3</text>
+<text top="757" left="441" width="42" height="15" font="6">Integer</text>
+<text top="757" left="693" width="8" height="15" font="6">1</text>
+<text top="774" left="87" width="70" height="15" font="6">&lt;has-attic/&gt;</text>
+<text top="774" left="335" width="17" height="15" font="6">No</text>
+<text top="774" left="408" width="8" height="15" font="6">2</text>
+<text top="774" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="774" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="791" left="87" width="92" height="15" font="6">&lt;has-balcony/&gt;</text>
+<text top="791" left="335" width="17" height="15" font="6">No</text>
+<text top="791" left="408" width="8" height="15" font="6">2</text>
+<text top="791" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="791" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="808" left="87" width="134" height="15" font="6">&lt;has-barbeque-area/&gt;</text>
+<text top="808" left="335" width="17" height="15" font="6">No</text>
+<text top="808" left="408" width="8" height="15" font="6">2</text>
+<text top="808" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="808" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="825" left="87" width="105" height="15" font="6">&lt;has-basement/&gt;</text>
+<text top="825" left="335" width="17" height="15" font="6">No</text>
+<text top="825" left="408" width="8" height="15" font="6">2</text>
+<text top="825" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="825" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="842" left="87" width="128" height="15" font="6">&lt;has-cable-satellite/&gt;</text>
+<text top="842" left="335" width="17" height="15" font="6">No</text>
+<text top="842" left="408" width="8" height="15" font="6">3</text>
+<text top="842" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="842" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="859" left="87" width="102" height="15" font="6">&lt;has-courtyard/&gt;</text>
+<text top="859" left="335" width="17" height="15" font="6">No</text>
+<text top="859" left="408" width="8" height="15" font="6">2</text>
+<text top="859" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="859" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="877" left="87" width="74" height="15" font="6">&lt;has-deck/&gt;</text>
+<text top="877" left="335" width="17" height="15" font="6">No</text>
+<text top="877" left="408" width="8" height="15" font="6">2</text>
+<text top="877" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="877" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="893" left="87" width="143" height="15" font="6">&lt;has-disabled-access/&gt;</text>
+<text top="893" left="335" width="17" height="15" font="6">No</text>
+<text top="893" left="408" width="8" height="15" font="6">3</text>
+<text top="893" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="893" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="911" left="87" width="74" height="15" font="6">&lt;has-dock/&gt;</text>
+<text top="911" left="335" width="17" height="15" font="6">No</text>
+<text top="911" left="408" width="8" height="15" font="6">2</text>
+<text top="911" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="911" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="928" left="87" width="173" height="15" font="6">&lt;has-doublepane-windows/&gt;</text>
+<text top="928" left="335" width="17" height="15" font="6">No</text>
+<text top="928" left="408" width="8" height="15" font="6">2</text>
+<text top="928" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="928" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="945" left="87" width="88" height="15" font="6">&lt;has-garden/&gt;</text>
+<text top="945" left="335" width="17" height="15" font="6">No</text>
+<text top="945" left="408" width="8" height="15" font="6">2</text>
+<text top="945" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="945" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="962" left="87" width="114" height="15" font="6">&lt;has-gated-entry/&gt;</text>
+<text top="962" left="335" width="17" height="15" font="6">No</text>
+<text top="962" left="408" width="8" height="15" font="6">2</text>
+<text top="962" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="962" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="979" left="87" width="117" height="15" font="6">&lt;has-greenhouse/&gt;</text>
+<text top="979" left="335" width="17" height="15" font="6">No</text>
+<text top="979" left="408" width="8" height="15" font="6">2</text>
+<text top="979" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="979" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="996" left="87" width="101" height="15" font="6">&lt;has-handrails/&gt;</text>
+<text top="996" left="335" width="17" height="15" font="6">No</text>
+<text top="996" left="408" width="8" height="15" font="6">2</text>
+<text top="996" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="996" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="1013" left="87" width="114" height="15" font="6">&lt;has-hot-tub-spa/&gt;</text>
+<text top="1013" left="335" width="17" height="15" font="6">No</text>
+<text top="1013" left="408" width="8" height="15" font="6">2</text>
+<text top="1013" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="1013" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="1030" left="87" width="97" height="15" font="6">&lt;has-intercom/&gt;</text>
+<text top="1030" left="335" width="17" height="15" font="6">No</text>
+<text top="1030" left="408" width="8" height="15" font="6">3</text>
+<text top="1030" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="1030" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="1047" left="87" width="133" height="15" font="6">&lt;has-jetted-bath-tub/&gt;</text>
+<text top="1047" left="335" width="17" height="15" font="6">No</text>
+<text top="1047" left="408" width="8" height="15" font="6">3</text>
+<text top="1047" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="1047" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="1064" left="87" width="73" height="15" font="6">&lt;has-lawn/&gt;</text>
+<text top="1064" left="335" width="17" height="15" font="6">No</text>
+<text top="1064" left="408" width="8" height="15" font="6">2</text>
+<text top="1064" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="1064" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="1081" left="87" width="128" height="15" font="6">&lt;has-mother-in-law/&gt;</text>
+<text top="1081" left="335" width="17" height="15" font="6">No</text>
+<text top="1081" left="408" width="8" height="15" font="6">3</text>
+<text top="1081" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="1081" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="1098" left="87" width="75" height="15" font="6">&lt;has-patio/&gt;</text>
+<text top="1098" left="335" width="17" height="15" font="6">No</text>
+<text top="1098" left="408" width="8" height="15" font="6">2</text>
+<text top="1098" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="1098" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="1115" left="87" width="76" height="15" font="6">&lt;has-pond/&gt;</text>
+<text top="1115" left="335" width="17" height="15" font="6">No</text>
+<text top="1115" left="408" width="8" height="15" font="6">2</text>
+<text top="1115" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="1115" left="693" width="56" height="15" font="6">(yes | no)</text>
+</page>
+<page number="10" position="absolute" top="0" left="0" height="1188" width="918">
+<text top="71" left="65" width="83" height="13" font="5"><b>Element Name</b></text>
+<text top="71" left="304" width="52" height="13" font="5"><b>Required</b></text>
+<text top="71" left="394" width="22" height="13" font="5"><b>Tier</b></text>
+<text top="71" left="441" width="181" height="13" font="5"><b>Format | Description (if unclear)</b></text>
+<text top="71" left="693" width="164" height="13" font="5"><b>Enumerations/Sample Value </b></text>
+<text top="89" left="87" width="71" height="15" font="6">&lt;has-pool/&gt;</text>
+<text top="89" left="335" width="17" height="15" font="6">No</text>
+<text top="89" left="408" width="8" height="15" font="6">2</text>
+<text top="89" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="89" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="106" left="87" width="79" height="15" font="6">&lt;has-porch/&gt;</text>
+<text top="106" left="335" width="17" height="15" font="6">No</text>
+<text top="106" left="408" width="8" height="15" font="6">2</text>
+<text top="106" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="106" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="123" left="87" width="137" height="15" font="6">&lt;has-private-balcony/&gt;</text>
+<text top="123" left="335" width="17" height="15" font="6">No</text>
+<text top="123" left="408" width="8" height="15" font="6">2</text>
+<text top="123" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="123" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="140" left="87" width="120" height="15" font="6">&lt;has-private-patio/&gt;</text>
+<text top="140" left="335" width="17" height="15" font="6">No</text>
+<text top="140" left="408" width="8" height="15" font="6">2</text>
+<text top="140" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="140" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="157" left="87" width="106" height="15" font="6">&lt;has-rv-parking/&gt;</text>
+<text top="157" left="335" width="17" height="15" font="6">No</text>
+<text top="157" left="408" width="8" height="15" font="6">3</text>
+<text top="157" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="157" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="174" left="87" width="82" height="15" font="6">&lt;has-sauna/&gt;</text>
+<text top="174" left="335" width="17" height="15" font="6">No</text>
+<text top="174" left="408" width="8" height="15" font="6">3</text>
+<text top="174" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="174" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="191" left="87" width="139" height="15" font="6">&lt;has-security-system/&gt;</text>
+<text top="191" left="335" width="17" height="15" font="6">No</text>
+<text top="191" left="408" width="8" height="15" font="6">3</text>
+<text top="191" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="191" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="208" left="87" width="91" height="15" font="6">&lt;has-skylight/&gt;</text>
+<text top="208" left="335" width="17" height="15" font="6">No</text>
+<text top="208" left="408" width="8" height="15" font="6">3</text>
+<text top="208" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="208" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="226" left="87" width="112" height="15" font="6">&lt;has-sportscourt/&gt;</text>
+<text top="226" left="335" width="17" height="15" font="6">No</text>
+<text top="226" left="408" width="8" height="15" font="6">3</text>
+<text top="226" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="226" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="242" left="87" width="144" height="15" font="6">&lt;has-sprinkler-system/&gt;</text>
+<text top="242" left="335" width="17" height="15" font="6">No</text>
+<text top="242" left="408" width="8" height="15" font="6">3</text>
+<text top="242" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="242" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="260" left="87" width="88" height="15" font="6">&lt;has-terrace/&gt;</text>
+<text top="260" left="335" width="17" height="15" font="6">No</text>
+<text top="260" left="408" width="8" height="15" font="6">3</text>
+<text top="260" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="260" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="277" left="87" width="132" height="15" font="6">&lt;has-vaulted-ceiling/&gt;</text>
+<text top="277" left="335" width="17" height="15" font="6">No</text>
+<text top="277" left="408" width="8" height="15" font="6">3</text>
+<text top="277" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="277" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="294" left="87" width="73" height="15" font="6">&lt;has-view/&gt;</text>
+<text top="294" left="335" width="17" height="15" font="6">No</text>
+<text top="294" left="408" width="8" height="15" font="6">3</text>
+<text top="294" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="294" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="311" left="87" width="173" height="15" font="6">&lt;has-washer-dryer-hookup/&gt;</text>
+<text top="311" left="335" width="17" height="15" font="6">No</text>
+<text top="311" left="408" width="8" height="15" font="6">3</text>
+<text top="311" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="311" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="328" left="87" width="91" height="15" font="6">&lt;has-wet-bar/&gt;</text>
+<text top="328" left="335" width="17" height="15" font="6">No</text>
+<text top="328" left="408" width="8" height="15" font="6">3</text>
+<text top="328" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="328" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="345" left="87" width="153" height="15" font="6">&lt;has-window-coverings/&gt;</text>
+<text top="345" left="335" width="17" height="15" font="6">No</text>
+<text top="345" left="408" width="8" height="15" font="6">3</text>
+<text top="345" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="345" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="362" left="87" width="155" height="15" font="6">&lt;building-has-concierge/&gt;</text>
+<text top="362" left="335" width="17" height="15" font="6">No</text>
+<text top="362" left="408" width="8" height="15" font="6">3</text>
+<text top="362" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="362" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="379" left="87" width="150" height="15" font="6">&lt;building-has-doorman/&gt;</text>
+<text top="379" left="335" width="17" height="15" font="6">No</text>
+<text top="379" left="408" width="8" height="15" font="6">3</text>
+<text top="379" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="379" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="396" left="87" width="145" height="15" font="6">&lt;building-has-elevator/&gt;</text>
+<text top="396" left="335" width="17" height="15" font="6">No</text>
+<text top="396" left="408" width="8" height="15" font="6">3</text>
+<text top="396" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="396" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="413" left="87" width="178" height="15" font="6">&lt;building-has-fitness-center/&gt;</text>
+<text top="413" left="335" width="17" height="15" font="6">No</text>
+<text top="413" left="407" width="11" height="15" font="6">3.</text>
+<text top="413" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="413" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="430" left="87" width="175" height="15" font="6">&lt;building-has-on-site-mainte-</text>
+<text top="445" left="65" width="48" height="15" font="6">nance/&gt;</text>
+<text top="437" left="335" width="17" height="15" font="6">No</text>
+<text top="437" left="408" width="8" height="15" font="6">3</text>
+<text top="430" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="430" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="462" left="87" width="94" height="15" font="6">&lt;is-waterfront/&gt;</text>
+<text top="462" left="335" width="17" height="15" font="6">No</text>
+<text top="462" left="408" width="8" height="15" font="6">3</text>
+<text top="462" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="462" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="479" left="87" width="136" height="15" font="6">&lt;is-new-construction/&gt;</text>
+<text top="479" left="335" width="17" height="15" font="6">No</text>
+<text top="479" left="408" width="8" height="15" font="6">3</text>
+<text top="479" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="479" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="496" left="87" width="75" height="15" font="6">&lt;furnished/&gt;</text>
+<text top="496" left="335" width="17" height="15" font="6">No</text>
+<text top="496" left="408" width="8" height="15" font="6">3</text>
+<text top="496" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="496" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="513" left="87" width="76" height="15" font="6">&lt;view-type/&gt;</text>
+<text top="513" left="335" width="17" height="15" font="6">No</text>
+<text top="513" left="408" width="8" height="15" font="6">2</text>
+<text top="513" left="441" width="35" height="15" font="6">String</text>
+<text top="513" left="693" width="36" height="15" font="6">Valley</text>
+<text top="530" left="87" width="113" height="15" font="6">&lt;other-amenities/&gt;</text>
+<text top="530" left="383" width="174" height="15" font="11"><i>Container for other amenities</i></text>
+<text top="547" left="109" width="106" height="15" font="6">&lt;other-amenity/&gt; </text>
+<text top="547" left="335" width="17" height="15" font="6">No</text>
+<text top="547" left="408" width="8" height="15" font="6">3</text>
+<text top="547" left="441" width="92" height="15" font="6">Repeatable tag</text>
+<text top="547" left="693" width="85" height="15" font="6">Eat-In-Kitchen</text>
+<text top="565" left="65" width="91" height="15" font="6">&lt;rental-terms/&gt;</text>
+<text top="565" left="403" width="136" height="15" font="7"><b>For rental feeds only </b></text>
+<text top="605" left="87" width="80" height="15" font="6">&lt;price-term/&gt;</text>
+<text top="605" left="335" width="17" height="15" font="6">No</text>
+<text top="605" left="408" width="8" height="15" font="6">3</text>
+<text top="581" left="441" width="238" height="15" font="6">Enumerated | If the property is a rental, </text>
+<text top="597" left="441" width="235" height="15" font="6">provide the rental term associated with </text>
+<text top="613" left="441" width="227" height="15" font="6">the price. Only month is currently sup-</text>
+<text top="628" left="441" width="42" height="15" font="6">ported.</text>
+<text top="605" left="693" width="167" height="15" font="6">(night | week | month | year)</text>
+<text top="692" left="87" width="83" height="15" font="6">&lt;rental-type/&gt;</text>
+<text top="692" left="335" width="17" height="15" font="6">No</text>
+<text top="692" left="408" width="8" height="15" font="6">3</text>
+<text top="692" left="441" width="74" height="15" font="6">Enumerated</text>
+<text top="645" left="693" width="159" height="15" font="6">( standard | corporate | se-</text>
+<text top="661" left="693" width="146" height="15" font="6">nior | military | campus | </text>
+<text top="676" left="693" width="143" height="15" font="6">market rate apt | condo-</text>
+<text top="692" left="693" width="154" height="15" font="6">minium | cooperative | as-</text>
+<text top="707" left="693" width="156" height="15" font="6">sisted living | subsidized | </text>
+<text top="723" left="693" width="167" height="15" font="6">nursing home | student | va-</text>
+<text top="738" left="693" width="86" height="15" font="6">cation | other )</text>
+<text top="763" left="87" width="82" height="15" font="6">&lt;lease-type/&gt;</text>
+<text top="763" left="335" width="17" height="15" font="6">No</text>
+<text top="763" left="408" width="8" height="15" font="6">3</text>
+<text top="763" left="441" width="74" height="15" font="6">Enumerated</text>
+<text top="755" left="693" width="162" height="15" font="6">( sublet | month-to-month | </text>
+<text top="771" left="693" width="115" height="15" font="6">annual | bi-annual )</text>
+<text top="788" left="87" width="168" height="15" font="6">&lt;lease-min-length-months/&gt;</text>
+<text top="788" left="335" width="17" height="15" font="6">No</text>
+<text top="788" left="408" width="8" height="15" font="6">3</text>
+<text top="788" left="441" width="42" height="15" font="6">Integer</text>
+<text top="788" left="693" width="15" height="15" font="6">12</text>
+<text top="805" left="87" width="172" height="15" font="6">&lt;lease-max-length-months/&gt;</text>
+<text top="805" left="335" width="17" height="15" font="6">No</text>
+<text top="805" left="408" width="8" height="15" font="6">3</text>
+<text top="805" left="441" width="42" height="15" font="6">Integer</text>
+<text top="805" left="693" width="15" height="15" font="6">36</text>
+<text top="822" left="87" width="101" height="15" font="6">&lt;lease-periods/&gt;</text>
+<text top="822" left="389" width="162" height="15" font="11"><i>Container for lease periods</i></text>
+<text top="854" left="109" width="94" height="15" font="6">&lt;lease-period/&gt;</text>
+<text top="854" left="335" width="17" height="15" font="6">No</text>
+<text top="854" left="408" width="8" height="15" font="6">3</text>
+<text top="839" left="441" width="215" height="15" font="6">Integer | List the standard accepted </text>
+<text top="854" left="441" width="223" height="15" font="6">lease periods in months, individually. </text>
+<text top="870" left="441" width="92" height="15" font="6">Repeatable tag</text>
+<text top="854" left="693" width="15" height="15" font="6">12</text>
+<text top="887" left="87" width="95" height="15" font="6">&lt;lease-details/&gt;</text>
+<text top="887" left="335" width="17" height="15" font="6">No</text>
+<text top="887" left="408" width="8" height="15" font="6">3</text>
+<text top="887" left="441" width="35" height="15" font="6">String</text>
+<text top="887" left="693" width="132" height="15" font="6">Minimum 1 year lease</text>
+<text top="912" left="87" width="114" height="15" font="6">&lt;security-deposit/&gt;</text>
+<text top="912" left="335" width="17" height="15" font="6">No</text>
+<text top="912" left="408" width="8" height="15" font="6">3</text>
+<text top="904" left="441" width="235" height="15" font="6">Decimal | Current asking price (<b>NO</b> dol-</text>
+<text top="920" left="441" width="125" height="15" font="6">lar signs or commas)</text>
+<text top="912" left="693" width="30" height="15" font="6">2200</text>
+<text top="944" left="87" width="184" height="15" font="6">&lt;security-deposit-description/&gt;</text>
+<text top="944" left="335" width="17" height="15" font="6">No</text>
+<text top="944" left="408" width="8" height="15" font="6">3</text>
+<text top="944" left="441" width="35" height="15" font="6">String</text>
+<text top="937" left="693" width="162" height="15" font="6">Deposit paid back at lease </text>
+<text top="952" left="693" width="67" height="15" font="6">termination</text>
+<text top="977" left="87" width="107" height="15" font="6">&lt;application-fee/&gt;</text>
+<text top="977" left="335" width="17" height="15" font="6">No</text>
+<text top="977" left="408" width="8" height="15" font="6">3</text>
+<text top="969" left="441" width="235" height="15" font="6">Decimal | Current asking price (<b>NO</b> dol-</text>
+<text top="985" left="441" width="125" height="15" font="6">lar signs or commas)</text>
+<text top="977" left="693" width="15" height="15" font="6">50</text>
+<text top="1002" left="87" width="177" height="15" font="6">&lt;application-fee-description/&gt;</text>
+<text top="1002" left="335" width="17" height="15" font="6">No</text>
+<text top="1002" left="408" width="8" height="15" font="6">3</text>
+<text top="1002" left="441" width="35" height="15" font="6">String</text>
+<text top="1002" left="693" width="142" height="15" font="6">Paid with cash or check</text>
+<text top="1019" left="87" width="90" height="15" font="6">&lt;credit-cards/&gt;</text>
+<text top="1019" left="395" width="151" height="15" font="11"><i>Container for credit cards</i></text>
+<text top="1036" left="109" width="149" height="15" font="6">&lt;credit-cards-accepted/&gt;</text>
+<text top="1036" left="335" width="17" height="15" font="6">No</text>
+<text top="1036" left="408" width="8" height="15" font="6">3</text>
+<text top="1036" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="1036" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="1068" left="109" width="82" height="15" font="6">&lt;credit card/&gt;</text>
+<text top="1068" left="335" width="17" height="15" font="6">No</text>
+<text top="1068" left="408" width="8" height="15" font="6">3</text>
+<text top="1068" left="441" width="213" height="15" font="6">Enumerated value. <b>Repeatable tag</b></text>
+<text top="1053" left="693" width="140" height="15" font="6">(visa | mastercard | dis-</text>
+<text top="1068" left="693" width="162" height="15" font="6">cover | american express | </text>
+<text top="1084" left="693" width="35" height="15" font="6">other)</text>
+<text top="1101" left="87" width="45" height="15" font="6">&lt;pets/&gt;</text>
+<text top="1101" left="417" width="107" height="15" font="11"><i>Container for pets</i></text>
+</page>
+<page number="11" position="absolute" top="0" left="0" height="1188" width="918">
+<text top="71" left="65" width="83" height="13" font="5"><b>Element Name</b></text>
+<text top="71" left="304" width="52" height="13" font="5"><b>Required</b></text>
+<text top="71" left="394" width="22" height="13" font="5"><b>Tier</b></text>
+<text top="71" left="441" width="181" height="13" font="5"><b>Format | Description (if unclear)</b></text>
+<text top="71" left="693" width="164" height="13" font="5"><b>Enumerations/Sample Value </b></text>
+<text top="89" left="109" width="135" height="15" font="6">&lt;small-dogs-allowed/&gt;</text>
+<text top="89" left="335" width="17" height="15" font="6">No</text>
+<text top="89" left="408" width="8" height="15" font="6">3</text>
+<text top="89" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="89" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="106" left="109" width="134" height="15" font="6">&lt;large-dogs-allowed/&gt;</text>
+<text top="106" left="335" width="17" height="15" font="6">No</text>
+<text top="106" left="408" width="8" height="15" font="6">3</text>
+<text top="106" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="106" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="123" left="109" width="94" height="15" font="6">&lt;cats-allowed/&gt;</text>
+<text top="123" left="335" width="17" height="15" font="6">No</text>
+<text top="123" left="408" width="8" height="15" font="6">3</text>
+<text top="123" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="123" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="140" left="109" width="124" height="15" font="6">&lt;pet-other-allowed/&gt;</text>
+<text top="140" left="335" width="17" height="15" font="6">No</text>
+<text top="140" left="408" width="8" height="15" font="6">3</text>
+<text top="140" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="140" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="157" left="109" width="75" height="15" font="6">&lt;max-pets/&gt;</text>
+<text top="157" left="335" width="17" height="15" font="6">No</text>
+<text top="157" left="408" width="8" height="15" font="6">3</text>
+<text top="157" left="441" width="42" height="15" font="6">Integer</text>
+<text top="157" left="693" width="8" height="15" font="6">2</text>
+<text top="182" left="109" width="86" height="15" font="6">&lt;pet-deposit/&gt;</text>
+<text top="182" left="335" width="17" height="15" font="6">No</text>
+<text top="182" left="408" width="8" height="15" font="6">3</text>
+<text top="174" left="441" width="235" height="15" font="6">Decimal | Current asking price (<b>NO</b> dol-</text>
+<text top="190" left="441" width="125" height="15" font="6">lar signs or commas)</text>
+<text top="182" left="693" width="23" height="15" font="6">500</text>
+<text top="215" left="109" width="61" height="15" font="6">&lt;pet-fee/&gt;</text>
+<text top="215" left="335" width="17" height="15" font="6">No</text>
+<text top="215" left="408" width="8" height="15" font="6">3</text>
+<text top="207" left="441" width="235" height="15" font="6">Decimal | Current asking price (<b>NO</b> dol-</text>
+<text top="223" left="441" width="125" height="15" font="6">lar signs or commas)</text>
+<text top="215" left="693" width="15" height="15" font="6">50</text>
+<text top="247" left="109" width="66" height="15" font="6">&lt;pet-rent/&gt;</text>
+<text top="247" left="335" width="17" height="15" font="6">No</text>
+<text top="247" left="408" width="8" height="15" font="6">3</text>
+<text top="239" left="441" width="235" height="15" font="6">Decimal | Current asking price (<b>NO</b> dol-</text>
+<text top="255" left="441" width="125" height="15" font="6">lar signs or commas)</text>
+<text top="247" left="693" width="23" height="15" font="6">200</text>
+<text top="272" left="109" width="82" height="15" font="6">&lt;pet-weight/&gt;</text>
+<text top="272" left="335" width="17" height="15" font="6">No</text>
+<text top="272" left="408" width="8" height="15" font="6">3</text>
+<text top="272" left="441" width="112" height="15" font="6">Integer | In pounds</text>
+<text top="272" left="693" width="36" height="15" font="6">85 lbs</text>
+<text top="289" left="109" width="98" height="15" font="6">&lt;pet-comment/&gt;</text>
+<text top="289" left="335" width="17" height="15" font="6">No</text>
+<text top="289" left="408" width="8" height="15" font="6">3</text>
+<text top="289" left="441" width="35" height="15" font="6">String</text>
+<text top="289" left="693" width="79" height="15" font="6">Max two pets</text>
+<text top="306" left="87" width="116" height="15" font="6">&lt;utilities-included/&gt;</text>
+<text top="306" left="382" width="177" height="15" font="11"><i>Container for utilities included</i></text>
+<text top="323" left="109" width="142" height="15" font="6">&lt;landlord-pays-aircon/&gt;</text>
+<text top="323" left="335" width="17" height="15" font="6">No</text>
+<text top="323" left="408" width="8" height="15" font="6">3</text>
+<text top="323" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="323" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="340" left="109" width="173" height="15" font="6">&lt;landlord-pays-broadbandin-</text>
+<text top="356" left="65" width="46" height="15" font="6">ternet/&gt;</text>
+<text top="348" left="335" width="17" height="15" font="6">No</text>
+<text top="348" left="408" width="8" height="15" font="6">3</text>
+<text top="340" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="340" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="373" left="109" width="137" height="15" font="6">&lt;landlord-pays-cable/&gt;</text>
+<text top="373" left="335" width="17" height="15" font="6">No</text>
+<text top="373" left="408" width="8" height="15" font="6">3</text>
+<text top="373" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="373" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="390" left="109" width="148" height="15" font="6">&lt;landlord-pays-electric/&gt;</text>
+<text top="390" left="335" width="17" height="15" font="6">No</text>
+<text top="390" left="408" width="8" height="15" font="6">3</text>
+<text top="390" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="390" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="407" left="109" width="127" height="15" font="6">&lt;landlord-pays-gas/&gt;</text>
+<text top="407" left="335" width="17" height="15" font="6">No</text>
+<text top="407" left="408" width="8" height="15" font="6">3</text>
+<text top="407" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="407" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="424" left="109" width="131" height="15" font="6">&lt;landlord-pays-heat/&gt;</text>
+<text top="424" left="335" width="17" height="15" font="6">No</text>
+<text top="424" left="408" width="8" height="15" font="6">3</text>
+<text top="424" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="424" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="441" left="109" width="157" height="15" font="6">&lt;landlord-pays-hotwater/&gt;</text>
+<text top="441" left="335" width="17" height="15" font="6">No</text>
+<text top="441" left="408" width="8" height="15" font="6">3</text>
+<text top="441" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="441" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="458" left="109" width="151" height="15" font="6">&lt;landlord-pays-satellite/&gt;</text>
+<text top="458" left="335" width="17" height="15" font="6">No</text>
+<text top="458" left="408" width="8" height="15" font="6">3</text>
+<text top="458" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="458" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="475" left="109" width="141" height="15" font="6">&lt;landlord-pays-sewer/&gt;</text>
+<text top="475" left="335" width="17" height="15" font="6">No</text>
+<text top="475" left="408" width="8" height="15" font="6">3</text>
+<text top="475" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="475" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="492" left="109" width="164" height="15" font="6">&lt;landlord-pays-telephone/&gt;</text>
+<text top="492" left="335" width="17" height="15" font="6">No</text>
+<text top="492" left="408" width="8" height="15" font="6">3</text>
+<text top="492" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="492" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="509" left="109" width="135" height="15" font="6">&lt;landlord-pays-trash/&gt;</text>
+<text top="509" left="335" width="17" height="15" font="6">No</text>
+<text top="509" left="408" width="8" height="15" font="6">3</text>
+<text top="509" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="509" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="526" left="109" width="138" height="15" font="6">&lt;landlord-pays-water/&gt;</text>
+<text top="526" left="335" width="17" height="15" font="6">No</text>
+<text top="526" left="408" width="8" height="15" font="6">3</text>
+<text top="526" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="526" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="543" left="109" width="167" height="15" font="6">&lt;landlord-utilities-portion-in-</text>
+<text top="559" left="65" width="51" height="15" font="6">cluded/&gt;</text>
+<text top="551" left="335" width="17" height="15" font="6">No</text>
+<text top="551" left="408" width="8" height="15" font="6">3</text>
+<text top="543" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="543" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="575" left="87" width="127" height="15" font="6">&lt;utilities-comments/&gt;</text>
+<text top="575" left="376" width="189" height="15" font="11"><i>Container for utilities comments</i></text>
+<text top="594" left="109" width="121" height="15" font="6">&lt;utilities-comment/&gt;</text>
+<text top="594" left="335" width="17" height="15" font="6">No</text>
+<text top="594" left="408" width="8" height="15" font="6">3</text>
+<text top="594" left="441" width="142" height="15" font="6">String | <b>Repeatable tag</b></text>
+<text top="613" left="87" width="172" height="15" font="6">&lt;property-manager-on-site/&gt;</text>
+<text top="613" left="335" width="17" height="15" font="6">No</text>
+<text top="613" left="408" width="8" height="15" font="6">3</text>
+<text top="613" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="613" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="630" left="87" width="88" height="15" font="6">&lt;rent-control/&gt;</text>
+<text top="630" left="335" width="17" height="15" font="6">No</text>
+<text top="630" left="408" width="8" height="15" font="6">3</text>
+<text top="630" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="630" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="647" left="87" width="128" height="15" font="6">&lt;subletting-allowed/&gt;</text>
+<text top="647" left="335" width="17" height="15" font="6">No</text>
+<text top="647" left="408" width="8" height="15" font="6">3</text>
+<text top="647" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="647" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="664" left="87" width="88" height="15" font="6">&lt;rent-control/&gt;</text>
+<text top="664" left="335" width="17" height="15" font="6">No</text>
+<text top="664" left="408" width="8" height="15" font="6">3</text>
+<text top="664" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="664" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="681" left="87" width="128" height="15" font="6">&lt;subletting-allowed/&gt;</text>
+<text top="681" left="335" width="17" height="15" font="6">No</text>
+<text top="681" left="408" width="8" height="15" font="6">3</text>
+<text top="681" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="681" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="698" left="87" width="119" height="15" font="6">&lt;rental-broker-fee/&gt;</text>
+<text top="698" left="335" width="17" height="15" font="6">No</text>
+<text top="698" left="408" width="8" height="15" font="6">3</text>
+<text top="698" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="698" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="715" left="87" width="169" height="15" font="6">&lt;rental-broker-fee-amount/&gt;</text>
+<text top="715" left="335" width="17" height="15" font="6">No</text>
+<text top="715" left="408" width="8" height="15" font="6">3</text>
+<text top="715" left="441" width="232" height="15" font="6">Decimal | (<b>NO</b> dollar signs or commas)</text>
+<text top="715" left="693" width="23" height="15" font="6">250</text>
+<text top="734" left="65" width="121" height="15" font="6">&lt;advertise-with-us/&gt;</text>
+<text top="754" left="87" width="67" height="15" font="6">&lt;channel/&gt;</text>
+<text top="754" left="335" width="17" height="15" font="6">No</text>
+<text top="754" left="408" width="8" height="15" font="6">4</text>
+<text top="754" left="441" width="17" height="15" font="6">No</text>
+<text top="773" left="87" width="69" height="15" font="6">&lt;featured/&gt;</text>
+<text top="773" left="335" width="17" height="15" font="6">No</text>
+<text top="773" left="408" width="8" height="15" font="6">4</text>
+<text top="773" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="773" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="790" left="87" width="69" height="15" font="6">&lt;branded/&gt;</text>
+<text top="790" left="335" width="17" height="15" font="6">No</text>
+<text top="790" left="408" width="8" height="15" font="6">4</text>
+<text top="790" left="441" width="50" height="15" font="6">Boolean</text>
+<text top="790" left="693" width="56" height="15" font="6">(yes | no)</text>
+<text top="809" left="87" width="119" height="15" font="6">&lt;branded-logo-url/&gt;</text>
+<text top="809" left="335" width="17" height="15" font="6">No</text>
+<text top="809" left="408" width="8" height="15" font="6">4</text>
+<text top="809" left="441" width="17" height="15" font="6">No</text>
+</page>
+</pdf2xml>
