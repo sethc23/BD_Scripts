@@ -17,9 +17,9 @@ class PP_Functions:
         from json                               import dumps                as j_dump
         import re
         from random                             import randrange
-        self                                =   self.AP.Config.get_proxies(self)
+        #self                                =   self.AP.Config.get_proxies(self)
         from webpage_scrape                     import scraper
-        self.T['br']                        =   None if not self.T.browser_type else scraper(self.T.browser_type,proxy=self.T.proxy).browser
+        self.T['br']                        =   None if not self.T.browser_type else scraper(self.T.browser_type).browser
         all_imports                         =   locals().keys()
         for k in all_imports:
             if not self.T.has_key(k):
@@ -431,7 +431,7 @@ class PP_Functions:
                 try:
                     cmd                     =   ' '.join(
                                                     ['curl -s',
-                                                     '-x "%s"' % self.T.proxy,
+                                                     # '-x "%s"' % self.T.proxy,
                                                      '--max-time %s' % self.T.page_timeout,
                                                      '-H "Proxy-Connection:"',
                                                      '-A "Mozilla/5.0 (Windows; U; Windows NT 5.1; de; rv:1.9.2.3) Gecko/20100401 Firefox/3.6.3"',
@@ -605,7 +605,9 @@ class PP_Functions:
                                                         WHERE p1.uid=f1.uid
                                                         returning p1.*;
                                                         """%  self.T.guid,self.T.eng)
+
             if not len(items):                      return
+            
             h                                       =   self.T.getSoup(self.T.br.source())
             res                                     =   h.findAll('td',attrs={'class':'testimonials'})
             assert                      len(res)    >   0
@@ -917,10 +919,10 @@ class Auto_Poster:
         self.logged_in                      =   False
 
 
-        all_imports                         =   locals().keys()
-        for k in all_imports:
-            if not k=='D':
-                self.T.update(                  {k                      :   eval(k) })
+        # all_imports                         =   locals().keys()
+        # for k in all_imports:
+        #     if not k=='D':
+        #         self.T.update(                  {k                      :   eval(k) })
 
     def post_screenshot(self,br):
         fpath                           =   '/home/ub2/SERVER2/aprinto/static/phantom_shot'
@@ -1282,6 +1284,89 @@ class Auto_Poster:
             
             _parent.T['proxy']              =   _parent.T['proxies'].pop(0)
             return _parent
+
+        def get_proxy(self,new=True,timeout=5):
+            df                              =   self.T.pd.read_sql("select _setting,_list from pp_settings where _setting = any(array['working_proxies','failed_proxies'])",self.T.eng)
+            if new or len(df[df._setting=='working_proxies']._list.iloc[0])>25:
+                known_proxies               =   df._list[0] + df._list[1]
+                failed_proxies              =   []
+                user_id                     =   str(self.T.get_guid().hex)
+                url                         =   'http://gimmeproxy.com/api/get/%s/?timeout=%s'%(user_id,timeout)
+                cmd                         =   ' '.join(["curl -s '%s'" % url])
+                self.T.update(                  {'try_loop_start'           :   int((self.T.dt.datetime.now()-self.T.epoch).total_seconds())})
+                while True:
+                    res                     =   self.T.exec_cmds([cmd])[0]
+                    res                     =   eval(res)
+                    proxies                 =   {'http':res['curl']}
+
+                    try:
+                        assert known_proxies.count(proxies['http'])==0
+                        req                 =   self.T.requests.get('https://accounts.craigslist.org/login/home',timeout=timeout,proxies=proxies)
+                        assert req.ok      ==   True
+                        assert req.content.count('<title>craigslist: account log in</title>')>0
+                        # i_trace()
+                        break
+                    except:
+                        failed_proxies.append(  proxies['http'])
+                        if int((self.T.dt.datetime.now()-self.T.epoch).total_seconds()) - self.T.try_loop_start > self.T.try_loop_max_time:
+                            raise SystemError
+                            break
+                        else:
+                            pass
+                    # except self.T.requests.exceptions.ConnectionError as e:
+                    #     if e.message.reason.args[0]=='Cannot connect to proxy.':
+                    #         failed_proxies.append(proxies['http'])
+                    #         print 'failed',i
+                    # except self.T.requests.exceptions.Timeout as e:
+                    #     print 'timeout'
+                    #     failed_proxies.append(  proxies['http'])
+                    # except AssertionError:
+                    #     print 'some request error'
+                self.T.update(                  {'try_loop_start'           :   0})
+                if failed_proxies:
+                    cmd                     =   """
+                        WITH upd AS (
+                            UPDATE pp_settings set _list = array_cat(_list,array%(proxy)s)
+                            WHERE _setting = 'failed_proxies'
+                            RETURNING uid
+                            )
+                        INSERT INTO pp_settings (_setting,_list)
+                        SELECT 'failed_proxies',array%(proxy)s
+                        FROM (select array_agg(uid) all_uids from upd) f1
+                        WHERE all_uids is null
+                                                """ % {'proxy':str(failed_proxies)}
+
+                    self.T.conn.set_isolation_level(0)
+                    self.T.cur.execute(          cmd)
+
+                if not locals().keys().count('req'):
+                    raise SystemExit
+                    return False
+
+                if req.ok:
+                    cmd                             =   """
+                        WITH upd AS (
+                            UPDATE pp_settings set _list = array_cat(_list,array%(proxy)s)
+                            WHERE _setting = 'working_proxies'
+                            RETURNING uid
+                            )
+                        INSERT INTO pp_settings (_setting,_list)
+                        SELECT 'working_proxies',array%(proxy)s
+                        FROM (select array_agg(uid) all_uids from upd) f1
+                        WHERE all_uids is null
+                                                        """ % {'proxy':str([proxies['http']])}
+
+                    self.T.conn.set_isolation_level(0)
+                    self.T.cur.execute(         cmd)
+                    return proxies['http']
+                    # self.T.update(              {'proxy'                    :   proxies['http']})
+            else:
+                working_proxies             =   df[df._setting=='working_proxies']._list.iloc[0]
+                random_proxy                =   working_proxies[self.T.randrange(0,len(working_proxies))]
+                # self.T.update(                  {'proxy'                    :   proxies['http']})
+                return random_proxy
+            
+            return False
 
         def update_build_files(self):
             def make_dir_path(d_path,base_dir):

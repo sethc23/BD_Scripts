@@ -107,28 +107,37 @@ class Webdriver():
         from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
         # D                                 =   webdriver.PhantomJS()
         user_agent                          =   (
-                                                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_4) " +
-                                                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.57 Safari/537.36"
+                                                #"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_4) " +
+                                                #"AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.57 Safari/537.36"
+                                                "Mozilla/5.0 (Windows NT 5.1; rv:13.0) Gecko/20100101 Firefox/13.0.1"
                                                 )
         dcap                                =   dict(DesiredCapabilities.PHANTOMJS)
         dcap["phantomjs.page.settings.userAgent"] = user_agent
-        service_args                        =   ['--proxy=%s' % self.proxy[7:],
+        if proxy:
+            service_args                    =   ['--proxy=%s' % self.proxy[7:],
                                                  '--proxy-type=http',
                                                  '--webdriver-loglevel=DEBUG'
                                                  # '--local-to-remote-url-access=true',
                                                  ]
+        else:
+            service_args = []
+        service_args.extend(                    ['--remote-debugger-port=9001',
+                                                 #'--ssl-certificate-path=%s' % ssl_cert_path
+                                                 ])
+        #from ipdb import set_trace as i_trace; i_trace()
         d                                   =   webdriver.PhantomJS(executable_path='/usr/local/bin/phantomjs',
                                                                     desired_capabilities=dcap,
                                                                     service_args=service_args)
         
         #d.Remote.current_url(              self)
-        d.set_window_position(              0, 0)
-        d.set_window_size(                  300, 300)
+        # d.set_window_position(              0, 0)
+        # d.set_window_size(                  300, 300)
+        d.maximize_window()
         capabilities                        =   ['applicationCacheEnabled',
-                                                 'locationContextEnabled',
+                                                 #'locationContextEnabled',
                                                  'databaseEnabled',
                                                  'webStorageEnabled',
-                                                 'JavascriptEnabled',
+                                                 #'JavascriptEnabled',
                                                  'acceptSslCerts',
                                                  'browserConnectionEnabled',
                                                  'rotatable']
