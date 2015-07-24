@@ -8,6 +8,7 @@ TEMP=/tmp/temp.$$
 trap 'rm -f $TEMP; exit 0' 0 1 2 3 15
 tcp_files="https://www.hidemyass.com/vpn-config/TCP/"
 udp_files="https://www.hidemyass.com/vpn-config/UDP/"
+save_dir="/etc/openvpn/hma"
 
 # Checking for required packages
 curl=`which sed`
@@ -31,14 +32,14 @@ while [ -r $TEMP ]; do clear; title
 echo -e $yellow"Downloading $white$servers$yellow files:$white elapsed time $i seconds"$normal
 let i=i+1; sleep 1; done; }
 function start () { #clear; title
-#echo -e $yellow"This script will download/update your HideMyAss OpenVPN configuration files."$normal
-#echo -e $white"Are you sure you wish to continue?$red (y/n)"$normal
-#stty -echo; read -n 1 RESP; stty echo; echo
+echo -e $yellow"This script will download/update your HideMyAss OpenVPN configuration files."$normal
+echo -e $white"Are you sure you wish to continue?$red (y/n)"$normal
+stty -echo; read -n 1 RESP; stty echo; echo
 RESP="Y"
 case "$RESP" in
 	y|Y)	clear; title
-		#read -p "Your HMA! username: " username; stty -echo
-		#read -p "Your HMA! password: " password; stty echo; echo
+		read -p "Your HMA! username: " username; stty -echo
+		read -p "Your HMA! password: " password; stty echo; echo
 		username=`cat ~/.vpnpass | head -n 1`
         password=`cat ~/.vpnpass | tail -n 1`
         echo -e $green"Checking servers and files:"
@@ -50,19 +51,19 @@ case "$RESP" in
 		echo -e $green"\tUDP:$white $udp_servers"; sleep 1
 		touch $TEMP
 		show.progress &
-		rm rf /etc/openvpn/*.* > /dev/null 2>&1
-		#echo -e "$username \n$password" > /etc/openvpn/hmauser.pass
+		rm rf "$save_dir"/*.* > /dev/null 2>&1
+		echo -e "$username \n$password" > "$save_dir"/hmauser.pass
 		
-        wget --quiet -t 3 -T 20 -r -A.ovpn -nd --no-parent $tcp_files $udp_files -P /etc/openvpn/hma/
+        wget --quiet -t 3 -T 20 -r -A.ovpn -nd --no-parent $tcp_files $udp_files -P "$save_dir"/
 		
         rm -f $TEMP
-		# echo -e $green"done!$white You can find the files in$yellow /etc/openvpn/"$normal; sleep 1
-		# echo -e $white"Credentials stored in$yellow /etc/openvpn/hmauser.pass"$normal; sleep 1
-		# echo -e $white"Applying settings..."$normal
-		# sed -i 's|auth-user-pass|auth-user-pass /etc/openvpn/hmauser.pass|g' /etc/openvpn/*; sleep 5
-		#sed -i '/show-net-up/d' /etc/openvpn/*; sleep 1
-		#sed -i '/dhcp-renew/d' /etc/openvpn/*; sleep 1
-		#sed -i '/dhcp-release/d' /etc/openvpn/*; sleep 1
+		echo -e $green"done!$white You can find the files in$yellow $save_dir"$normal; sleep 1
+		echo -e $white"Credentials stored in$yellow $save_dir/hma.hmauser.pass"$normal; sleep 1
+		echo -e $white"Applying settings..."$normal
+		sed -i 's|auth-user-pass|auth-user-pass $save_dir/hmauser.pass|g' "$save_dir"/*; sleep 5
+		sed -i '/show-net-up/d' "$save_dir"/*; sleep 1
+		sed -i '/dhcp-renew/d' "$save_dir"/*; sleep 1
+		sed -i '/dhcp-release/d' "$save_dir"/*; sleep 1
 		echo -e $green"All done!"$normal ;;
 	n|N)	echo -e $green"Good bye!"$normal ;;
 esac; }
