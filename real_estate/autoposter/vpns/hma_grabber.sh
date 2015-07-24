@@ -33,37 +33,38 @@ echo -e $yellow"Downloading $white$servers$yellow files:$white elapsed time $i s
 let i=i+1; sleep 1; done; }
 function start () { #clear; title
 echo -e $yellow"This script will download/update your HideMyAss OpenVPN configuration files."$normal
-echo -e $white"Are you sure you wish to continue?$red (y/n)"$normal
-stty -echo; read -n 1 RESP; stty echo; echo
+###echo -e $white"Are you sure you wish to continue?$red (y/n)"$normal
+###stty -echo; read -n 1 RESP; stty echo; echo
 RESP="Y"
 case "$RESP" in
 	y|Y)	clear; title
-		read -p "Your HMA! username: " username; stty -echo
-		read -p "Your HMA! password: " password; stty echo; echo
+		###read -p "Your HMA! username: " username; stty -echo
+		###read -p "Your HMA! password: " password; stty echo; echo
 		username=`cat ~/.vpnpass | head -n 1`
         password=`cat ~/.vpnpass | tail -n 1`
+		#echo -e "$username \n$password" > "$save_dir"/hmauser.pass
         echo -e $green"Checking servers and files:"
-		tcp_servers=$(curl -s --compressed "$tcp_files" | grep -o '.ovpn"' | wc -l)
-		udp_servers=$(curl -s --compressed "$udp_files" | grep -o '.ovpn"' | wc -l)
-		servers=$[tcp_servers+udp_servers+crt_files+key_files]
-		echo -e $yellow"SERVER COUNTS:"; sleep 1
+        tcp_servers=$(curl -s --compressed "$tcp_files" | grep -o '.ovpn"' | wc -l)
+        udp_servers=$(curl -s --compressed "$udp_files" | grep -o '.ovpn"' | wc -l)
+        servers=$[tcp_servers+udp_servers+crt_files+key_files]
+        echo -e $yellow"SERVER COUNTS:"; sleep 1
         echo -e $green"\tTCP:$white $tcp_servers"; sleep 1
-		echo -e $green"\tUDP:$white $udp_servers"; sleep 1
-		touch $TEMP
-		show.progress &
-		rm rf "$save_dir"/*.* > /dev/null 2>&1
-		echo -e "$username \n$password" > "$save_dir"/hmauser.pass
-		
-        wget --quiet -t 3 -T 20 -r -A.ovpn -nd --no-parent $tcp_files $udp_files -P "$save_dir"/
+        echo -e $green"\tUDP:$white $udp_servers"; sleep 1
+        touch $TEMP
+        show.progress &
+        
+        rm rf "$save_dir"/*.ovpn > /dev/null 2>&1
+        wget --quiet -t 3 -T 20 -r -A.ovpn -nd --no-parent $tcp_files $udp_files -P $save_dir/
 		
         rm -f $TEMP
 		echo -e $green"done!$white You can find the files in$yellow $save_dir"$normal; sleep 1
-		echo -e $white"Credentials stored in$yellow $save_dir/hma.hmauser.pass"$normal; sleep 1
+		echo -e $white"Credentials stored in$yellow $save_dir/hmauser.pass"$normal; sleep 1
 		echo -e $white"Applying settings..."$normal
-		sed -i 's|auth-user-pass|auth-user-pass $save_dir/hmauser.pass|g' "$save_dir"/*; sleep 5
-		sed -i '/show-net-up/d' "$save_dir"/*; sleep 1
-		sed -i '/dhcp-renew/d' "$save_dir"/*; sleep 1
-		sed -i '/dhcp-release/d' "$save_dir"/*; sleep 1
+        cd "$save_dir"
+		sed -i 's|auth-user-pass|auth-user-pass hmauser.pass|g' ./*; sleep 5
+		sed -i '/show-net-up/d' ./*; sleep 1
+		sed -i '/dhcp-renew/d' ./*; sleep 1
+		sed -i '/dhcp-release/d' ./*; sleep 1
 		echo -e $green"All done!"$normal ;;
 	n|N)	echo -e $green"Good bye!"$normal ;;
 esac; }
