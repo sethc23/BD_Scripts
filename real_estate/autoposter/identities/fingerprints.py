@@ -116,7 +116,6 @@ class Identity:
             return 'e3e1ed2@gmail.com'
 
         def ssl_cert(self):
-
             
             D                                   =   {'_user_name'               :   self.email[:self.email.find('@')],
                                                      '_BASE_DIR'                :   self.T.os_environ['SERV_HOME'] + '/autoposter/identities',
@@ -188,14 +187,23 @@ class Identity:
             i_trace()
 
         def new(self):
-
-
             
             # self.guid                       =   str(self.T.get_guid().hex)[:7]
             # self.T.conn.set_isolation_level(    0)
             # self.T.cur.execute(                 "INSERT INTO identities (guid) VALUES ('%s');" % self.guid)
             self.guid='e3e1ed2'
-
+            self.details={"_org": "Ratke Inc", 
+                        "_city": "Tillamook", 
+                        "_name": "Ms. Theodora Lemke PhD", 
+                        "_email": "e3e1ed2@gmail.com", 
+                        "_state": "Oregon", 
+                        "_country": "US", 
+                        "_BASE_DIR": "/home/ub1/SERVER1/autoposter/identities", 
+                        "_SAVE_DIR": "/home/ub1/SERVER1/autoposter/identities/e3e1ed2", 
+                        "_org_unit": "Theme park manager", 
+                        "_user_name": "e3e1ed2", 
+                        "_state_abbr": "OR", 
+                        "_user_agent": "Mozilla/5.0 (Windows CE) AppleWebKit/5312 (KHTML, like Gecko) Chrome/15.0.874.0 Safari/5312"}
 
             #self.email                      =   self.gmail_act()
             #self.cookie                     =   self.cookie()

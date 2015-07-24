@@ -6,9 +6,10 @@ path.append(                                    '..')
 # import                             Safari_API
 from handle_cookies                         import getFirefoxCookie,set_cookies_from_text
 import mechanize
-from time                                   import time             as TIME
-from time                                   import sleep            as delay
+from time                                   import time                     as TIME
+from time                                   import sleep                    as delay
 
+from ipdb                                   import set_trace                as i_trace
 
 class Mechanize():
     
@@ -63,19 +64,21 @@ class Browsermob_Proxy():
      
 class Webdriver():
 
-    def __init__(self,browser,cookies,proxy):
+    def __init__(self,browser,**kwargs):
         self.browser            =   '  '
         self.type               =   browser
-        self.cookies            =   ''
-        self.proxy              =   proxy
-        if browser == 'firefox':    self.set_firefox(cookies,proxy)
-        if browser == 'phantom':    self.set_phantom(cookies,proxy)
-        if browser == 'chrome':     self.set_chrome(cookies,proxy)
+        
+        # for k,v in kwargs.iteritems():
+        #     setattr(self,k,v)
+
+        if browser == 'firefox':    self.set_firefox(**kwargs)
+        if browser == 'phantom':    self.set_phantom(**kwargs)
+        if browser == 'chrome':     self.set_chrome(**kwargs)
         self.window             =   self.browser
         from selenium.webdriver.common.keys import Keys 
         self.keys               =   Keys
     
-    def set_firefox(self,cookies,proxy,with_profile=False):
+    def set_firefox(self,with_profile=False,**kwargs):
         from selenium           import webdriver
         if with_profile==True:
             p                   =   webdriver.firefox.firefox_profile.FirefoxProfile()
@@ -91,7 +94,7 @@ class Webdriver():
             # profile = webdriver.firefox.firefox_profile.FirefoxProfile()
             self.browser        =   webdriver.Firefox()
 
-    def set_chrome(self,cookies,proxy,with_profile=False):
+    def set_chrome(self,with_profile=False,**kwargs):
         from selenium                       import webdriver
         if proxy:
             opts                            =   webdriver.ChromeOptions()
@@ -102,50 +105,79 @@ class Webdriver():
                                                                  chrome_options=opts)
         self.browser                        =   driver
     
-    def set_phantom(self,cookies,proxy):
+    def set_phantom(self,**kwargs):
         from selenium                       import webdriver
         from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
-        # D                                 =   webdriver.PhantomJS()
-        user_agent                          =   (
-                                                #"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_4) " +
-                                                #"AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.57 Safari/537.36"
-                                                "Mozilla/5.0 (Windows NT 5.1; rv:13.0) Gecko/20100101 Firefox/13.0.1"
-                                                )
+
+        self.T                              =   kwargs['To_Class'](kwargs)
+
+        # CAPABILITIES
         dcap                                =   dict(DesiredCapabilities.PHANTOMJS)
-        dcap["phantomjs.page.settings.userAgent"] = user_agent
-        if proxy:
-            service_args                    =   ['--proxy=%s' % self.proxy[7:],
-                                                 '--proxy-type=http',
-                                                 '--webdriver-loglevel=DEBUG'
-                                                 # '--local-to-remote-url-access=true',
-                                                 ]
-        else:
-            service_args = []
-        service_args.extend(                    ['--remote-debugger-port=9001',
-                                                 #'--ssl-certificate-path=%s' % ssl_cert_path
-                                                 ])
-        #from ipdb import set_trace as i_trace; i_trace()
+        if not hasattr(self.T.br.identity,'_user_agent'):
+            self.T.br.identity._user_agent       =   ("Mozilla/5.0 (Windows NT 5.1; rv:13.0) Gecko/20100101 Firefox/13.0.1")
+        dcap["phantomjs.page.settings.userAgent"] = self.T.br.identity._user_agent
+        known_capabilities                  =   ['applicationCacheEnabled',
+                                                 'locationContextEnabled',
+                                                 'databaseEnabled',
+                                                 'webStorageEnabled',
+                                                 'javascriptEnabled',
+                                                 'acceptSslCerts',
+                                                 'browserConnectionEnabled',
+                                                 'rotatable']
+        selected_capabilities               =   [] if not hasattr(self.T.br,'capabilities') else self.T.br.capabilities
+        for it in known_capabilities:
+            dcap[it]                        =   True if selected_capabilities.count(it) else False
+
+        # SERVICE ARGS
+        service_args                        =   []
+        if hasattr(self.T.br.service_args,'cookie_file'):
+            service_args.extend(                ['--cookies-file=%s'        % self.T.br.service_args.cookie_file])
+        if hasattr(self.T.br.service_args,'debug'):
+            service_args.extend(                ['--debug=%s'               % str(self.T.br.service_args.debug).lower()])
+        if hasattr(self.T.br.service_args,'ignore_ssl_errors'):
+            service_args.extend(                ['--ignore-ssl-errors=%s'   % str(self.T.br.service_args.ignore_ssl_errors).lower()])
+        if hasattr(self.T.br.service_args,'load_images'):
+            service_args.extend(                ['--load-images=%s'         % str(self.T.br.service_args.load_images).lower()])
+        if hasattr(self.T.br.service_args,'local_remote_access'):
+            service_args.extend(                ['--local-to-remote-url-access=%s' % str(self.T.br.service_args.local_remote_access).lower()])
+        if hasattr(self.T.br.service_args,'debugger_port'):
+            service_args.extend(                ['--remote-debugger-port=%s'% self.T.br.service_args.debugger_port])
+        if hasattr(self.T.br.service_args,'proxy'):
+            service_args.extend(                ['--proxy=%s'               % self.T.br.service_args.proxy[:7] if self.T.br.service_args.proxy.find('http://')==0 else self.T.br.service_args.proxy,
+                                                 '--proxy-type=http'])
+        if hasattr(self.T.br.service_args,'ssl_cert_path'):
+            service_args.extend(                ['--ssl-certificates-path=%s'% self.T.br.service_args.ssl_cert_path])
+        if hasattr(self.T.br.service_args,'wd_log_level'):
+            service_args.extend(                ['--webdriver-loglevel=%s'  % self.T.br.service_args.wd_log_level])
+
+        # INITIATE WEB DRIVER
         d                                   =   webdriver.PhantomJS(executable_path='/usr/local/bin/phantomjs',
                                                                     desired_capabilities=dcap,
                                                                     service_args=service_args)
         
-        #d.Remote.current_url(              self)
-        # d.set_window_position(              0, 0)
-        # d.set_window_size(                  300, 300)
-        d.maximize_window()
-        capabilities                        =   ['applicationCacheEnabled',
-                                                 #'locationContextEnabled',
-                                                 'databaseEnabled',
-                                                 'webStorageEnabled',
-                                                 #'JavascriptEnabled',
-                                                 'acceptSslCerts',
-                                                 'browserConnectionEnabled',
-                                                 'rotatable']
-        for it in capabilities:
-            d.desired_capabilities[it]      =   True
-        d.implicitly_wait(                      120)
-        d.set_page_load_timeout(                150)
-        self.browser                        =   d
+        # BROWSER CONFIG
+        if hasattr(self.T.br.browser_config,'window_position'):
+            d.set_window_position(              self.T.br.browser_config.window_position)
+
+        if hasattr(self.T.br.browser_config,'window_size'):
+            d.set_window_position(              self.T.br.browser_config.window_size)
+        else:
+            d.set_window_position(              300,300)
+        
+        if hasattr(self.T.br.browser_config,'maximize_window') and self.T.br.browser_config.maximize_window:
+            d.maximize_window(                  )
+        
+        if hasattr(self.T.br.browser_config,'implicitly_wait'):
+            d.implicitly_wait(                  self.T.br.browser_config.implicitly_wait)
+        else:
+            d.implicitly_wait(                  120)
+
+        if hasattr(self.T.br.browser_config,'page_load_timeout'):
+            d.set_page_load_timeout(            self.T.br.browser_config.page_load_timeout)
+        else:
+            d.set_page_load_timeout(            150)
+
+        self.T.br                           =   d
 
     def Select(self,element):
         """
@@ -343,7 +375,7 @@ class EXTRAS():
 
 class scraper():
 
-    def __init__(self,browser,cookies='',proxy=''):
+    def __init__(self,browser,**kwargs):
         # if proxy:
         #     self.proxy_server               =   Browsermob_Proxy('server')
         #     self.proxy_server.start(            )
@@ -352,14 +384,14 @@ class scraper():
         #     self.proxy_client               =   Browsermob_Proxy('client')
 
         if browser == 'mechanize':
-            t                               =   Mechanize(self,cookies)
+            t                               =   Mechanize(self)
             self.browser,self.browserType   =   t.browser,t.browserType
         
         if ['firefox','phantom','chrome'].count(browser):
-            self.browser                    =   Webdriver(browser,cookies,proxy)
+            self.browser                    =   Webdriver(browser,**kwargs)
         
         if browser == 'urllib2': 
-            self.browser                    =   Urllib2(self,cookies)
+            self.browser                    =   Urllib2(self)
 
     
 

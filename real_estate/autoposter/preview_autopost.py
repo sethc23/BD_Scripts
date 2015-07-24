@@ -7,7 +7,7 @@ from ipdb import set_trace as i_trace
 
 class PP_Functions:
 
-    def __init__(self,_parent):
+    def __init__(self,_parent,**kwargs):
 
         self.AP                             =   _parent
         self.T                              =   _parent.T
@@ -18,9 +18,53 @@ class PP_Functions:
         from json                               import dumps                as j_dump
         import re
         from random                             import randrange
-        #self                                =   self.AP.Config.get_proxies(self)
         from webpage_scrape                     import scraper
-        self.T['br']                        =   None if not self.T.browser_type else scraper(self.T.browser_type).browser
+
+        # CASE WHERE browser_type != ''
+        if not self.T.browser_type:
+            self.T['br']                    =   None
+
+        else:
+            self.T['br']                    =   self.T.To_Class({})
+
+            for k,v in kwargs.iteritems():
+                setattr(self.T.br,k,v)
+
+            if hasattr(self.T.br,'identity'):
+                D                           =   self.T.pd.read_sql("""select * from identities 
+                                                                      where guid='%(identity)s'"""%self.T.br,
+                                                                      self.T.eng).ix[0,:].to_dict()
+                self.T.br.identity          =   self.T.To_Class({})
+                for it in ['guid','email','pw','details']:
+                    setattr(                    self.T.br.identity,it,D[it])
+
+
+            self.T.br['service_args']       =   self.T.To_Class(
+                                                {'ignore_ssl_errors'        :   True,
+                                                 'load_images'              :   True,
+                                                 'debugger_port'            :   9901,
+                                                 'wd_log_level'             :   'DEBUG'})
+
+            if hasattr(self.T.br,'identity'):
+                self.T.br.service_args.update(  {'ssl_cert_path'            :   '%s/%s.pem' % (self.T.br.identity.details['_SAVE_DIR'],
+                                                                                               self.T.br.identity.guid),
+                                                 'cookie_file'              :   '%s/%s.cookie' % (self.T.br.identity.details['_SAVE_DIR'],
+                                                                                                  self.T.br.identity.guid),})
+                                                     
+            self.T.br['capabilities']       =   ['applicationCacheEnabled',
+                                                 'databaseEnabled',
+                                                 'webStorageEnabled',
+                                                 'acceptSslCerts',
+                                                 'browserConnectionEnabled',
+                                                 'rotatable']
+
+            self.T.br['browser_config']     =   {'window_size'              :   (300,300),
+                                                 'implicitly_wait'          :   120,
+                                                 'page_load_timeout'        :   150}
+
+            
+            self.T.br                       =   scraper(self.T.browser_type,**self.T.__dict__).browser
+        
         all_imports                         =   locals().keys()
         for k in all_imports:
             if not self.T.has_key(k):
@@ -857,7 +901,7 @@ class PP_Functions:
 class Auto_Poster:
     """Main class for initiating AutoPoster"""
 
-    def __init__(self,browser_type=None,proxy=True):
+    def __init__(self,browser_type=None,**kwargs):
         import                                  datetime            as dt
         epoch                               =   dt.datetime.now().utcfromtimestamp(0)
         from dateutil                       import parser           as DU
@@ -909,13 +953,13 @@ class Auto_Poster:
         self.T                              =   To_Class(D)
         all_imports                         =   locals().keys()
         for k in all_imports:
-            if not k=='D':
+            if not k=='D' and not k=='self':
                 self.T.update(                  {k                      :   eval(k) })
         globals().update(                       self.T.__getdict__())
         self.pgSQL                          =   self.pgSQL(self)
         self.Config                         =   self.Config(self)
         self.Maintenance                    =   self.Maintenance(self)
-        self.PP                             =   PP_Functions(self)
+        self.PP                             =   PP_Functions(self,**kwargs)
         self.gmail                          =   Google.Gmail(_parent=self,kwargs={'username'    :   'seth.chase.boston@gmail.com',
                                                                                   'pw'          :   'uwejjozvkkcahgrj'})
         self.Identity                       =   Identity(self)
@@ -1497,7 +1541,7 @@ class Auto_Poster:
                     self.T.update(                {k                      :   eval(k) })
 
 
-
+# x=Auto_Poster('phantom',identity='e3e1ed2')
 
 from sys import argv
 if __name__ == '__main__':
