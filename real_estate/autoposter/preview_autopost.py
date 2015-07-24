@@ -13,6 +13,7 @@ class PP_Functions:
         self.T                              =   _parent.T
         # locals().update(                        self.T.__getdict__())
         self.PP                             =   self
+        self.T.py_path.append(                  self.T.os_environ['BD'] + '/html')
         from HTML_API                           import getTagsByAttr,google,safe_url,getSoup
         from json                               import dumps                as j_dump
         import re
@@ -878,11 +879,14 @@ class Auto_Poster:
         from os                             import makedirs         as os_makedirs
         from uuid                           import uuid4            as get_guid
         from sys                            import path             as py_path
+        
+        from identities.fingerprints        import Identity,VPN
         py_path                             =   py_path
         py_path.append(                         os_environ['HOME'] + '/.scripts')
         from System_Control                 import Google
         from py_classes                     import To_Class
         from System_Control                 import System_Admin     as SA
+        
         sys_admin                           =   SA()
         DB                                  =   'autoposter'
         
@@ -914,7 +918,8 @@ class Auto_Poster:
         self.PP                             =   PP_Functions(self)
         self.gmail                          =   Google.Gmail(_parent=self,kwargs={'username'    :   'seth.chase.boston@gmail.com',
                                                                                   'pw'          :   'uwejjozvkkcahgrj'})
-        self.B                              =   self
+        self.Identity                       =   Identity(self)
+        self.VPN                            =   VPN(self)
 
         self.logged_in                      =   False
 

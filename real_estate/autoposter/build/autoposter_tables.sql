@@ -35,6 +35,17 @@ CREATE TABLE identities (
     details                                 jsonb
 );
 
+DROP TABLE IF EXISTS vpns CASCADE;
+CREATE TABLE vpns (
+    _type                                   text,
+    _country                                text,
+    _state                                  text,
+    _state_abbr                             text,
+    _city                                   text,
+    _local                                  text,
+    _file                                   text
+);
+
 DROP TABLE IF EXISTS pp_settings CASCADE;
 CREATE TABLE pp_settings (
     _setting                                text,
