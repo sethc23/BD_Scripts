@@ -61,7 +61,7 @@ case "$RESP" in
 		echo -e $white"Credentials stored in$yellow $save_dir/hmauser.pass"$normal; sleep 1
 		echo -e $white"Applying settings..."$normal
         cd "$save_dir"
-		sed -i 's|auth-user-pass|auth-user-pass /etc/openvpn/hma/hmauser.pass|g' ./*; sleep 5
+		sed -i 's|auth-user-pass|auth-user-pass hmauser.pass|g' ./*; sleep 5
 		sed -i '/show-net-up/d' ./*; sleep 1
 		sed -i '/dhcp-renew/d' ./*; sleep 1
 		sed -i '/dhcp-release/d' ./*; sleep 1

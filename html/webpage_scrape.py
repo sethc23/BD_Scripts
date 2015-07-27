@@ -177,7 +177,7 @@ class Webdriver():
         else:
             d.set_page_load_timeout(            150)
 
-        self.browser                        =   d
+        self.T.br                           =   d
 
     def Select(self,element):
         """
