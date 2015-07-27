@@ -24,3 +24,5 @@ RD/src/ENV/
 RD/.idea/
 ghostdriver.log
 ENV/
+*.*~
+
