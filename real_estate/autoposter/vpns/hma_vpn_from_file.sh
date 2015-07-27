@@ -21,12 +21,13 @@ Parameters:
 	-s            - print connection status and return exit code of 0 (connected), 1 (connecting), 2 (disconnected)
 	-c id-file    - file in which your HMA! credentials are stored (optional - you will be prompted if not provided)
 	                file should be: 1st line = username, 2nd line = password - file should be visible only to the current user
-	-t	      - checks and shows the top 10 fastest HMA! servers by latency
-	-f 	      - connects you to the fastest server based on latency (ping)
+	-g <path>     - loads configuration from <path>
+    -t	          - checks and shows the top 10 fastest HMA! servers by latency
+	-f 	          - connects you to the fastest server based on latency (ping)
 	-x            - stop the current (daemonized) HMA VPN connection
 	-n port       - port number to use (default 443 for TCP, 53 for UDP)
 	[server name] - this is grep pattern by which the script will filter server list (if multiple results, selects random server for connection)
-	-u	      - checks version and updates this script
+	-u	          - checks version and updates this script
 
 List servers:
 	$0 -l "New York"  - lists all servers in New York
@@ -329,9 +330,10 @@ fi
 if [[ $PATH != *"/usr/sbin"* ]]; then PATH=$PATH:/usr/sbin ; fi
 
 openvpn=`which openvpn`
-port=
-proto=
-authfile=
+port="10090"
+proto="tcp"
+authfile=`readlink -m ~/.vpnpass`
+cfgfile=
 list=0
 confonly=0
 stopvpn=0
@@ -339,13 +341,17 @@ printstatus=0
 asdaemon=0
 
 # Check for what parameter script was run with and act accordingly
-while getopts "ftduslxp:c:n:" parm
+while getopts "ftduslxp:c:n:g:" parm
 do
 	case $parm in
 	t)	pingtest
 		;;
 	f)      pingtest connect
 		;;
+    g)  if [ -z $cfgfile ]; then
+            cfgfile=`readlink -m "$OPTARG"`
+        fi
+        ;;
 	s)
 		printstatus=1
 		;;
@@ -364,10 +370,14 @@ do
 	u)	updatenow
 		;;
 	p)
-		proto="$OPTARG"
+		if [ -z $proto ]; then
+            proto="$OPTARG"
+        fi
 		;;
 	c)
-		authfile=`readlink -m "$OPTARG"`
+		if [ -z $authfile ]; then
+            authfile=`readlink -m "$OPTARG"`
+        fi
 		;;
 	?)	echo "unknown $parm / $OPTARG"
 	esac
@@ -417,71 +427,78 @@ udps=( )
 count=0
 full_cleanup
 
-# Download serverlist
-echo "Obtaining list of servers..."
-$curl https://securenetconnection.com/vpnconfig/servers-cli.php 2>/dev/null| grep -i -e "$grep" | grep -i -e "$proto" > /tmp/hma-servers
-exec < /tmp/hma-servers
+if [[ -z $cfgfile ]]; then
+    # Download serverlist
+    echo "Obtaining list of servers..."
+    $curl https://securenetconnection.com/vpnconfig/servers-cli.php 2>/dev/null| grep -i -e "$grep" | grep -i -e "$proto" > /tmp/hma-servers
+    exec < /tmp/hma-servers
 
-# If serverlist empty 
-if [[ "$(cat /tmp/hma-servers)" == "" ]]; then
-if [[ "$($curl https://securenetconnection.com/vpnconfig/servers-cli.php)" == "" ]] ; then
-	echo "Unable to fetch serverlist!"
-	echo "Please check your internet connection!"
-	exit
-fi
-fi
 
-rm /tmp/hma-servers
+    # If serverlist empty 
+    if [[ "$(cat /tmp/hma-servers)" == "" ]]; then
+    if [[ "$($curl https://securenetconnection.com/vpnconfig/servers-cli.php)" == "" ]] ; then
+    	echo "Unable to fetch serverlist!"
+    	echo "Please check your internet connection!"
+    	exit
+    fi
+    fi
 
-while read server
-do
-	: $(( count++ ))
-	ips[$count]=`echo "$server"|cut -d '|' -f 1`
-	udps[$count]=`echo "$server"|cut -d '|' -f 5`
-	locations[$count]=`echo "$server"|cut -d '|' -f 3`
-	tcps[$count]=`echo "$server"|cut -d '|' -f 4`
-	names[$count]=`echo "$server"|cut -d '|' -f 2`
-done
+    rm -f /tmp/hma-servers
 
-# No server matching grep pattern? Advise and exit; otherwise print match count
-if [ "$count" -lt 1 ] ; then
-	echo "No matching servers to connect: $grep"
-	exit
+
+    while read server
+    do
+    	: $(( count++ ))
+    	ips[$count]=`echo "$server"|cut -d '|' -f 1`
+    	udps[$count]=`echo "$server"|cut -d '|' -f 5`
+    	locations[$count]=`echo "$server"|cut -d '|' -f 3`
+    	tcps[$count]=`echo "$server"|cut -d '|' -f 4`
+    	names[$count]=`echo "$server"|cut -d '|' -f 2`
+    done
+
+    # No server matching grep pattern? Advise and exit; otherwise print match count
+    if [ "$count" -lt 1 ] ; then
+    	echo "No matching servers to connect: $grep"
+    	exit
+    else
+    	echo "$count servers matched"
+    fi
+
+    if [ $list -eq 1 ]; then
+    	for i in `seq 1 $count`; do
+    		echo -e "${ips[$i]}\t${tcps[$i]}\t${udps[$i]}\t(${locations[$i]}) ${names[$i]}"
+    	done
+    	exit
+    fi
+
+    # Select random server from matched servers
+    i=$(( $RANDOM%$count + 1 ))
+    SERVER="${names[$i]} ${ips[$i]}"
+    echo "Selected Server:"
+    echo -e $SERVER
+
+    # If protocol wasn't specified, use UDP
+    if [ "$proto" == "" ]; then
+    	if [ "$udps[$i]" != "" ]; then
+    		proto=udp
+    	else
+    		proto=tcp
+    	fi
+    fi
+
+    if [ "$port" == "" ]; then
+            if [ "$proto" == "tcp" ]; then
+            port=443
+            else
+            port=53
+            fi
+    fi
+
+    echo "Loading configuration..."	#
 else
-	echo "$count servers matched"
+    echo -n "Loading "
+    echo `echo "$cfgfile " | -r 's/^(.*)\/([A-Za-z0-9])/\2/g'`
 fi
-
-if [ $list -eq 1 ]; then
-	for i in `seq 1 $count`; do
-		echo -e "${ips[$i]}\t${tcps[$i]}\t${udps[$i]}\t(${locations[$i]}) ${names[$i]}"
-	done
-	exit
-fi
-
-# Select random server from matched servers
-i=$(( $RANDOM%$count + 1 ))
-SERVER="${names[$i]} ${ips[$i]}"
-echo "Selected Server:"
-echo -e $SERVER
-
-# If protocol wasn't specified, use UDP
-if [ "$proto" == "" ]; then
-	if [ "$udps[$i]" != "" ]; then
-		proto=udp
-	else
-		proto=tcp
-	fi
-fi
-
-if [ "$port" == "" ]; then
-        if [ "$proto" == "tcp" ]; then
-        port=443
-        else
-        port=53
-        fi
-fi
-
-echo "Loading configuration..."	#
 
 # Download *.ovpn template to temp file - silently
 $curl "https://securenetconnection.com/vpnconfig/openvpn-template.ovpn" > /tmp/hma-config.cfg 2>/dev/null
@@ -593,7 +610,14 @@ echo
 if [[ "$os" == *"Debian"* ]] || [[ "$os" == *"Ubuntu"* ]]; then
 	echo "Calling OpenVPN as service HERE..."
 	startas="service"
-	${SERVICE_INTERFACE} ${OPENVPN_SERVICE} start ${HMA_VPN_NAME} > /dev/null
+
+    if [ -z $cfgfile ]; then
+	   ${SERVICE_INTERFACE} ${OPENVPN_SERVICE} start ${HMA_VPN_NAME} > /dev/null
+    else
+        echo "RUNNING CUSTOM SCRIPT" 
+        $openvpn --daemon --script-security 2 --config $cfgfile
+    fi
+
 # Otherwise run OpenVPN as process
 else
 # elif [[ "$os" == *"CentOS"* ]] || [[ "$os" == *"Fedora"* ]]; then
