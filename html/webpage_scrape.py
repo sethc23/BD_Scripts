@@ -71,10 +71,13 @@ class Webdriver():
         # for k,v in kwargs.iteritems():
         #     setattr(self,k,v)
 
-        if browser == 'firefox':    self.set_firefox(**kwargs)
-        if browser == 'phantom':    self.set_phantom(**kwargs)
-        if browser == 'chrome':     self.set_chrome(**kwargs)
-        self.window             =   self.browser
+        if browser == 'firefox':    
+            self.window                     =   self.set_firefox(**kwargs)
+        if browser == 'phantom':    
+            self.window                     =   self.set_phantom(**kwargs)
+        if browser == 'chrome':    
+            self.window                     =   self.set_chrome(**kwargs)
+        # self.window             =   self.browser
         from selenium.webdriver.common.keys import Keys 
         self.keys               =   Keys
     
@@ -177,7 +180,7 @@ class Webdriver():
         else:
             d.set_page_load_timeout(            150)
 
-        self.T.br                           =   d
+        return d
 
     def Select(self,element):
         """

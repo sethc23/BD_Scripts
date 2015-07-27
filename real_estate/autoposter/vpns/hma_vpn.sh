@@ -589,14 +589,17 @@ echo
 
 # If Debian or Ubuntu, run OpenVPN as service
 if [[ "$os" == *"Debian"* ]] || [[ "$os" == *"Ubuntu"* ]]; then
-	echo "Calling OpenVPN as service..."
+	echo "Calling OpenVPN as service HERE..."
 	startas="service"
-	${SERVICE_INTERFACE} ${OPENVPN_SERVICE} start ${HMA_VPN_NAME} > /dev/null
+	#${SERVICE_INTERFACE} ${OPENVPN_SERVICE} start ${HMA_VPN_NAME} > /dev/null
+    echo "RUNNING SCRIPT HERE 1"
+    $openvpn --daemon --script-security 2 --config /home/ub2/BD_Scripts/real_estate/autoposter/vpns/USA.Oregon.Portland_LOC1S1.TCP.ovpn
 # Otherwise run OpenVPN as process
 else
 # elif [[ "$os" == *"CentOS"* ]] || [[ "$os" == *"Fedora"* ]]; then
 	echo "Calling OpenVPN as process..."
 	startas="process"
+    echo "RUNNING SCRIPT HERE 2"
 	$openvpn --daemon --config /etc/openvpn/${HMA_VPN_NAME}.conf
 fi
 

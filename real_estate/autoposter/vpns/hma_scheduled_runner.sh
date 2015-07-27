@@ -8,6 +8,7 @@ ovpn_file=$1
 process_to_run=$2
 vpn_cfg_dir="/etc/openvpn/hma"
 
+ovpn_file="/home/ub2/BD_Scripts/real_estate/autoposter/vpns/USA.Oregon.Portland_LOC1S1.TCP.ovpn"
 
 function show.progress () { i=0
 while [ -r $TEMP ]; do clear; title
@@ -18,18 +19,18 @@ let i=i+1; sleep 1; done; }
 cd "$vpn_cfg_dir"
 while true
 	do
-		#bash -l -i -c "openvpn --daemon --config $ovpn_file" # <<<< change the config file string to match your prefered server
+		bash -l -i -c "openvpn --daemon --config $ovpn_file" # <<<< change the config file string to match your prefered server
 		echo "openvpn --daemon --config $ovpn_file"
         echo "#####################"
 		echo "Press CTRL+C to stop."
 		echo "#####################"
 		echo "Waiting 60 seconds for connection to be established"
-        # show.progress &
-        #sleep 60 # <<<< wait for connection to be established
+         show.progress &
+        sleep 60 # <<<< wait for connection to be established
 		# do something here
         echo "Running Script"
         # bash -l -i -c "$process_to_run"
-        #bash -l -i -c "get_my_ip_ext"
+        bash -l -i -c "get_my_ip_ext"
         echo "Killing openVPN"
 		#killall openvpn # <<<< disconnect
         echo "Waiting 30 seconds to make sure that the openvpn has been properly disconnected"
