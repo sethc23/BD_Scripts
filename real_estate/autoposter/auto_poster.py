@@ -1695,13 +1695,14 @@ class Auto_Poster:
 
             def gmail_act(self):
 
-                
+                # self.T.br.open_page('https://accounts.google.com/SignUp?continue=https%3A%2F%2Fwww.google.com%2F%3Fgws_rd%3Dssl&hl=en')
                 return 'e3e1ed2@gmail.com'
 
             def user_profile(self):
                 self.T['id']                    =   self.T.To_Class({})
-                print 'NEED TO RE-ENABLE Identity.user_profile'
-                self.T.id['guid'] = 'e3e1ed2'
+                
+                # print 'NEED TO RE-ENABLE Identity.user_profile'
+                # self.T.id['guid'] = 'e3e1ed2'
 
                 # self.guid                       =   str(self.T.get_guid().hex)[:7]
                 # D                                   =   {#'_user_name'               :   self.email[:self.email.find('@')],
@@ -1742,7 +1743,7 @@ class Auto_Poster:
                 
                 # cmd                             =   """
 
-                                                        # NEED TO INSERT HERE
+                #                                         NEED TO INSERT HERE
 
                 #                                         UPDATE identities SET details = '%s'::jsonb
                 #                                         WHERE email = '%s';

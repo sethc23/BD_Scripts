@@ -99,11 +99,10 @@ class Webdriver():
 
     def set_chrome(self,with_profile=False,**kwargs):
         from selenium                       import webdriver
-        if proxy:
-            opts                            =   webdriver.ChromeOptions()
+        self.T                              =   kwargs['To_Class'](kwargs)
+        opts                                =   webdriver.ChromeOptions()
+        if hasattr(self.T,'proxy'):
             opts.add_argument(                  '--proxy-server=%s'%proxy)
-        else:
-            opts                            =   ''
         driver                              =   webdriver.Chrome(executable_path='/Users/admin/Desktop/chromedriver',
                                                                  chrome_options=opts)
         self.browser                        =   driver
@@ -309,6 +308,24 @@ class Webdriver():
     def screenshot(self,save_path='/Volumes/mbp2/Users/admin/Desktop/screen.png'):
         self.browser.save_screenshot(save_path)
     
+    def post_screenshot(self):
+        i_trace()
+        fpath                           =   '/home/ub2/SERVER2/aprinto/static/phantom_shot'
+        if THIS_PC=='ub2':
+            br.screenshot(                  fpath )
+        else:
+            br.screenshot(                  '/tmp/phantom_shot' )
+            cmds                        =   ['scp /tmp/phantom_shot %(host)s@%(serv)s:%(fpath)s;'
+                                             % ({ 'host'                :   'ub2',
+                                                  'serv'                :   'ub2',
+                                                  'fpath'               :   fpath }),
+                                             'rm -f /tmp/phantom_shot;']
+            p                           =   self.T.sub_popen(cmds,stdout=self.T.sub_PIPE,shell=True)
+            (_out,_err)                 =   p.communicate()
+            assert _out                ==   ''
+            assert _err                ==   None
+        return
+
     def quit(self):
         self.browser.quit()
 
@@ -374,7 +391,6 @@ class EXTRAS():
         """
         from selenium.webdriver.support.select import Select
         self._select            =   Select(element)
-
 
 class scraper():
 
