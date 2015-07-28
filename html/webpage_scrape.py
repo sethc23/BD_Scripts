@@ -61,7 +61,19 @@ class Browsermob_Proxy():
     def Client(self):
         from browsermobproxy                import Client
         self                                =   Client('%(scheme)s://%(remote_ip)s:%(remote_port)s' % self.prox_client_data)
-     
+
+class Nginx:
+    def __init__(self,_parent):
+        self.T                              =   _parent.T
+    def reload(self):
+        (_out,_err)                         =   self.T.exec_cmds(           ['bash -i -l -c "ng_reload"'],
+                                                                            root=True)
+        assert not _out and _err is None
+    def reload(self):
+        (_out,_err)                         =   self.T.exec_cmds(           ['bash -i -l -c "ng_reload"'],
+                                                                            root=True)
+        assert not _out and _err is None
+ 
 class Webdriver():
 
     def __init__(self,browser,**kwargs):
@@ -115,20 +127,11 @@ class Webdriver():
 
         # CAPABILITIES
         dcap                                =   dict(DesiredCapabilities.PHANTOMJS)
-        if not hasattr(self.T.br.identity,'_user_agent'):
-            self.T.br.identity._user_agent       =   ("Mozilla/5.0 (Windows NT 5.1; rv:13.0) Gecko/20100101 Firefox/13.0.1")
-        dcap["phantomjs.page.settings.userAgent"] = self.T.br.identity._user_agent
-        known_capabilities                  =   ['applicationCacheEnabled',
-                                                 'locationContextEnabled',
-                                                 'databaseEnabled',
-                                                 'webStorageEnabled',
-                                                 'javascriptEnabled',
-                                                 'acceptSslCerts',
-                                                 'browserConnectionEnabled',
-                                                 'rotatable']
-        selected_capabilities               =   [] if not hasattr(self.T.br,'capabilities') else self.T.br.capabilities
-        for it in known_capabilities:
-            dcap[it]                        =   True if selected_capabilities.count(it) else False
+        
+        if not hasattr(self.T.br.user_agent,'user_agent'):
+            self.T.br.user_agent            =   ("Mozilla/5.0 (Windows NT 5.1; rv:13.0) Gecko/20100101 Firefox/13.0.1")
+        dcap["phantomjs.page.settings.userAgent"] = self.T.br.user_agent
+        
 
         # SERVICE ARGS
         service_args                        =   []
@@ -156,6 +159,18 @@ class Webdriver():
         d                                   =   webdriver.PhantomJS(executable_path='/usr/local/bin/phantomjs',
                                                                     desired_capabilities=dcap,
                                                                     service_args=service_args)
+        # CAPABILITY CONFIG
+        known_capabilities                  =   ['applicationCacheEnabled',
+                                                 'locationContextEnabled',
+                                                 'databaseEnabled',
+                                                 'webStorageEnabled',
+                                                 'javascriptEnabled',
+                                                 'acceptSslCerts',
+                                                 'browserConnectionEnabled',
+                                                 'rotatable']
+        selected_capabilities               =   [] if not hasattr(self.T.br,'capabilities') else self.T.br.capabilities
+        for it in known_capabilities:
+            d.capabilities[it]              =   True if selected_capabilities.count(it) else False
         
         # BROWSER CONFIG
         if hasattr(self.T.br.browser_config,'window_position'):
@@ -348,11 +363,11 @@ class Urllib2():
 
     def __init__(self,browser,cookies):
         import urllib2
-        self.browser=urllib2
+        self.browser                        =   urllib2
         if cookies != '':
-            cj=set_cookies_from_text(cookies)
-            opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
-            self.browser.install_opener(opener)
+            cj                              =   set_cookies_from_text(cookies)
+            opener                          =   urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
+            self.browser.install_opener(        opener)
         
     def get_page(self, gotoUrl):
         return self.browser.urlopen(gotoUrl, data=None,timeout=3600)
