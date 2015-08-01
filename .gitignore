@@ -23,6 +23,6 @@ RD/src/perm_data/
 RD/src/ENV/
 RD/.idea/
 ghostdriver.log
-ENV/
+*/ENV/*
 *.*~
 
