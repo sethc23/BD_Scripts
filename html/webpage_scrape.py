@@ -11,7 +11,7 @@ from time                                   import sleep                    as d
 from ipdb                                   import set_trace                as i_trace
 from random                                 import randrange
 
-class Mechanize():
+class Mechanize:
     
     def __init__(self,browser,cookies):
         from mechanize import Browser
@@ -46,7 +46,7 @@ class Mechanize():
     def get_file(self,filePath,savePath):
         self.browser.retrieve(filePath, savePath,timeout=3600)[0]
 
-class Browsermob_Proxy():
+class Browsermob_Proxy:
     
     def __init__(self,package_type='server'):
         if package_type=='server':
@@ -70,7 +70,7 @@ class Nginx:
                                                                             root=True)
         assert not _out and _err is None
 
-class Webdriver():
+class Webdriver:
 
     def __init__(self,browser,**kwargs):
         self.browser            =   '  '
@@ -111,8 +111,17 @@ class Webdriver():
         opts                                =   webdriver.ChromeOptions()
         if hasattr(self.T,'proxy'):
             opts.add_argument(                  '--proxy-server=%s'%proxy)
-        d                                   =   webdriver.Chrome(executable_path='/usr/local/bin/chromedriver',
+        attempts                            =   0
+        while True:
+            try:
+                d                           =   webdriver.Chrome(executable_path='/usr/local/bin/chromedriver',
                                                                  chrome_options=opts)
+                break
+            except:
+                attempts                   +=   1
+            if attempts>=5:
+                raise SystemError
+                break
         return d
     
     def set_phantom(self,**kwargs):
@@ -219,7 +228,7 @@ class Webdriver():
         return ActionChains(browser)
 
     def execute(self,script,*args):
-        return self.window.execute(script,*args)
+        return self.window.execute_script(script,*args)
 
     def frame_count(self):
         return self.window.frame_attr()
@@ -235,37 +244,37 @@ class Webdriver():
         #sleep(10)
 
     def post_screenshot(self):
-        i_trace()
-        fpath                           =   '/home/ub2/SERVER2/aprinto/static/phantom_shot'
-        if THIS_PC=='ub2':
-            br.screenshot(                  fpath )
+        fpath                               =   '/home/ub2/.scripts/tmp/phantom_shot'
+        if self.T.THIS_PC=='ub2':
+            self.screenshot(                      fpath )
         else:
-            br.screenshot(                  '/tmp/phantom_shot' )
-            cmds                        =   ['scp /tmp/phantom_shot %(host)s@%(serv)s:%(fpath)s;'
-                                             % ({ 'host'                :   'ub2',
-                                                  'serv'                :   'ub2',
-                                                  'fpath'               :   fpath }),
-                                             'rm -f /tmp/phantom_shot;']
-            p                           =   self.T.sub_popen(cmds,stdout=self.T.sub_PIPE,shell=True)
-            (_out,_err)                 =   p.communicate()
-            assert _out                ==   ''
-            assert _err                ==   None
+            self.screenshot(                    '/tmp/phantom_shot' )
+            cmds                            =   ['scp /tmp/phantom_shot %(host)s@%(serv)s:%(fpath)s;'
+                                                 % ({ 'host'                :   'ub2',
+                                                      'serv'                :   'ub2',
+                                                      'fpath'               :   fpath }),
+                                                 'rm -f /tmp/phantom_shot;']
+            p                               =   self.T.sub_popen(cmds,stdout=self.T.sub_PIPE,shell=True)
+            (_out,_err)                     =   p.communicate()
+            assert _out                    ==   ''
+            assert _err                    ==   None
         return
 
     def quit(self):
         self.window.quit()
 
-    def randomize_keystrokes(self,browser,keys,element,**kwargs):
-        T                                   =   {'shortest_delay_ms'        :   100,
-                                                 'longest_delay_ms'         :   3000,
+    def randomize_keystrokes(self,keys,element,**kwargs):
+        T                                   =   {'shortest_delay_ms'        :   500,
+                                                 'longest_delay_ms'         :   1200,
                                                 }
         for k,v in kwargs:
             T.update(                           { k                         :   v })
         pauses                              =   map(lambda s: randrange(
                                                     T['shortest_delay_ms'],
                                                     T['longest_delay_ms'])//float(100),keys)
-        action_chain                        =   self.Actions(browser)
+
         for i in range(len(keys)):
+            action_chain                    =   self.Actions(self.window)
             action_chain.send_keys_to_element(  element,keys[i]).perform()
             delay(                              pauses[i])
         return True
@@ -275,6 +284,14 @@ class Webdriver():
 
     def screenshot(self,save_path='/Volumes/mbp2/Users/admin/Desktop/screen.png'):
         self.window.save_screenshot(save_path)
+
+    def scroll_to_element(self,element):
+        return self.window.execute_script('document.getElementById("%s").scrollIntoView(true)'%element)
+
+    def set_element_val(self,element,val,val_type):
+        _str_sub                            =   '"%s"' % val if val_type is str else '%s' % val
+        _script                             =   'var elem = document.getElementById("%s"); elem.value = %s;' % (element,_str_sub)
+        return self.window.execute_script( _script)
 
     def source(self):
         return self.window.page_source
@@ -361,6 +378,9 @@ class Webdriver():
     def window_count(self):
         return len(self.window.window_handles)
 
+    def zoom(self,percentage):
+        self.window.execute_script('document.body.style.zoom = "%s";' % percentage)
+
     def misc_code():
         #     jcode="document.title;"
         #     a=br.execute_script(jcode)
@@ -372,7 +392,7 @@ class Webdriver():
         #     br.switch_to_window(br.window_handles[0])
         pass
 
-class Urllib2():
+class Urllib2:
 
     def __init__(self,browser,cookies):
         import urllib2
@@ -385,7 +405,7 @@ class Urllib2():
     def get_page(self, gotoUrl):
         return self.browser.urlopen(gotoUrl, data=None,timeout=3600)
 
-class EXTRAS():
+class EXTRAS:
     """
     Usage:
         from html.webpage_scrape import EXTRAS
@@ -420,7 +440,7 @@ class EXTRAS():
         from selenium.webdriver.support.select import Select
         self._select            =   Select(element)
 
-class scraper():
+class scraper:
 
     def __init__(self,browser,**kwargs):
         # if proxy:

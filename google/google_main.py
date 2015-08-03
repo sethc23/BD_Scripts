@@ -20,6 +20,7 @@ class Google:
     class Voice:
 
         def __init__(self,_parent):
+            self._parent                    =   _parent
             self.T                          =   _parent.T
             # self.Voice                      =   self
             from googlevoice                import Voice
@@ -36,7 +37,9 @@ class Google:
     class Gmail:
 
         def __init__(self,_parent,**kwargs):
+            self._parent                    =   _parent
             self.T                          =   _parent.T
+
             for k in kwargs.keys():
                 if k in ['username','pw']:
                     self.T.update(              {k: kwargs[k]})
@@ -45,10 +48,12 @@ class Google:
             self.pw                         =   'meyqleanjtdfczpl' if not self.T.has_key('pw') else self.T.pw
 
             from os.path                    import getsize                  as os_getsize
+            from os.path                    import exists as os_path_exists
             import                              datetime                    as DT
             import                              time
             import                              gmail_client                as GC
-            from os.path                    import exists as os_path_exists
+            self.T.py_path.append(              self.T.os_environ['BD'] + '/files_folders')
+            from API_system                 import get_input
 
             attachments_path                =   self.T.os_environ['HOME'] + '/.gmail/attachments/'
             if not os_path_exists(              attachments_path):
@@ -278,24 +283,26 @@ class Google:
                     T.update(                   {account_info_dict[k]       :   v})
 
                 # FILL IN ANY MISSING INFO
-                from faker                  import Factory                  as fake_factory
-                F                           =   fake_factory.create()
 
                 if not T.has_key('FirstName') or not T.has_key('LastName'):
-                    g                       =   randrange(0,2)
-                    name                    =   F.name_female() if g==0 else F.name_male()
+                    g                       =   self.T.randrange(0,2)
+                    name                    =   self.T.Identity.F.name_female() if g==0 else self.T.Identity.F.name_male()
                     while len(name.split())!=2:
-                        name                =   F.name_female() if g==0 else F.name_male()
+                        name                =   self.T.Identity.F.name_female() if g==0 else self.T.Identity.F.name_male()
                     first,last              =   name.split()
                     T.update(                   {'FirstName':first,'LastName':last,'gender_num':g})
 
                 if not T.has_key('GmailAddress'):
-                    g                       =   str(self.T.get_guid().hex)[:10]
-                    T.update(                   {'GmailAddress':g,'Passwd':g,'PasswdAgain':g})
+                    _user                   =   str(self.T.get_guid().hex)[:10]
+                    _pw                     =   str(self.T.get_guid().hex)
+                    T.update(                   {'GmailAddress':_user,'Passwd':_pw,'PasswdAgain':_pw})
 
-                T.update(                       {'birth_month'              :   randrange(1,13),
-                                                 'BirthDay'                 :   randrange(1,29),
-                                                 'BirthYear'                :   randrange(1925,1990)})
+                T.update(                       {'birth_month'              :   self.T.randrange(1,13),
+                                                 'BirthDay'                 :   self.T.randrange(1,29),
+                                                 'BirthYear'                :   self.T.randrange(1925,1990)})
+                birth_month_dict            =   {10:'a',11:'b',12:'c'}
+                if birth_month_dict.keys().count(T['birth_month']):
+                    T['birth_month']        =   birth_month_dict[ T['birth_month'] ]
 
                 if not T.has_key('RecoveryPhoneNumber'):
                     T.update(                   {'RecoveryPhoneNumber'      :   '6174295700'})
@@ -305,46 +312,39 @@ class Google:
 
                 return T
 
-            self.T.py_path.append(              self.T.os_environ['BD'] + '/html')
-            from HTML_API                   import getTagsByAttr,google,safe_url,getSoup
-            from webpage_scrape             import scraper
-            from time                       import sleep                    as delay
-            from random                     import randrange
+
+            self.T.py_path.append(              self.T.os_environ['BD'] + '/real_estate/autoposter')
+            from auto_poster                import Auto_Poster
+            AP                              =   Auto_Poster(None,no_identity=True)
+            self.T.update(                      {'Identity'             :   AP.Identity})
+            self.T.update(                      AP.T.__getdict__())
+
 
             T                               =   setup_account_info()
 
-            self.T.scraper                  =   scraper
+
             self.T.br                       =   self.T.scraper('chrome',**self.T.__dict__).browser
 
             start_page                      =   ''.join(['https://accounts.google.com/SignUp?',
                                                          'continue=https%3A%2F%2Fwww.google.com%2F%3Fgws_rd%3Dssl&hl=en'])
             self.T.br.open_page(                start_page)
-            delay(                              10)
             min_wait                        =   4
             Actions                         =   self.T.br.Actions(self.T.br.window)
 
             form_parts                      =   ['FirstName','LastName','GmailAddress','Passwd','PasswdAgain']
             for it in form_parts:
-                pt                          =   self.T.br.window.find_element_by_id(it)
-                Actions.move_to_element(pt).click().perform()
-                delay(                          randrange(min_wait,11))
-                self.T.br.randomize_keystrokes( self.T.br.window,T[it],pt)
-                delay(                          randrange(min_wait,10))
+                self.T.br.set_element_val(      it,T[it],str)
+                self.T.delay(                   self.T.randrange(min_wait,10))
 
             self.T.br.window.find_element_by_xpath('//*[@id=":0"]').click()
-            delay(                              randrange(min_wait,7))
+            self.T.delay(                       self.T.randrange(min_wait+3,min_wait+9))
             self.T.br.window.find_element_by_xpath('//*[@id=":%(birth_month)s"]' % T).click()
-            delay(                              randrange(min_wait,9))
-
-            i_trace()
+            self.T.delay(                       self.T.randrange(min_wait,9))
 
             form_parts                      =   ['BirthDay','BirthYear']
             for it in form_parts:
-                pt                          =   self.T.br.window.find_element_by_id(it)
-                Actions.move_to_element(pt).click().perform()
-                delay(                          randrange(min_wait,9))
-                pt.send_keys(                   T[it])
-                delay(                          randrange(min_wait,10))
+                self.T.br.set_element_val(      it,T[it],int)
+                self.T.delay(                   self.T.randrange(min_wait,10))
 
             # Gender
             self.T.br.window.find_element_by_xpath('//*[@id=":d"]').click()        # Menu
@@ -354,55 +354,68 @@ class Google:
                 self.T.br.window.find_element_by_xpath('//*[@id=":f"]').click()    # Male
 
             # Phone // Current Email
-            form_parts                      =   ['RecoveryPhoneNumber','RecoveryEmailAddress']
-            for it in form_parts:
-                pt                          =   self.T.br.window.find_element_by_id(it)
-                Actions.move_to_element(pt).click().perform()
-                delay(                          randrange(min_wait,8))
-                pt.send_keys(                   T[it])
-                delay(                          randrange(min_wait,10))
+            self.T.br.set_element_val(          'RecoveryPhoneNumber',T['RecoveryPhoneNumber'],int)
+            self.T.delay(                       self.T.randrange(min_wait,10))
+            it                              =   'RecoveryEmailAddress'
+            self.T.br.set_element_val(          'RecoveryEmailAddress',T['RecoveryEmailAddress'],str)
+            self.T.delay(                       self.T.randrange(min_wait,10))
 
-
-            # i_trace()
-            #
-            # # CAPTCHA
-            # ['recaptcha_challenge_image']
-            # ['recaptcha_response_field']
-
+            # CAPTCHA
             K                               =   self.T.br.window.find_element_by_id('recaptcha_challenge_image')
             start_location                  =   self.T.br.window.get_window_position()
             start_size                      =   self.T.br.window.get_window_size()
-            tmp_location                    =   K.location_once_scrolled_into_view
-            tmp_size                        =   K.size
-            self.T.br.window.set_window_position(tmp_location['x'],tmp_location['y'])
-            self.T.br.window.set_window_size(   tmp_size['width'],tmp_size['height'])
-            self.T.br.post_screenshot(          br)
-            self.T.br.window.set_window_position   =   start_location
-            self.T.br.window.set_window_size       =   start_size
+            self.T.br.zoom(                     '200%')
+            self.T.br.window.set_window_size(   630,280)
+            self.T.br.scroll_to_element(        "recaptcha_challenge_image")
+            self.T.br.post_screenshot(          )
+            self.T.br.zoom(                     '100%')
+            self.T.br.window.set_window_size(   start_size['width'],start_size['height'])
 
+            # Communicate CAPTCHA
             self.T.update(                      {'line_no'                  :   self.T.I.currentframe().f_back.f_lineno})
-            self.T.SYS_r._growl(                '%(line_no)s SL@%(user)s<%(guid)s>: NEED CAPTCHA' % self.T,
-                                                'http://demo.aporodelivery.com/phantomjs.html' )
-            captcha_input                   =   get_input("Captcha code?\n")
-            br.window.find_element_by_id("captcha").send_keys(captcha_input)
-            br.window.find_element_by_name("submit").click()
-            z                               =   br.get_url()
+            self.T.Reporter._growl(             '%(line_no)s GOOG@%(user)s<%(guid)s>: NEED CAPTCHA' % self.T,
+                                                'http://sys.sanspaper.com/tmp/phantomjs.html' )
 
+            # Receive & Enter Input
+            captcha_input                   =   get_input("Captcha code?\n")
+            self.T.br.scroll_to_element(        "recaptcha_response_field")
+            self.T.br.set_element_val(          'recaptcha_response_field',captcha_input,str)
+
+            # VERIFY INFORMATION
+            most_vars_inputted              =   ['FirstName','LastName','GmailAddress',
+                                                 'BirthDay','BirthYear','RecoveryPhoneNumber','RecoveryEmailAddress']
+            for it in most_vars_inputted:
+                assert self.T.br.execute('return document.getElementById("%s").value;' % it) == str(T[it])
+            month_dict                      =   {1:'January',2:'February',3:'March',4:'April',5:'May',6:'June',
+                                                 7:'July',8:'August',9:'September','a':'October','b':'November','c':'December'}
+            assert self.T.br.window.find_element_by_xpath('//*[@id=":0"]').text == month_dict[ T['birth_month'] ]
+            gender_dict                     =   { 0:'Female',1:'Male'}
+            assert self.T.br.window.find_element_by_xpath('//*[@id=":d"]').text == gender_dict[ T['gender_num'] ]
+
+            self.T.br.scroll_to_element(        "TermsOfService")
+            self.T.br.window.execute_script(    'document.getElementById("TermsOfService").checked = true;')
 
             i_trace()
-            # VERIFY INFORMATION
 
-            # Policy Agreement // Submit Button
-            form_parts                      =   ['TermsOfService','submitbutton']
-            for it in form_parts:
-                pt                          =   self.T.br.window.find_element_by_id(it)
-                pt.click(                       )
-                delay(                          randrange(min_wait,8))
-                pt.send_keys(                   T[it])
-                delay(                          randrange(min_wait,10))
+            self.T.br.window.execute_script(    'document.getElementById("createaccount").submit();')
 
+            T['guid']                       =   T['GmailAddress']
+            T['email']                      =   T['GmailAddress'] + '@gmail.com'
+            T['pw']                         =   T.pop('Passwd')
+            details                         =   {'_name'                :   '%s %s' % (T['FirstName'],T['LastName']),}
+            details.update(                     {'_recovery_phone'      :   T['RecoveryPhoneNumber'],})
+            details.update(                     {'_recovery_email'      :   T['RecoveryEmailAddress'],})
+            details.update(                     {'_birthday'            :   '%04d.%02d.%02d' % (T['BirthYear'],
+                                                                                                T['birth_month'],
+                                                                                                T['BirthDay']),})
+            details.update(                     {'_gender'              :   gender_dict[ T['gender_num'] ],})
+            T['details']                    =   self.T.j_dump(details)
 
+            qry                             =   """ INSERT INTO identities (guid,email,pw,details)
+                                                    VALUES ('%(guid)s','%(email)s','%(pw)s','%(details)s'::jsonb) """ % T
+            self.T.conn.set_isolation_level(    0)
+            self.T.cur.execute(                 qry)
 
-            return T
+            return True
 
 
