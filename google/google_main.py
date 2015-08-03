@@ -416,6 +416,5 @@ class Google:
             self.T.conn.set_isolation_level(    0)
             self.T.cur.execute(                 qry)
 
-            return True
 
 

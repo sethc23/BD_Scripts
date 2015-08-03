@@ -128,7 +128,10 @@ class Webdriver:
         from selenium                       import webdriver
         from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
-        self.T                              =   kwargs['To_Class'](kwargs)
+        try:
+            self.T                              =   kwargs['To_Class'](kwargs)
+        except:
+            d                                   =   webdriver.PhantomJS(executable_path='/usr/local/bin/phantomjs')
 
         # CAPABILITIES
         dcap                                =   dict(DesiredCapabilities.PHANTOMJS)
@@ -153,7 +156,9 @@ class Webdriver:
         if hasattr(self.T.br.service_args,'debugger_port'):
             service_args.extend(                ['--remote-debugger-port=%s'% self.T.br.service_args.debugger_port])
         if hasattr(self.T.br.service_args,'proxy'):
-            service_args.extend(                ['--proxy=%s'               % self.T.br.service_args.proxy[:7] if self.T.br.service_args.proxy.find('http://')==0 else self.T.br.service_args.proxy,
+            service_args.extend(                ['--proxy=%s'               % self.T.br.service_args.proxy[:7]
+                                                                                if self.T.br.service_args.proxy.find('http://')==0
+                                                                                else self.T.br.service_args.proxy,
                                                  '--proxy-type=http'])
         if hasattr(self.T.br.service_args,'ssl_cert_path'):
             service_args.extend(                ['--ssl-certificates-path=%s'% self.T.br.service_args.ssl_cert_path])
