@@ -1,15 +1,15 @@
 
-from time                                   import sleep
 from sys                                    import argv, path
 path.append(                                    '../appscript')
 path.append(                                    '..')
-# import                             Safari_API
+# import                                    Safari_API
 from handle_cookies                         import getFirefoxCookie,set_cookies_from_text
 import mechanize
+from selenium.webdriver.common.keys         import Keys
 from time                                   import time                     as TIME
 from time                                   import sleep                    as delay
-
 from ipdb                                   import set_trace                as i_trace
+from random                                 import randrange
 
 class Mechanize():
     
@@ -69,11 +69,7 @@ class Nginx:
         (_out,_err)                         =   self.T.exec_cmds(           ['bash -i -l -c "ng_reload"'],
                                                                             root=True)
         assert not _out and _err is None
-    def reload(self):
-        (_out,_err)                         =   self.T.exec_cmds(           ['bash -i -l -c "ng_reload"'],
-                                                                            root=True)
-        assert not _out and _err is None
- 
+
 class Webdriver():
 
     def __init__(self,browser,**kwargs):
@@ -115,9 +111,9 @@ class Webdriver():
         opts                                =   webdriver.ChromeOptions()
         if hasattr(self.T,'proxy'):
             opts.add_argument(                  '--proxy-server=%s'%proxy)
-        driver                              =   webdriver.Chrome(executable_path='/Users/admin/Desktop/chromedriver',
+        d                                   =   webdriver.Chrome(executable_path='/usr/local/bin/chromedriver',
                                                                  chrome_options=opts)
-        self.browser                        =   driver
+        return d
     
     def set_phantom(self,**kwargs):
         from selenium                       import webdriver
@@ -216,21 +212,72 @@ class Webdriver():
         from selenium.webdriver.support.select import Select
         return Select(element)
 
-    def open_page(self, gotoUrl):
-        self.browser.get(gotoUrl)
-        #sleep(10)
-    
-    def source(self):
-        return self.browser.page_source
-
-    def get_cookies(self):
-        self.cookies=self.browser.get_cookies()
-    
-    def get_url(self):
-        return self.browser.current_url
+    def Actions(self,browser):
+        """See here: https://selenium-python.readthedocs.org/api.html#module-selenium.webdriver.common.action_chains """
+        from selenium.webdriver.common.action_chains import ActionChains
+        # Example: action_chains.context_click(p).perform()
+        return ActionChains(browser)
 
     def execute(self,script,*args):
-        return self.browser.execute(script,*args)
+        return self.window.execute(script,*args)
+
+    def frame_count(self):
+        return self.window.frame_attr()
+
+    def get_cookies(self):
+        self.cookies=self.window.get_cookies()
+
+    def get_url(self):
+        return self.window.current_url
+
+    def open_page(self, gotoUrl):
+        self.window.get(gotoUrl)
+        #sleep(10)
+
+    def post_screenshot(self):
+        i_trace()
+        fpath                           =   '/home/ub2/SERVER2/aprinto/static/phantom_shot'
+        if THIS_PC=='ub2':
+            br.screenshot(                  fpath )
+        else:
+            br.screenshot(                  '/tmp/phantom_shot' )
+            cmds                        =   ['scp /tmp/phantom_shot %(host)s@%(serv)s:%(fpath)s;'
+                                             % ({ 'host'                :   'ub2',
+                                                  'serv'                :   'ub2',
+                                                  'fpath'               :   fpath }),
+                                             'rm -f /tmp/phantom_shot;']
+            p                           =   self.T.sub_popen(cmds,stdout=self.T.sub_PIPE,shell=True)
+            (_out,_err)                 =   p.communicate()
+            assert _out                ==   ''
+            assert _err                ==   None
+        return
+
+    def quit(self):
+        self.window.quit()
+
+    def randomize_keystrokes(self,browser,keys,element,**kwargs):
+        T                                   =   {'shortest_delay_ms'        :   100,
+                                                 'longest_delay_ms'         :   3000,
+                                                }
+        for k,v in kwargs:
+            T.update(                           { k                         :   v })
+        pauses                              =   map(lambda s: randrange(
+                                                    T['shortest_delay_ms'],
+                                                    T['longest_delay_ms'])//float(100),keys)
+        action_chain                        =   self.Actions(browser)
+        for i in range(len(keys)):
+            action_chain.send_keys_to_element(  element,keys[i]).perform()
+            delay(                              pauses[i])
+        return True
+
+    def reset_frames(self):
+        return self.window.switch_to_window(self.window.current_window_handle)
+
+    def screenshot(self,save_path='/Volumes/mbp2/Users/admin/Desktop/screen.png'):
+        self.window.save_screenshot(save_path)
+
+    def source(self):
+        return self.window.page_source
 
     def wait_for_condition(self,condition,param1,param2,invert=False,timeout_seconds=45,poll_frequency=0.5):
         """
@@ -292,10 +339,10 @@ class Webdriver():
 
 
         if not invert:
-            WebDriverWait(self.browser, timeout_seconds,poll_frequency).until(
+            WebDriverWait(self.window, timeout_seconds,poll_frequency).until(
                 expected_conditions(condition,param1,param2))
         else:
-            WebDriverWait(self.browser, timeout_seconds,poll_frequency).until_not(
+            WebDriverWait(self.window, timeout_seconds,poll_frequency).until_not(
                 expected_conditions(condition,param1,param2))
 
     def wait_for_page(self,timeout_seconds=45):
@@ -305,44 +352,14 @@ class Webdriver():
         end                     =   TIME() + timeout_seconds
         delay(                      1)
         while TIME()<end:
-            status              =   self.browser.execute_script("return document.readyState")
+            status              =   self.window.execute_script("return document.readyState")
             if status=='complete':
                 return
             else:
                 delay(              2)
 
     def window_count(self):
-        return len(self.browser.window_handles)
-    
-    def frame_count(self):
-        return self.browser.frame_attr()
-
-    def reset_frames(self):
-        return self.window.switch_to_window(self.window.current_window_handle)
-    
-    def screenshot(self,save_path='/Volumes/mbp2/Users/admin/Desktop/screen.png'):
-        self.browser.save_screenshot(save_path)
-    
-    def post_screenshot(self):
-        i_trace()
-        fpath                           =   '/home/ub2/SERVER2/aprinto/static/phantom_shot'
-        if THIS_PC=='ub2':
-            br.screenshot(                  fpath )
-        else:
-            br.screenshot(                  '/tmp/phantom_shot' )
-            cmds                        =   ['scp /tmp/phantom_shot %(host)s@%(serv)s:%(fpath)s;'
-                                             % ({ 'host'                :   'ub2',
-                                                  'serv'                :   'ub2',
-                                                  'fpath'               :   fpath }),
-                                             'rm -f /tmp/phantom_shot;']
-            p                           =   self.T.sub_popen(cmds,stdout=self.T.sub_PIPE,shell=True)
-            (_out,_err)                 =   p.communicate()
-            assert _out                ==   ''
-            assert _err                ==   None
-        return
-
-    def quit(self):
-        self.browser.quit()
+        return len(self.window.window_handles)
 
     def misc_code():
         #     jcode="document.title;"
@@ -353,10 +370,6 @@ class Webdriver():
         #     br.find_element_by_xpath("//a[contains(@href,'"+it+"')]").click()  
         #     br.get_window_size('current')
         #     br.switch_to_window(br.window_handles[0])
-        #     from selenium.webdriver.common.action_chains import ActionChains
-        #     action_chains = ActionChains(br)
-        #     q=action_chains.context_click(p).perform()
-        #     br.save_screenshot('/Users/admin/Desktop/screen.png')
         pass
 
 class Urllib2():

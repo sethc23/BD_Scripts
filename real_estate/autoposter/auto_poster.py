@@ -869,8 +869,12 @@ class PP_Functions:
 
         self.T.br.quit()
 
-# """Main Class for Initiating & Managing AutoPoster"""
 class Auto_Poster:
+    """Main Class for Initiating & Managing AutoPoster
+
+        Examples:
+            Auto_Poster('chrome',no_identity=True)
+    """
 
     def __init__(self,browser_type=None,**kwargs):
         import                                  datetime            as dt
@@ -935,31 +939,17 @@ class Auto_Poster:
                                                                                   'pw'          :   'uwejjozvkkcahgrj'})
         self.logged_in                      =   False
 
+        # if not hasattr(self.T,'kw_no_identity'):
         self.T.id                           =   self.Identity.get()
-        self.T.br                           =   self.Browser(self)
+        browser_class                       =   self.Browser(self)
+        self.T.br                           =   browser_class.build()
 
+        globals().update(                       self.T.__getdict__())
 
         # all_imports                         =   locals().keys()
         # for k in all_imports:
         #     if not k=='D':
         #         self.T.update(                  {k                      :   eval(k) })
-
-    def post_screenshot(self,br):
-        fpath                           =   '/home/ub2/SERVER2/aprinto/static/phantom_shot'
-        if THIS_PC=='ub2':
-            br.screenshot(                  fpath )
-        else:
-            br.screenshot(                  '/tmp/phantom_shot' )
-            cmds                        =   ['scp /tmp/phantom_shot %(host)s@%(serv)s:%(fpath)s;'
-                                             % ({ 'host'                :   'ub2',
-                                                  'serv'                :   'ub2',
-                                                  'fpath'               :   fpath }),
-                                             'rm -f /tmp/phantom_shot;']
-            p                           =   self.T.sub_popen(cmds,stdout=self.T.sub_PIPE,shell=True)
-            (_out,_err)                 =   p.communicate()
-            assert _out                ==   ''
-            assert _err                ==   None
-        return
 
     class pgSQL:
 
@@ -1599,10 +1589,10 @@ class Auto_Poster:
                                                                    """      %   self.T.id.details,self.T.eng)
             
             nbr = self._parent.Browser(self).build()
-            i_trace()   
+            i_trace()
             # # FIND
             # for idx,row in vpns.iterrows():
-                
+
             #     # START SERVER
             #     cmd                         =   [' '.join([
             #                                         'sudo %s/hma_vpn.sh'    %   self.vpn_exec_path,
@@ -1615,7 +1605,7 @@ class Auto_Poster:
             #     wait_time                   =   3*60 # 3 minute wait
             #     end_time                    =   self.T.time.time() + wait_time
             #     while True:
-                    
+
             #         if self.T.time.time()>end_time:
             #             self.T.id.ip_addr   =   ''
             #             break
@@ -1623,7 +1613,7 @@ class Auto_Poster:
             #         cmd                     =   ['%s/hma_vpn.sh -s' %   self.vpn_exec_path,]
             #         (_out,_err)             =   self.T.exec_cmds(cmd,root=True)
             #         assert _err is None
-                    
+
             #         if _out.count('Connected to')>0:
             #             (_out,_err)         =   self.T.exec_cmds(['bash -l -i -c "get_my_ip_ext 2>&1"'])
             #             assert _err is None
@@ -1640,7 +1630,7 @@ class Auto_Poster:
             #     break
 
             return self.T.id.details.vpn
-                
+
     class Identity:
         
         def __init__(self,_parent):
@@ -1660,13 +1650,14 @@ class Auto_Poster:
             for k in all_imports:
                 if not k=='D' and not k=='self':
                     self.T.update(              {k                      :   eval(k) })
+            globals().update(                   self.T.__getdict__())
 
         def get(self):
             if (
-                not self.T.browser_type 
-                and not hasattr(self.T,'kw_identity')
-                and not hasattr(self.T,'id')  
-                ):   
+                #not self.T.browser_type
+                not hasattr(self.T,'kw_identity')
+                and not hasattr(self.T,'id')
+                ):
                 return
 
             D                               =   self.T.pd.read_sql("""  select * from identities 
@@ -1696,7 +1687,7 @@ class Auto_Poster:
                 self.T                      =   _parent.T
                 # for attr, value in _parent.__dict__.iteritems():
                     # setattr(self,attr,value)
-                    
+
             def update_db(self):
                 cmd                             =   """ CREATE TABLE IF NOT EXISTS identities (
                                                         guid                                    text,
@@ -1712,7 +1703,7 @@ class Auto_Poster:
                 self.T.cur.execute(                 cmd)
 
             def gmail_act(self):
-
+                i_trace()
                 # self.T.br.open_page('https://accounts.google.com/SignUp?continue=https%3A%2F%2Fwww.google.com%2F%3Fgws_rd%3Dssl&hl=en')
                 return '34744f6@gmail.com'
 
@@ -1851,21 +1842,25 @@ class Auto_Poster:
 
         def build(self):
             def chrome():
+                return self.T.scraper('chrome',**self.T.__dict__).browser
 
-                pass
             def phantom():
                 self.T['br']                =   self.T.To_Class({})
-                self.T.br.user_agent        =   self.T.id.details.user_agent
-                self.T.br['service_args']   =   self.T.To_Class(
-                                                    {'ignore_ssl_errors'        :   True,
-                                                     'load_images'              :   True,
-                                                     #'debugger_port'            :   9901,
-                                                     'wd_log_level'             :   'DEBUG',
-                                                     'ssl_cert_path'            :   '%s/%s.pem' % (self.T.id.details.SAVE_DIR,
-                                                                                                   self.T.id.guid),
-                                                     'cookie_file'              :   '%s/%s.cookie' % (self.T.id.details.SAVE_DIR,
-                                                                                                      self.T.id.guid),})
-                                                         
+                if not self.T.id:
+                    self.T.br.user_agent        =   self.T._parent.Identity.F.user_agent()
+                    self.T.br['service_args']   =   self.T.To_Class({})
+                else:
+                    self.T.br.user_agent        =   self.T.id.details.user_agent
+                    self.T.br['service_args']   =   self.T.To_Class(
+                                                        {'ignore_ssl_errors'        :   True,
+                                                         'load_images'              :   True,
+                                                         #'debugger_port'            :   9901,
+                                                         'wd_log_level'             :   'DEBUG',
+                                                         'ssl_cert_path'            :   '%s/%s.pem' % (self.T.id.details.SAVE_DIR,
+                                                                                                       self.T.id.guid),
+                                                         'cookie_file'              :   '%s/%s.cookie' % (self.T.id.details.SAVE_DIR,
+                                                                                                          self.T.id.guid),})
+
                 self.T.br['capabilities']       =   ['applicationCacheEnabled',
                                                      'databaseEnabled',
                                                      'webStorageEnabled',
@@ -1883,7 +1878,7 @@ class Auto_Poster:
             # CASE WHERE browser_type != ''
             if not self.T.browser_type:                                     return None
 
-            else:               
+            else:
                 
                 if not hasattr(self.T,'id'):
                     if hasattr(self.T,'kw_identity'):
@@ -1897,15 +1892,13 @@ class Auto_Poster:
                         self.AP.Identity.Create.new()
 
 
-            # if self.T.browser_type=='phantom':                              return phantom()
-            # if self.T.browser_type=='chrome':                               return chrome()
-            
-            if self.T.browser_type=='phantom':
-                self.T.br = phantom()
-
-            i_trace()
-
-            return self.T.br
+            if self.T.browser_type=='phantom':                              return phantom()
+            if self.T.browser_type=='chrome':                               return chrome()
+            #
+            # if self.T.browser_type=='phantom':
+            #     self.T.br                   =   phantom()
+            #
+            # return self.T.br
                 
 
 
