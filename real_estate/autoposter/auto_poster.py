@@ -1718,7 +1718,7 @@ class Auto_Poster:
             def user_profile(self):
                 def make_user_details():
                     D                       =   {#'_user_name'               :   self.email[:self.email.find('@')],
-                                                 '_BASE_DIR'                :   self.T.os_environ['SERV_HOME'] + '/autoposter/identities',
+                                                 '_BASE_DIR'                :   self.T.os_environ['BD'] + '/real_estate/autoposter/identities',
                                                  '_user_agent'              :   self.T.F.user_agent().replace("'",'')}
                     D.update(                   {'_SAVE_DIR'                :   '%s/%s' % (D['_BASE_DIR'],self.T.id.guid)})
                     vpns                    =   self.T.pd.read_sql("select * from vpns where _type='TCP'",self.T.eng)
