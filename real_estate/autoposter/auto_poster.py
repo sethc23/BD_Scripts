@@ -1587,47 +1587,44 @@ class Auto_Poster:
             vpns                            =   self.T.pd.read_sql("""
                                                                    select * from vpns where _state_abbr='%(state_abbr)s'
                                                                    """      %   self.T.id.details,self.T.eng)
-            
-            nbr = self._parent.Browser(self).build()
-            i_trace()
-            # # FIND
-            # for idx,row in vpns.iterrows():
+            chk_page                        =   'https://accounts.craigslist.org/'
+            for idx,row in vpns.iterrows():
 
-            #     # START SERVER
-            #     cmd                         =   [' '.join([
-            #                                         'sudo %s/hma_vpn.sh'    %   self.vpn_exec_path,
-            #                                         '-d -c ~/.vpnpass -p tcp %(_state)s.*%(_city)s.*%(_local)s %(_server)s' % row])]
-            #     (_out,_err)                 =   self.T.exec_cmds(cmd,root=True)
-            #     assert _err is None
-            #     assert _out.count('Connecting to')>0
+                # START SERVER
+                cmd                         =   [' '.join([
+                                                    'sudo %s/hma_vpn.sh'    %   self.vpn_exec_path,
+                                                    '-d -c ~/.vpnpass -p tcp %(_state)s.*%(_city)s.*%(_local)s %(_server)s' % row])]
+                (_out,_err)                 =   self.T.exec_cmds(cmd,root=True)
+                assert _err is None
+                assert _out.count('Connecting to')>0
 
-            #     # WAIT FOR CONNECTION OR ERROR
-            #     wait_time                   =   3*60 # 3 minute wait
-            #     end_time                    =   self.T.time.time() + wait_time
-            #     while True:
+                # WAIT FOR CONNECTION OR ERROR
+                wait_time                   =   3*60 # 3 minute wait
+                end_time                    =   self.T.time.time() + wait_time
+                while True:
 
-            #         if self.T.time.time()>end_time:
-            #             self.T.id.ip_addr   =   ''
-            #             break
+                    if self.T.time.time()>end_time:
+                        self.T.id.ip_addr   =   ''
+                        break
 
-            #         cmd                     =   ['%s/hma_vpn.sh -s' %   self.vpn_exec_path,]
-            #         (_out,_err)             =   self.T.exec_cmds(cmd,root=True)
-            #         assert _err is None
+                    cmd                     =   ['%s/hma_vpn.sh -s' %   self.vpn_exec_path,]
+                    (_out,_err)             =   self.T.exec_cmds(cmd,root=True)
+                    assert _err is None
 
-            #         if _out.count('Connected to')>0:
-            #             (_out,_err)         =   self.T.exec_cmds(['bash -l -i -c "get_my_ip_ext 2>&1"'])
-            #             assert _err is None
-            #             self.T.id.ip_addr   =   _out.rstrip('\n')
-            #             break
-            #         else:
-            #             self.T.delay(           5)
+                    if _out.count('Connected to')>0:
+                        (_out,_err)         =   self.T.exec_cmds(['bash -l -i -c "get_my_ip_ext 2>&1"'])
+                        assert _err is None
+                        self.T.id.ip_addr   =   _out.rstrip('\n')
+                        break
+                    else:
+                        self.T.delay(           5)
 
-            #     nbr = self._parent.Browser(self).build()
+                nbr                         =   self._parent._parent.Browser(self).build()
 
 
-            #     i_trace()          
+                i_trace()
 
-            #     break
+                break
 
             return self.T.id.details.vpn
 
@@ -1639,9 +1636,9 @@ class Auto_Poster:
             from faker                      import Factory                  as fake_factory
             import us                                                       as US
             from pyzipcode                  import ZipCodeDatabase
-            self.F                          =   fake_factory.create()
-            self.Z                          =   ZipCodeDatabase()
-            self.US                         =   US
+            F                               =   fake_factory.create()
+            Z                               =   ZipCodeDatabase()
+            US                              =   US
             self.Create                     =   self.Create(self)
             self.identity_path              =   self.T.os_environ['BD']     +   '/real_estate/autoposter/identities'
             self.VPN                        =   self._parent.VPN(self)
@@ -1703,67 +1700,91 @@ class Auto_Poster:
                 self.T.cur.execute(                 cmd)
 
             def gmail_act(self):
+                self.T.py_path.append(          self.T.os_environ['BD']+'/google')
+                from google_main            import Google
+                g                           =   Google(self)
+                g.Gmail.create_account(         )
                 i_trace()
-                # self.T.br.open_page('https://accounts.google.com/SignUp?continue=https%3A%2F%2Fwww.google.com%2F%3Fgws_rd%3Dssl&hl=en')
                 return '34744f6@gmail.com'
 
             def user_profile(self):
                 def make_user_details():
-                    D                                   =   {#'_user_name'               :   self.email[:self.email.find('@')],
-                                                             '_BASE_DIR'                :   self.T.os_environ['SERV_HOME'] + '/autoposter/identities',
-                                                             '_user_agent'              :   self.T.F.user_agent()}
-                    D.update(                               {'_SAVE_DIR'                :   '%s/%s' % (D['_BASE_DIR'],self.T.id.guid)})
-                    
-                    ###cmds                                =   ['mkdir -p %(_SAVE_DIR)s && cd %(_SAVE_DIR)s && rm ./*;' % D]
-                    vpns                                =   self.T.pd.read_sql("select * from vpns where _type='TCP'",self.T.eng)
-                    avail_states                        =   map(lambda s: self.T.re_sub(r'([A-Z][a-z]+)([A-Z][a-z]+)',r'\1 \2',s),
+                    D                       =   {#'_user_name'               :   self.email[:self.email.find('@')],
+                                                 '_BASE_DIR'                :   self.T.os_environ['SERV_HOME'] + '/autoposter/identities',
+                                                 '_user_agent'              :   self.T.F.user_agent()}
+                    D.update(                   {'_SAVE_DIR'                :   '%s/%s' % (D['_BASE_DIR'],self.T.id.guid)})
+                    vpns                    =   self.T.pd.read_sql("select * from vpns where _type='TCP'",self.T.eng)
+                    avail_states            =   map(lambda s: self.T.re_sub(r'([A-Z][a-z]+)([A-Z][a-z]+)',r'\1 \2',s),
                                                                             map(lambda s: s.replace(' ',''),vpns._state_abbr.unique().tolist()))
                     # Get State Where a Server Exists
                     while True:
-                        _state_abbr                 =   self.T.F.state_abbr()
+                        _state_abbr         =   self.T.F.state_abbr()
                         if avail_states.count(_state_abbr):
                             break
-                    D.update(                           {'_state_abbr'              :   _state_abbr })
+                    D.update(                   {'_state_abbr'              :   _state_abbr })
 
                     # Get Zipcode within State
                     while True:
-                        z                               =   self.T.F.zipcode()
-                        chk                             =   self.T.Z.get(z)
+                        z                   =   self.T.F.zipcode()
+                        chk                 =   self.T.Z.get(z)
                         if chk and chk[0].state==D['_state_abbr']:
                             break
 
-                    D.update(                           {'_country'                 :   'US',
-                                                         '_state'                   :   self.T.US.states.lookup(D['_state_abbr']).name,
-                                                         '_city'                    :   self.T.Z.get(z)[0].city.replace('/','\/'),
-                                                         '_org'                     :   self.T.F.company().replace('/','\/'),
-                                                         '_org_unit'                :   self.T.F.job().replace('/','\/'),
-                                                         '_name'                    :   self.T.F.name().replace('/','\/'),
-                                                         })
+                    D.update(                   {'_country'                 :   'US',
+                                                 '_state'                   :   self.T.US.states.lookup(D['_state_abbr']).name,
+                                                 '_city'                    :   self.T.Z.get(z)[0].city.replace('/','\/'),
+                                                 '_org'                     :   self.T.F.company().replace('/','\/'),
+                                                 '_org_unit'                :   self.T.F.job().replace('/','\/'),
+                                                })
+                    g                       =   self.T.randrange(0,2)
+                    name                    =   self.T.F.name_female() if g==0 else self.T.F.name_male()
+                    while len(name.split())!=2:
+                        name                =   self.T.F.name_female() if g==0 else self.T.F.name_male()
+                    first,last              =   name.split()
+                    D.update(                   {'_first_name'              :   first,
+                                                 '_last_name'               :   last,
+                                                 '_name'                    :   ' '.join([first,last])})
                     return D
-                def update_pgsql_with_details():
-                    cmd                             =   """
-
-                                                            --NEED TO INSERT HERE
-
-                                                            UPDATE identities SET details = '%s'::jsonb
-                                                            WHERE email = '%s';
-                                                        """ % (self.T.j_dump(D),self.T.id.email)
-                    
+                def update_pgsql_with_details(D=None):
+                    if not D:
+                        D                   =   self.T.id.details
+                    cmd                     =   """
+                                                    WITH
+                                                        upd_new_details as (
+                                                            UPDATE identities
+                                                            SET details = '%(details)s'::jsonb
+                                                            WHERE guid = '%(guid)s'::text
+                                                            AND details is null
+                                                            RETURNING guid
+                                                        ),
+                                                        upd_existing_details as (
+                                                            SELECT
+                                                                json_merge(i.details::json,'%(details)s'::json),
+                                                                '%(guid)s'::text guid
+                                                            FROM identities i
+                                                            WHERE guid = '%(guid)s'::text
+                                                            AND details is not null
+                                                        )
+                                                    INSERT  INTO identities(guid,details)
+                                                    SELECT  f.guid,f.details
+                                                    FROM    (SELECT  '%(guid)s'::text guid,'%(details)s'::jsonb details) f
+                                                    WHERE   NOT f.guid in (select guid from upd_new_details)
+                                                    AND     NOT f.guid in (select guid from upd_existing_details)
+                                                """ % {'details':self.T.j_dump(D),'guid':self.T.id.guid}
                     self.T.conn.set_isolation_level(    0)
                     self.T.cur.execute(                 cmd)
 
-                self.T['id']                    =   self.T.To_Class({})
-                
+                self.T['id']                =   self.T.To_Class({})
+
                 if hasattr(self.T,'kw_identity'):
-                    self.T.id['guid']       =   self.T.kw_identity
-                    self.T.id['email']      =   '%s@gmail.com'%self.T.kw_identity
-                    ids = self.T.pd.read_sql("select * from identities where guid='%(kw_identity)s'"%self.T,self.T.eng)
+                    self.T.id.guid          =   self.T.kw_identity
+                    self.T.id.email         =   '%s@gmail.com'%self.T.kw_identity
+                    ids                     =   self.T.pd.read_sql("select * from identities where guid='%(kw_identity)s'"%self.T,self.T.eng)
                 else:
-                    self.T.id['guid']       =   str(self.T.get_guid().hex)[:7]
-                    D                       =   make_user_details()
+                    self.T.id.guid          =   str(self.T.get_guid().hex)[:7]
+                    self.T.id.email         =   '%s@gmail.com'%self.T.id.guid
+                    self.T.id.details       =   make_user_details()
                     update_pgsql_with_details(  )
-                    self.email              =   self.gmail_act()
-                    D.update(                   {'_email'                   :   self.email})
                     ids                     =   self.T.pd.read_sql("select * from identities where guid='%(guid)s'"%self.T.id,self.T.eng)
 
                 if not ids.details[0]:
@@ -1771,7 +1792,6 @@ class Auto_Poster:
                     update_pgsql_with_details(  )
                 else:
                     D                       =   ids.details[0]
-
 
                 self.T.id.details           =   self.T.To_Class({})
                 for k,v in D.iteritems():
@@ -1793,23 +1813,23 @@ class Auto_Poster:
 
             def ssl_cert(self):
                 self.T.id.details.update(       {'email'                    :   self.T.id.email})
-                cmds                            =   ['mkdir -p %(SAVE_DIR)s && cd %(SAVE_DIR)s && rm ./*;' % self.T.id.details,
-                                                     'openssl genrsa -out %(guid)s.key 4096 > /dev/null 2>&1;' % self.T.id,
-                                                     ' '.join(['openssl req -x509 -new -nodes',
-                                                             '-key %(guid)s.key -days 1024' % self.T.id,
-                                                             '-out %(guid)s.pem' % self.T.id,
-                                                             '-subj "/C=%(country)s/ST=%(state)s/L=%(city)s/O=%(org)s/OU=%(org_unit)s/CN=%(name)s/emailAddress=%(email)s";' % self.T.id.details])
-                                                    ]
-                (_out,_err)                     =   self.T.exec_cmds(cmds)
+                cmds                        =   ['mkdir -p %(SAVE_DIR)s && cd %(SAVE_DIR)s && rm -f ./*;' % self.T.id.details,
+                                                 'openssl genrsa -out %(guid)s.key 4096 > /dev/null 2>&1;' % self.T.id,
+                                                 ' '.join(['openssl req -x509 -new -nodes',
+                                                         '-key %(guid)s.key -days 1024' % self.T.id,
+                                                         '-out %(guid)s.pem' % self.T.id,
+                                                         '-subj "/C=%(country)s/ST=%(state)s/L=%(city)s/O=%(org)s/OU=%(org_unit)s/CN=%(name)s/emailAddress=%(email)s";' % self.T.id.details])
+                                                ]
+                (_out,_err)                 =   self.T.exec_cmds(cmds)
                 assert not _out
-                assert _err is None
-                return '%s/%s.pem' % (self.T.id.details.SAVE_DIR,self.T.id.guid)
+                assert _err                 is  None
+                return '%s/%s.pem'          %   (self.T.id.details.SAVE_DIR,self.T.id.guid)
 
             def vpn_connection(self):
                 self._parent.VPN.find_cl_compatible_vpn(self)
 
             def new(self):
-                self.T.id                       =   self.user_profile()
+                self.T.id                   =   self.user_profile()
 
                 # self.guid                       =   str(self.T.get_guid().hex)[:7]
                 # self.T.conn.set_isolation_level(    0)
@@ -1828,9 +1848,12 @@ class Auto_Poster:
                 #             "_state_abbr": "OR", 
                 #             "_user_agent": "Mozilla/5.0 (Windows CE) AppleWebKit/5312 (KHTML, like Gecko) Chrome/15.0.874.0 Safari/5312"}
 
-                self.T.id.cookie                =   self.cookie()
-                self.T.id.ssl_cert              =   self.ssl_cert()
-                self.id.vpn                     =   self.vpn_connection()
+                self.T.id.cookie            =   self.cookie()
+                self.T.id.ssl_cert          =   self.ssl_cert()
+                self.id.vpn                 =   self.vpn_connection()
+                self.email                  =   self.gmail_act()
+                self.cl                     =   self.craigslist_act()
+
                 return self
 
     class Browser:
@@ -1840,7 +1863,7 @@ class Auto_Poster:
             from webpage_scrape                 import scraper
             self.T.scraper                  =   scraper
 
-        def build(self):
+        def build(self,**kwargs):
             def chrome():
                 return self.T.scraper('chrome',**self.T.__dict__).browser
 
@@ -1874,9 +1897,12 @@ class Auto_Poster:
 
                 self.T.br                       =   self.T.scraper('phantom',**self.T.__dict__).browser
                 return self.T.br
-            
+
+            for k,v in kwargs.iteritems():
+                self.T.update(                  {k                  :   v})
+
             # CASE WHERE browser_type != ''
-            if not self.T.browser_type:                                     return None
+            if not self.T.browser_type:         return None
 
             else:
                 

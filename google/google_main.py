@@ -7,12 +7,17 @@ except:
 
 class Google:
 
-    def __init__(self):
-        from os                             import environ                  as os_environ
-        from sys                            import path                     as py_path
-        py_path.append(                         os_environ['HOME'] + '/.scripts')
-        from System_Control                 import System_Lib
-        self.T                              =   System_Lib().T
+    def __init__(self,_parent=None):
+        if _parent:            self._parent =   _parent
+        if not _parent or not hasattr(_parent,'T'):
+            from os                             import environ                  as os_environ
+            from sys                            import path                     as py_path
+            py_path.append(                         os_environ['HOME'] + '/.scripts')
+            from System_Control                 import System_Lib
+            self.T                          =   System_Lib().T
+        else:
+            self.T                          =   _parent.T
+        locals().update(                        self.T.__getdict__())
         # self.Google                         =   self
         # self.Voice                          =   self.Voice(self)
         self.Gmail                          =   self.Gmail(self)
@@ -261,7 +266,7 @@ class Google:
             end                         =   self.T.time.time()
             print 'total time (seconds):',end-start
 
-        def create_account(self,user_name,pw,**kwargs):
+        def create_account(self,**kwargs):
             """ Keyword Args:
                     first_name,last_name,
                     user_name,password,
@@ -278,9 +283,15 @@ class Google:
                                                  'recovery_email'           :   'RecoveryEmailAddress'}
                 account_info_keys           =   account_info_dict.keys()
                 T                           =   {}
+
+                if hasattr(self.T,'id') and hasattr(self.T.id,'details'):
+                    for k,v in self.T.id.details.iteritems():
+                        kwargs.update(          {k.strip('_')               :   v})
+
+
                 for k,v in kwargs.iteritems():
-                    assert account_info_keys.count(k)
-                    T.update(                   {account_info_dict[k]       :   v})
+                    if account_info_keys.count(k):
+                        T.update(               {account_info_dict[k]       :   v})
 
                 # FILL IN ANY MISSING INFO
 
@@ -312,13 +323,12 @@ class Google:
 
                 return T
 
-
-            self.T.py_path.append(              self.T.os_environ['BD'] + '/real_estate/autoposter')
-            from auto_poster                import Auto_Poster
-            AP                              =   Auto_Poster(None,no_identity=True)
-            self.T.update(                      {'Identity'             :   AP.Identity})
-            self.T.update(                      AP.T.__getdict__())
-
+            if not hasattr(self,'T'):
+                self.T.py_path.append(          self.T.os_environ['BD'] + '/real_estate/autoposter')
+                from auto_poster            import Auto_Poster
+                AP                          =   Auto_Poster(None,no_identity=True)
+                self.T.update(                  {'Identity'             :   AP.Identity})
+                self.T.update(                  AP.T.__getdict__())
 
             T                               =   setup_account_info()
 

@@ -1,4 +1,4 @@
-#! ENV/bin/python
+#! ../../ENV/bin/python
 # PYTHON_ARGCOMPLETE_OK
 
 import socket

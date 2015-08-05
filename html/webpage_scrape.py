@@ -116,6 +116,23 @@ class Webdriver:
             try:
                 d                           =   webdriver.Chrome(executable_path='/usr/local/bin/chromedriver',
                                                                  chrome_options=opts)
+                init_d_cap = {'browserName':'{android|chrome|firefox|htmlunit|internet explorer|iPhone|iPad|opera|safari}',
+                              'version':'',
+                              'platform':'{WINDOWS|XP|VISTA|MAC|LINUX|UNIX|ANDROID|ANY}'}
+                user_d_cap = {'javascriptEnabled':'',
+                              'databaseEnabled':'',
+                              'locationContextEnabled':'',
+                              'applicationCacheEnabled':'',
+                              'browserConnectionEnabled':'',
+                              'webStorageEnabled':'',
+                              'acceptSslCerts':'',
+                              'rotatable':'',
+                              'nativeEvents':'',
+                              'proxy':'proxy pbject',
+                              'unexpectedAlertBehaviour':'string',
+                              'elementScrollBehavior':'integer',
+                              '':'',}
+                d.add_cookie(                   self.T.id.cookie.contents)
                 break
             except:
                 attempts                   +=   1
@@ -128,10 +145,11 @@ class Webdriver:
         from selenium                       import webdriver
         from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
+        if not hasattr(self,'T'):               return webdriver.PhantomJS(executable_path='/usr/local/bin/phantomjs')
         try:
-            self.T                              =   kwargs['To_Class'](kwargs)
+            self.T                          =   kwargs['To_Class'](kwargs)
         except:
-            d                                   =   webdriver.PhantomJS(executable_path='/usr/local/bin/phantomjs')
+            return                              webdriver.PhantomJS(executable_path='/usr/local/bin/phantomjs')
 
         # CAPABILITIES
         dcap                                =   dict(DesiredCapabilities.PHANTOMJS)
