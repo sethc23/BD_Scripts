@@ -106,39 +106,245 @@ class Webdriver:
             self.browser        =   webdriver.Firefox()
 
     def set_chrome(self,with_profile=False,**kwargs):
-        from selenium                       import webdriver
-        self.T                              =   kwargs['To_Class'](kwargs)
-        opts                                =   webdriver.ChromeOptions()
-        if hasattr(self.T,'proxy'):
-            opts.add_argument(                  '--proxy-server=%s'%proxy)
-        attempts                            =   0
-        while True:
-            try:
-                d                           =   webdriver.Chrome(executable_path='/usr/local/bin/chromedriver',
-                                                                 chrome_options=opts)
-                init_d_cap = {'browserName':'{android|chrome|firefox|htmlunit|internet explorer|iPhone|iPad|opera|safari}',
-                              'version':'',
-                              'platform':'{WINDOWS|XP|VISTA|MAC|LINUX|UNIX|ANDROID|ANY}'}
-                user_d_cap = {'javascriptEnabled':'',
-                              'databaseEnabled':'',
-                              'locationContextEnabled':'',
-                              'applicationCacheEnabled':'',
-                              'browserConnectionEnabled':'',
-                              'webStorageEnabled':'',
-                              'acceptSslCerts':'',
-                              'rotatable':'',
-                              'nativeEvents':'',
-                              'proxy':'proxy pbject',
-                              'unexpectedAlertBehaviour':'string',
-                              'elementScrollBehavior':'integer',
-                              '':'',}
-                d.add_cookie(                   self.T.id.cookie.contents)
-                break
-            except:
-                attempts                   +=   1
-            if attempts>=5:
-                raise SystemError
-                break
+        """
+        ----------------------------------------------------------------------------
+
+        Configuration Method:
+            1. EXECUTABLE,SERVICE ARGS and PORT
+            2. DESIRED CAPABILITIES
+            3. CHROME OPTIONS
+
+
+        Command Line Switches:
+            http://peter.sh/experiments/chromium-command-line-switches/
+
+        Capabilities:
+            https://sites.google.com/a/chromium.org/chromedriver/capabilities
+
+
+        ----------------------------------------------------------------------------
+        This function should be a class for webdriver.
+        For now, just setting up Chrome.
+
+        driver_browsers                     =   ['android',
+                                                 'chrome',
+                                                 'firefox',
+                                                 'htmlunit',
+                                                 'internet explorer',
+                                                 'iPhone',
+                                                 'iPad',
+                                                 'opera',
+                                                 'safari']
+
+        """
+
+        from selenium.webdriver             import Chrome,ChromeOptions,DesiredCapabilities,Proxy
+        from os                             import environ                  as os_environ
+        default_settings                    =   {'bin_path'                 :   '/usr/local/bin/chromedriver',
+                                                 'port'                     :   15010,
+                                                 'log_path'                 :   os_environ['BD'] + '/html/logs/chromedriver.log',
+                                                 # 'platform'                 :   '',
+                                                 # 'profile-directory'        :   os_environ['BD'] + '/html/logs',
+                                                 'user-agent'               :   "Mozilla/5.0 (Windows NT 5.1; rv:13.0) Gecko/20100101 Firefox/13.0.1",
+                                                 # 'user-data-dir'            :   '',
+                                                 'log-level'                :   0,
+                                                 'cookie_content'           :   {},
+                                                 }
+
+        T                                   =   default_settings
+
+        ## ----------------------------     <<<<<
+        ## ----------------------------     <<<<<
+
+        # TODO:  Integrate default options in settings file to save with each project
+        tmp_settings                        =   {'enable-profiling'                     :   False,
+                                                 'log-level'                            :   0,
+                                                 'net-log-capture-mode'                 :   'IncludeCookiesAndCredentials',
+                                                 'acceptSslCerts'                       :   True,
+                                                 'javascriptEnabled'                    :   False,
+                                                 'databaseEnabled'                      :   False,
+                                                 'unexpectedAlertBehaviour'             :   "accept",
+                                                 'applicationCacheEnabled'              :   False,
+                                                 'webStorageEnabled'                    :   False,
+                                                 'browserConnectionEnabled'             :   False,
+                                                 'locationContextEnabled'               :   True,}
+
+        T.update(                               tmp_settings)
+
+        ## ----------------------------     >>>>>
+        ## ----------------------------     >>>>>
+
+        if kwargs:
+            T.update(                           kwargs)
+            if kwargs.has_key('id'):
+                T.update(                       kwargs['id'].__dict__)
+                if kwargs['id'].has_key('details'):
+                    T.update(                   kwargs['id']['details'].__dict__)
+                if kwargs['id'].has_key('cookie'):
+                    if kwargs['id']['cookie'].has_key('content'):
+                        T.update(               {'cookie_content'           :   kwargs['id']['cookie']['content']})
+
+
+        if T.has_key('user_agent'):
+            T['user-agent']                 =   T['user_agent']
+        if T.has_key('SAVE_DIR'):
+            T['user-data-dir']              =   T['SAVE_DIR']
+            T['profile-directory']          =   T['SAVE_DIR']
+            if T.has_key('guid'):
+                T['log_path']               =   '%s/%s.log' % (T['SAVE_DIR'],T['guid'])
+
+        # EXECUTABLE,PORT and SERVICE ARGS
+        bin_path                            =   T['bin_path']
+        port                                =   T['port']
+        # SERVICE ARGS          # ( somewhat documented in executable help, i.e., chromedriver --help )
+        service_args                        =   ["--verbose",
+                                                 "--log-path=%(log_path)s" % T]
+        print service_args
+        # DESIRED CAPABILITIES:
+        dc                                  =   DesiredCapabilities.CHROME.copy()
+        platforms                           =   ['WINDOWS', 'XP', 'VISTA', 'MAC', 'LINUX', 'UNIX', 'ANDROID', 'ANY']
+
+        # for k,v in dc.iteritems():
+        #     if T.has_key(k):
+        #         dc[k]                       =   T[k]
+
+        # -PROXY OBJECT
+        # from selenium.webdriver import Proxy
+
+        # -LOGGING OBJECT (dict)
+        #  "OFF", "SEVERE", "WARNING", "INFO", "CONFIG", "FINE", "FINER", "FINEST", "ALL".
+        # {"loggingPrefs": {"driver": "INFO", "server": "OFF", "browser": "FINE"}}.
+
+        # -READ-WRITE CAPABILITIES
+        rw_capabilities                     =   [
+                                                 'acceptSslCerts',              # boolean unless specified
+                                                 'javascriptEnabled',
+                                                 'databaseEnabled',
+                                                 'proxy',                       # Proxy Object
+                                                 'unexpectedAlertBehaviour',    # string {"accept", "dismiss", "ignore"}
+                                                 'applicationCacheEnabled',
+                                                 'webStorageEnabled',
+                                                 'rotatable',
+                                                 'browserConnectionEnabled',
+                                                 'locationContextEnabled',
+                                                 'elementScrollBehavior',       # int (align with the top (0) or bottom (1) of the viewport)
+                                                 'nativeEvents'
+                                                 ]
+
+        for it in rw_capabilities:
+            if T.has_key(it):
+                dc[it]                      =   str(T[it])
+
+        # i_trace()
+
+        # CHROME OPTIONS
+
+        opts                                =   ChromeOptions()
+
+        true_cl_args                        =   [
+                                                 'disable-core-animation-plugins',
+                                                 'disable-plugins',
+                                                 'disable-extensions',
+                                                 'disable-plugins-discovery',
+                                                 'disable-site-engagement-service',
+                                                 'disable-text-input-focus-manager',
+
+                                                 'enable-account-consistency',
+                                                 'enable-devtools-experiments',
+                                                 'enable-logging',
+                                                 'enable-network-information',
+                                                 'enable-net-benchmarking',
+                                                 'enable-network-portal-notification',
+
+                                                 # 'enable-profiling',                        # No
+                                                 'enable-strict-site-isolation',
+                                                 'incognito',
+                                                 'log-net-log',
+                                                 'scripts-require-action',
+                                                 'system-developer-mode',
+                                                 # 'use-mobile-user-agent',
+                                                 ]
+
+        ### Add boolean arguments
+        for it in true_cl_args:
+            if not T.has_key(it):
+                opts.add_argument(              '%s=1' % it )
+
+        false_cl_args                       =   [
+                                                 'enable-profiling',                        # No
+                                                 ]
+        for it in false_cl_args:
+            if not T.has_key(it):
+                opts.add_argument(              '%s=0' % it )
+
+        other_cl_args                       =   [
+                                                 # 'profile-directory',
+                                                 'log-level',                   # 0 to 3: INFO = 0, WARNING = 1, LOG_ERROR = 2, LOG_FATAL = 3
+                                                 'net-log-capture-mode',        # "Default" "IncludeCookiesAndCredentials" "IncludeSocketBytes"'
+                                                 # 'register-font-files',       # might be windows only
+                                                 # 'remote-debugging-port',
+                                                 # 'user-agent',
+                                                 # 'user-data-dir',             # don't use b/c it negates no-extension options
+                                                 ]
+        # Add other arguments
+        for it in other_cl_args:
+            if T.has_key(it):
+                opts.add_argument(              '%s=%s' % (it,T[it]) )
+
+
+        # -extensions        list str
+        # -localState        dict
+        # -prefs             dict
+        profile                             =   {#"download.default_directory"       :   "C:\\SeleniumTests\\PDF",
+                                                 "download.prompt_for_download"     :   False,
+                                                 "download.directory_upgrade"       :   True,
+                                                 "plugins.plugins_disabled"         :   ["Chromoting Viewer",
+                                                                                         "Chromium PDF Viewer"]
+                                                                                         }
+        opts.add_experimental_option(           "prefs", profile)
+
+        # -detach            bool
+        # -debuggerAddress   str
+        # -excludeSwitches   list str
+        # -minidumpPath      str
+        # -mobileEmulation   dict
+
+        # -loggingPrefs                         OBJECT (dict)
+        #   "OFF",  "SEVERE", "WARNING",
+        #   "INFO", "CONFIG", "FINE",
+        #   "FINER","FINEST", "ALL"
+        loggingPrefs                        =   {"driver"                       :   "ALL",
+                                                 "server"                       :   "ALL",
+                                                 "browser"                      :   "ALL"}
+        dc["loggingPrefs"] = loggingPrefs
+
+        # dc.update({})
+        # -perfLoggingPrefs                     OBJECT (dict)
+        # perfLogging                         =    {
+        #                                              "enableNetwork"                :   True,
+        #                                              "enablePage"                   :   True,
+        #                                              "enableTimeline"               :   True,
+        #                                              #"tracingCategories":<string>,
+        #                                              "bufferUsageReportingInterval" :   1000
+        #                                              }
+        #
+        # opts.add_experimental_option(           "perfLoggingPrefs",perfLogging)
+
+        dc['javascriptEnabled'] = False
+        opts.add_argument('user-agent=Mozilla/5.0 (Windows NT 5.1; rv:13.0) Gecko/20100101 Firefox/13.0.1')
+        d                                   =   Chrome(  executable_path        =   bin_path,
+                                                         port                   =   port,
+                                                         service_args           =   service_args,
+                                                         desired_capabilities   =   dc,
+                                                         chrome_options         =   opts)
+        d.set_window_size(                      1280,720)
+        if T['cookie_content']:
+            d.add_cookie(                       T['cookie_content'])
+
+        d.get(                                  'https://panopticlick.eff.org/index.php?action=log&js=yes')
+        # d.get(                                  'about:plugins')
+        i_trace()
+
         return d
     
     def set_phantom(self,**kwargs):

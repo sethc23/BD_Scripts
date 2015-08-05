@@ -1588,43 +1588,48 @@ class Auto_Poster:
                                                                    select * from vpns where _state_abbr='%(state_abbr)s'
                                                                    """      %   self.T.id.details,self.T.eng)
             chk_page                        =   'https://accounts.craigslist.org/'
-            for idx,row in vpns.iterrows():
 
-                # START SERVER
-                cmd                         =   [' '.join([
-                                                    'sudo %s/hma_vpn.sh'    %   self.vpn_exec_path,
-                                                    '-d -c ~/.vpnpass -p tcp %(_state)s.*%(_city)s.*%(_local)s %(_server)s' % row])]
-                (_out,_err)                 =   self.T.exec_cmds(cmd,root=True)
-                assert _err is None
-                assert _out.count('Connecting to')>0
+            ## ---------  TEST BROWSER CONFIG ---------
 
-                # WAIT FOR CONNECTION OR ERROR
-                wait_time                   =   3*60 # 3 minute wait
-                end_time                    =   self.T.time.time() + wait_time
-                while True:
+            # for idx,row in vpns.iterrows():
+            #
+            #     # START SERVER
+            #     cmd                         =   [' '.join([
+            #                                         'sudo %s/hma_vpn.sh'    %   self.vpn_exec_path,
+            #                                         '-d -c ~/.vpnpass -p tcp %(_state)s.*%(_city)s.*%(_local)s %(_server)s' % row])]
+            #     (_out,_err)                 =   self.T.exec_cmds(cmd,root=True)
+            #     assert _err is None
+            #     assert _out.count('Connecting to')>0
+            #
+            #     # WAIT FOR CONNECTION OR ERROR
+            #     wait_time                   =   3*60 # 3 minute wait
+            #     end_time                    =   self.T.time.time() + wait_time
+            #     while True:
+            #
+            #         if self.T.time.time()>end_time:
+            #             self.T.id.ip_addr   =   ''
+            #             break
+            #
+            #         cmd                     =   ['%s/hma_vpn.sh -s' %   self.vpn_exec_path,]
+            #         (_out,_err)             =   self.T.exec_cmds(cmd,root=True)
+            #         assert _err is None
+            #
+            #         if _out.count('Connected to')>0:
+            #             (_out,_err)         =   self.T.exec_cmds(['bash -l -i -c "get_my_ip_ext 2>&1"'])
+            #             assert _err is None
+            #             self.T.id.ip_addr   =   _out.rstrip('\n')
+            #             break
+            #         else:
+            #             self.T.delay(           5)
+            #
+            #     nbr                         =   self._parent._parent.Browser(self).build()
+            #
+            # ---------  TEST BROWSER CONFIG ---------
 
-                    if self.T.time.time()>end_time:
-                        self.T.id.ip_addr   =   ''
-                        break
-
-                    cmd                     =   ['%s/hma_vpn.sh -s' %   self.vpn_exec_path,]
-                    (_out,_err)             =   self.T.exec_cmds(cmd,root=True)
-                    assert _err is None
-
-                    if _out.count('Connected to')>0:
-                        (_out,_err)         =   self.T.exec_cmds(['bash -l -i -c "get_my_ip_ext 2>&1"'])
-                        assert _err is None
-                        self.T.id.ip_addr   =   _out.rstrip('\n')
-                        break
-                    else:
-                        self.T.delay(           5)
-
-                nbr                         =   self._parent._parent.Browser(self).build()
-
-
-                i_trace()
-
-                break
+            self.T.browser_type='chrome'
+            nbr                             =   self._parent._parent.Browser(self).build()
+            nbr.open_page(                      'https://panopticlick.eff.org/index.php?action=log&js=yes')
+            i_trace()
 
             return self.T.id.details.vpn
 
@@ -1671,6 +1676,9 @@ class Auto_Poster:
             for k,v in D.iteritems():
                 setattr(                        self.T.id.details,k.lstrip('_'),v)
 
+            assert hasattr(self.T.id,'cookie')
+
+
             if not hasattr(self.T.id.details,'vpn') or not self.T.id.details.vpn:
                 self.T.id.details.vpn       =   self._parent.VPN.find_cl_compatible_vpn(self)
 
@@ -1711,7 +1719,7 @@ class Auto_Poster:
                 def make_user_details():
                     D                       =   {#'_user_name'               :   self.email[:self.email.find('@')],
                                                  '_BASE_DIR'                :   self.T.os_environ['SERV_HOME'] + '/autoposter/identities',
-                                                 '_user_agent'              :   self.T.F.user_agent()}
+                                                 '_user_agent'              :   self.T.F.user_agent().replace("'",'')}
                     D.update(                   {'_SAVE_DIR'                :   '%s/%s' % (D['_BASE_DIR'],self.T.id.guid)})
                     vpns                    =   self.T.pd.read_sql("select * from vpns where _type='TCP'",self.T.eng)
                     avail_states            =   map(lambda s: self.T.re_sub(r'([A-Z][a-z]+)([A-Z][a-z]+)',r'\1 \2',s),
@@ -1732,15 +1740,15 @@ class Auto_Poster:
 
                     D.update(                   {'_country'                 :   'US',
                                                  '_state'                   :   self.T.US.states.lookup(D['_state_abbr']).name,
-                                                 '_city'                    :   self.T.Z.get(z)[0].city.replace('/','\/'),
-                                                 '_org'                     :   self.T.F.company().replace('/','\/'),
-                                                 '_org_unit'                :   self.T.F.job().replace('/','\/'),
+                                                 '_city'                    :   self.T.Z.get(z)[0].city.replace('/','\/').replace("'",''),
+                                                 '_org'                     :   self.T.F.company().replace('/','\/').replace("'",''),
+                                                 '_org_unit'                :   self.T.F.job().replace('/','\/').replace("'",''),
                                                 })
                     g                       =   self.T.randrange(0,2)
                     name                    =   self.T.F.name_female() if g==0 else self.T.F.name_male()
                     while len(name.split())!=2:
                         name                =   self.T.F.name_female() if g==0 else self.T.F.name_male()
-                    first,last              =   name.split()
+                    first,last              =   name.replace("'",'').split()
                     D.update(                   {'_first_name'              :   first,
                                                  '_last_name'               :   last,
                                                  '_name'                    :   ' '.join([first,last])})
@@ -1809,7 +1817,10 @@ class Auto_Poster:
                 (_out,_err)                 =   self.T.exec_cmds(cmds)
                 assert not _out
                 assert _err is None
-                return f_path
+                self.T.id.cookie            =   self.T.To_Class({})
+                self.T.id.cookie.f_path     =   f_path
+                self.T.id.cookie.content    =   {}
+                return self.T.id.cookie
 
             def ssl_cert(self):
                 self.T.id.details.update(       {'email'                    :   self.T.id.email})
