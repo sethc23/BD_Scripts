@@ -174,6 +174,7 @@ class Webdriver:
         ## ----------------------------     >>>>>
         ## ----------------------------     >>>>>
 
+        # Cycle Through kwargs and Store for Later
         if kwargs:
             T.update(                           kwargs)
             if kwargs.has_key('id'):
@@ -182,8 +183,7 @@ class Webdriver:
                     T.update(                   kwargs['id']['details'].__dict__)
                 if kwargs['id'].has_key('cookie'):
                     if kwargs['id']['cookie'].has_key('content'):
-                        T.update(               {'cookie_content'           :   kwargs['id']['cookie']['content']})
-
+                        T.update(               {'cookie_content'                   :   kwargs['id']['cookie']['content']})
 
         if T.has_key('user_agent'):
             T['user-agent']                 =   T['user_agent']
@@ -199,21 +199,14 @@ class Webdriver:
         # SERVICE ARGS          # ( somewhat documented in executable help, i.e., chromedriver --help )
         service_args                        =   ["--verbose",
                                                  "--log-path=%(log_path)s" % T]
-        print service_args
+
+
         # DESIRED CAPABILITIES:
         dc                                  =   DesiredCapabilities.CHROME.copy()
         platforms                           =   ['WINDOWS', 'XP', 'VISTA', 'MAC', 'LINUX', 'UNIX', 'ANDROID', 'ANY']
 
-        # for k,v in dc.iteritems():
-        #     if T.has_key(k):
-        #         dc[k]                       =   T[k]
-
         # -PROXY OBJECT
         # from selenium.webdriver import Proxy
-
-        # -LOGGING OBJECT (dict)
-        #  "OFF", "SEVERE", "WARNING", "INFO", "CONFIG", "FINE", "FINER", "FINEST", "ALL".
-        # {"loggingPrefs": {"driver": "INFO", "server": "OFF", "browser": "FINE"}}.
 
         # -READ-WRITE CAPABILITIES
         rw_capabilities                     =   [
@@ -235,13 +228,21 @@ class Webdriver:
             if T.has_key(it):
                 dc[it]                      =   str(T[it])
 
-        # i_trace()
+        # -loggingPrefs                         OBJECT (dict)
+        #   "OFF",  "SEVERE", "WARNING",
+        #   "INFO", "CONFIG", "FINE",
+        #   "FINER","FINEST", "ALL"
+        loggingPrefs                        =   {"driver"                           :   "ALL",
+                                                 "server"                           :   "ALL",
+                                                 "browser"                          :   "ALL"}
+        dc["loggingPrefs"]                  =   loggingPrefs
+
 
         # CHROME OPTIONS
 
         opts                                =   ChromeOptions()
 
-        true_cl_args                        =   [
+        true_opts                           =   [
                                                  'disable-core-animation-plugins',
                                                  'disable-plugins',
                                                  'disable-extensions',
@@ -266,18 +267,18 @@ class Webdriver:
                                                  ]
 
         ### Add boolean arguments
-        for it in true_cl_args:
+        for it in true_opts:
             if not T.has_key(it):
                 opts.add_argument(              '%s=1' % it )
 
-        false_cl_args                       =   [
+        false_opts                          =   [
                                                  'enable-profiling',                        # No
                                                  ]
-        for it in false_cl_args:
+        for it in false_opts:
             if not T.has_key(it):
                 opts.add_argument(              '%s=0' % it )
 
-        other_cl_args                       =   [
+        value_opts                          =   [
                                                  # 'profile-directory',
                                                  'log-level',                   # 0 to 3: INFO = 0, WARNING = 1, LOG_ERROR = 2, LOG_FATAL = 3
                                                  'net-log-capture-mode',        # "Default" "IncludeCookiesAndCredentials" "IncludeSocketBytes"'
@@ -286,11 +287,14 @@ class Webdriver:
                                                  # 'user-agent',
                                                  # 'user-data-dir',             # don't use b/c it negates no-extension options
                                                  ]
+
         # Add other arguments
-        for it in other_cl_args:
+        for it in value_opts:
             if T.has_key(it):
                 opts.add_argument(              '%s=%s' % (it,T[it]) )
 
+        # 1 in 1788 per panopticlick !!
+        opts.add_argument('user-agent=Mozilla/5.0 (Windows NT 5.1; rv:13.0) Gecko/20100101 Firefox/13.0.1')
 
         # -extensions        list str
         # -localState        dict
@@ -309,16 +313,6 @@ class Webdriver:
         # -minidumpPath      str
         # -mobileEmulation   dict
 
-        # -loggingPrefs                         OBJECT (dict)
-        #   "OFF",  "SEVERE", "WARNING",
-        #   "INFO", "CONFIG", "FINE",
-        #   "FINER","FINEST", "ALL"
-        loggingPrefs                        =   {"driver"                       :   "ALL",
-                                                 "server"                       :   "ALL",
-                                                 "browser"                      :   "ALL"}
-        dc["loggingPrefs"] = loggingPrefs
-
-        # dc.update({})
         # -perfLoggingPrefs                     OBJECT (dict)
         # perfLogging                         =    {
         #                                              "enableNetwork"                :   True,
@@ -330,8 +324,7 @@ class Webdriver:
         #
         # opts.add_experimental_option(           "perfLoggingPrefs",perfLogging)
 
-        dc['javascriptEnabled'] = False
-        opts.add_argument('user-agent=Mozilla/5.0 (Windows NT 5.1; rv:13.0) Gecko/20100101 Firefox/13.0.1')
+
         d                                   =   Chrome(  executable_path        =   bin_path,
                                                          port                   =   port,
                                                          service_args           =   service_args,
@@ -341,12 +334,23 @@ class Webdriver:
         if T['cookie_content']:
             d.add_cookie(                       T['cookie_content'])
 
+
+        self.mod_chrome(                        d,['disable_javascript'])
+
         d.get(                                  'https://panopticlick.eff.org/index.php?action=log&js=yes')
-        # d.get(                                  'about:plugins')
-        i_trace()
 
         return d
-    
+
+    def mod_chrome(self,browser,args,**kwargs):
+        br                                  =   browser
+        if args.count('disable_javascript'):
+            br.get(                             'chrome://settings-frame/content')
+            br.find_element_by_xpath(           "//input[@type='radio' and @name='javascript' and @value='block']").click()
+            delay(                              5)
+            br.find_element_by_id(              'content-settings-overlay-confirm').click()
+        return
+
+
     def set_phantom(self,**kwargs):
         from selenium                       import webdriver
         from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
