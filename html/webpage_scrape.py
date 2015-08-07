@@ -72,7 +72,11 @@ class Nginx:
 
 class Webdriver:
 
-    def __init__(self,browser,**kwargs):
+    def __init__(self,_parent,browser=None):
+        if hasattr(_parent,'T'):
+            self.T              =   _parent.T
+        else:
+            self.T              =   _parent
         self.browser            =   '  '
         self.type               =   browser
         
@@ -80,15 +84,40 @@ class Webdriver:
         #     setattr(self,k,v)
 
         if browser == 'firefox':    
-            self.window                     =   self.set_firefox(**kwargs)
+            self.window                     =   self.set_firefox()
         if browser == 'phantom':    
-            self.window                     =   self.set_phantom(**kwargs)
+            self.window                     =   self.set_phantom()
         if browser == 'chrome':    
-            self.window                     =   self.set_chrome(**kwargs)
+            self.window                     =   self.set_chrome()
         # self.window             =   self.browser
         from selenium.webdriver.common.keys import Keys 
         self.keys               =   Keys
-    
+
+    def config_browser(self,browser,kwargs):
+        browser_config                      =   {} if not kwargs.has_key('browser_config') else kwargs['browser_config']
+        if browser_config.has_key('window_position'):
+            browser.set_window_position(        browser_config.window_position)
+
+        if browser_config.has_key('window_size'):
+            browser.set_window_position(        browser_config.window_size)
+        else:
+            browser.set_window_position(        100,0)
+
+        if browser_config.has_key('maximize_window') and browser_config['maximize_window']:
+            browser.maximize_window(            )
+
+        if browser_config.has_key('implicitly_wait'):
+            browser.implicitly_wait(            browser_config.implicitly_wait)
+        else:
+            browser.implicitly_wait(            120)
+
+        if browser_config.has_key('page_load_timeout'):
+            browser.set_page_load_timeout(      browser_config.page_load_timeout)
+        else:
+            browser.set_page_load_timeout(      150)
+
+        return
+
     def set_firefox(self,with_profile=False,**kwargs):
         from selenium           import webdriver
         if with_profile==True:
@@ -140,13 +169,11 @@ class Webdriver:
 
         from selenium.webdriver             import Chrome,ChromeOptions,DesiredCapabilities,Proxy
         from os                             import environ                  as os_environ
+
         default_settings                    =   {'bin_path'                 :   '/usr/local/bin/chromedriver',
                                                  'port'                     :   15010,
                                                  'log_path'                 :   os_environ['BD'] + '/html/logs/chromedriver.log',
-                                                 # 'platform'                 :   '',
-                                                 # 'profile-directory'        :   os_environ['BD'] + '/html/logs',
                                                  'user-agent'               :   "Mozilla/5.0 (Windows NT 5.1; rv:13.0) Gecko/20100101 Firefox/13.0.1",
-                                                 # 'user-data-dir'            :   '',
                                                  'log-level'                :   0,
                                                  'cookie_content'           :   {},
                                                  }
@@ -158,10 +185,8 @@ class Webdriver:
 
         # TODO:  Integrate default options in settings file to save with each project
         tmp_settings                        =   {'enable-profiling'                     :   False,
-                                                 'log-level'                            :   0,
                                                  'net-log-capture-mode'                 :   'IncludeCookiesAndCredentials',
                                                  'acceptSslCerts'                       :   True,
-                                                 'javascriptEnabled'                    :   False,
                                                  'databaseEnabled'                      :   False,
                                                  'unexpectedAlertBehaviour'             :   "accept",
                                                  'applicationCacheEnabled'              :   False,
@@ -177,21 +202,35 @@ class Webdriver:
         # Cycle Through kwargs and Store for Later
         if kwargs:
             T.update(                           kwargs)
-            if kwargs.has_key('id'):
-                T.update(                       kwargs['id'].__dict__)
-                if kwargs['id'].has_key('details'):
-                    T.update(                   kwargs['id']['details'].__dict__)
-                if kwargs['id'].has_key('cookie'):
-                    if kwargs['id']['cookie'].has_key('content'):
-                        T.update(               {'cookie_content'                   :   kwargs['id']['cookie']['content']})
+        if hasattr(self.T,'id'):
+            T.update(                           self.T.id.__dict__)
+
+            if hasattr(self.T.id,'details'):
+                for k,v in self.T.id.details.__dict__.iteritems():
+                    T.update(                   { k.strip('_')                      :   v})
+
+            if hasattr(self.T.id,'cookie'):
+                if hasattr(self.T.id.cookie,'content'):
+                    T.update(                   {'cookie_content'                   :   self.T.id.cookie.content})
 
         if T.has_key('user_agent'):
             T['user-agent']                 =   T['user_agent']
         if T.has_key('SAVE_DIR'):
             T['user-data-dir']              =   T['SAVE_DIR']
-            T['profile-directory']          =   T['SAVE_DIR']
-            if T.has_key('guid'):
-                T['log_path']               =   '%s/%s.log' % (T['SAVE_DIR'],T['guid'])
+            T['profile-directory']          =   'Profile'
+        if T.has_key('guid'):
+            T['log_path']                   =   '%s/%s.log' % (T['SAVE_DIR'],T['guid'])
+
+        if T.has_key('no_java') and T['no_java']:
+            if T.has_key('no_plugins') and T['no_plugins']:
+                T['user-data-dir']          =   os_environ['BD'] + '/real_estate/autoposter/identities/no_java_no_plugins/'
+                del T['profile-directory']
+            else:
+                T['user-data-dir']          =   os_environ['BD'] + '/real_estate/autoposter/identities/no_java/'
+                del T['profile-directory']
+        elif T.has_key('no_plugins') and T['no_plugins']:
+            T['user-data-dir']              =   os_environ['BD'] + '/real_estate/autoposter/identities/no_plugins/'
+            del T['profile-directory']
 
         # EXECUTABLE,PORT and SERVICE ARGS
         bin_path                            =   T['bin_path']
@@ -201,6 +240,7 @@ class Webdriver:
                                                  "--log-path=%(log_path)s" % T]
 
 
+        #
         # DESIRED CAPABILITIES:
         dc                                  =   DesiredCapabilities.CHROME.copy()
         platforms                           =   ['WINDOWS', 'XP', 'VISTA', 'MAC', 'LINUX', 'UNIX', 'ANDROID', 'ANY']
@@ -285,7 +325,7 @@ class Webdriver:
                                                  # 'register-font-files',       # might be windows only
                                                  # 'remote-debugging-port',
                                                  # 'user-agent',
-                                                 # 'user-data-dir',             # don't use b/c it negates no-extension options
+                                                 'user-data-dir',             # don't use b/c it negates no-extension options
                                                  ]
 
         # Add other arguments
@@ -299,13 +339,13 @@ class Webdriver:
         # -extensions        list str
         # -localState        dict
         # -prefs             dict
-        profile                             =   {#"download.default_directory"       :   "C:\\SeleniumTests\\PDF",
-                                                 "download.prompt_for_download"     :   False,
-                                                 "download.directory_upgrade"       :   True,
-                                                 "plugins.plugins_disabled"         :   ["Chromoting Viewer",
-                                                                                         "Chromium PDF Viewer"]
-                                                                                         }
-        opts.add_experimental_option(           "prefs", profile)
+        # profile                             =   {#"download.default_directory"       :   "C:\\SeleniumTests\\PDF",
+                                                 # "download.prompt_for_download"     :   False,
+                                                 # "download.directory_upgrade"       :   True,
+                                                 # "plugins.plugins_disabled"         :   ["Chromoting Viewer",
+                                                 #                                         "Chromium PDF Viewer"],
+                                                 #                                         }
+        # opts.add_experimental_option(           "prefs", profile)
 
         # -detach            bool
         # -debuggerAddress   str
@@ -334,22 +374,9 @@ class Webdriver:
         if T['cookie_content']:
             d.add_cookie(                       T['cookie_content'])
 
-
-        self.mod_chrome(                        d,['disable_javascript'])
-
-        d.get(                                  'https://panopticlick.eff.org/index.php?action=log&js=yes')
+        self.config_browser(                    d,kwargs)
 
         return d
-
-    def mod_chrome(self,browser,args,**kwargs):
-        br                                  =   browser
-        if args.count('disable_javascript'):
-            br.get(                             'chrome://settings-frame/content')
-            br.find_element_by_xpath(           "//input[@type='radio' and @name='javascript' and @value='block']").click()
-            delay(                              5)
-            br.find_element_by_id(              'content-settings-overlay-confirm').click()
-        return
-
 
     def set_phantom(self,**kwargs):
         from selenium                       import webdriver
@@ -409,28 +436,8 @@ class Webdriver:
         selected_capabilities               =   [] if not hasattr(self.T.br,'capabilities') else self.T.br.capabilities
         for it in known_capabilities:
             d.capabilities[it]              =   True if selected_capabilities.count(it) else False
-        
-        # BROWSER CONFIG
-        if hasattr(self.T.br.browser_config,'window_position'):
-            d.set_window_position(              self.T.br.browser_config.window_position)
 
-        if hasattr(self.T.br.browser_config,'window_size'):
-            d.set_window_position(              self.T.br.browser_config.window_size)
-        else:
-            d.set_window_position(              300,300)
-        
-        if hasattr(self.T.br.browser_config,'maximize_window') and self.T.br.browser_config.maximize_window:
-            d.maximize_window(                  )
-        
-        if hasattr(self.T.br.browser_config,'implicitly_wait'):
-            d.implicitly_wait(                  self.T.br.browser_config.implicitly_wait)
-        else:
-            d.implicitly_wait(                  120)
-
-        if hasattr(self.T.br.browser_config,'page_load_timeout'):
-            d.set_page_load_timeout(            self.T.br.browser_config.page_load_timeout)
-        else:
-            d.set_page_load_timeout(            150)
+        self.config_browser()
 
         return d
 
@@ -675,29 +682,22 @@ class EXTRAS:
 
 class scraper:
 
-    def __init__(self,browser,**kwargs):
-        # if proxy:
-        #     self.proxy_server               =   Browsermob_Proxy('server')
-        #     self.proxy_server.start(            )
-        #     self.proxy                      =   self.proxy_server.create_proxy()
-            
-        #     self.proxy_client               =   Browsermob_Proxy('client')
+    def __init__(self,browser=None,**kwargs):
+        if kwargs.has_key('dict'):
+            self.T                          =   kwargs['dict']
+            del kwargs['dict']
+        if kwargs:
+            self.kwargs                     =   kwargs
 
         if browser == 'mechanize':
             t                               =   Mechanize(self)
             self.browser,self.browserType   =   t.browser,t.browserType
         
         if ['firefox','phantom','chrome'].count(browser):
-            self.browser                    =   Webdriver(browser,**kwargs)
+            self.browser                    =   Webdriver(self,browser)
         
         if browser == 'urllib2': 
             self.browser                    =   Urllib2(self)
-
-    
-
-
-        #self.browser.type=browser
-        #self.browser.cookies=cookies
 
 
     

@@ -1559,6 +1559,7 @@ class Auto_Poster:
             df['_country']                      =   df._file.map(lambda s: s[:s.find('.')])
             df['_state']                        =   df._file.map(lambda s: self.T.re_sub(r'([A-Z][a-z]+)([A-Z][a-z]+)',r'\1 \2',s.split('.')[1]) )
             df['_city']                         =   df._file.map(lambda s: None if not len(s.split('.'))>=5 else s.split('.')[2])
+            df['_city']                         =   df._city.map(lambda s: s if not s else self.T.re_sub('([a-z])([A-Z])',r'\1 \2',s))
             df['_local']                        =   df._city.map(lambda s: None if not s or len(s.split('_'))<2 else s.split('_')[1])
             df['_server']                       =   df._local.map(lambda s: self.T.re_sub(r'(LOC[0-9]+)(S[0-9]+)',r'\2',s))
             df['_local']                        =   df._local.map(lambda s: self.T.re_sub(r'(LOC[0-9]+)(S[0-9]+)',r'\1',s))
@@ -1574,62 +1575,66 @@ class Auto_Poster:
             return True
 
         def find_cl_compatible_vpn(self,_parent=None):
-            # CONFIRM NO EXISTING VPN ACTIVE
-            # cmd                             =   ['%s/hma_vpn.sh -s' %   self.vpn_exec_path,]
-            # (_out,_err)                     =   self.T.exec_cmds(cmd,root=True)
-            # assert _out.count('Connected to')==0
 
             if not hasattr(self.T,'id'):
                 self.T.id                   =   self._parent.Identity.get()
             if _parent and hasattr(_parent.T,'id'):
                 self.T.id                   =   _parent.T.id
 
+            # ENSURE NO EXISTING VPN ACTIVE
+            cmd                             =   ['%s/hma_vpn.sh -x' %   self.vpn_exec_path,]
+            (_out,_err)                     =   self.T.exec_cmds(cmd,root=True)
+
             vpns                            =   self.T.pd.read_sql("""
                                                                    select * from vpns where _state_abbr='%(state_abbr)s'
                                                                    """      %   self.T.id.details,self.T.eng)
             chk_page                        =   'https://accounts.craigslist.org/'
 
-            ## ---------  TEST BROWSER CONFIG ---------
+            for idx,row in vpns.iterrows():
 
-            # for idx,row in vpns.iterrows():
-            #
-            #     # START SERVER
-            #     cmd                         =   [' '.join([
-            #                                         'sudo %s/hma_vpn.sh'    %   self.vpn_exec_path,
-            #                                         '-d -c ~/.vpnpass -p tcp %(_state)s.*%(_city)s.*%(_local)s %(_server)s' % row])]
-            #     (_out,_err)                 =   self.T.exec_cmds(cmd,root=True)
-            #     assert _err is None
-            #     assert _out.count('Connecting to')>0
-            #
-            #     # WAIT FOR CONNECTION OR ERROR
-            #     wait_time                   =   3*60 # 3 minute wait
-            #     end_time                    =   self.T.time.time() + wait_time
-            #     while True:
-            #
-            #         if self.T.time.time()>end_time:
-            #             self.T.id.ip_addr   =   ''
-            #             break
-            #
-            #         cmd                     =   ['%s/hma_vpn.sh -s' %   self.vpn_exec_path,]
-            #         (_out,_err)             =   self.T.exec_cmds(cmd,root=True)
-            #         assert _err is None
-            #
-            #         if _out.count('Connected to')>0:
-            #             (_out,_err)         =   self.T.exec_cmds(['bash -l -i -c "get_my_ip_ext 2>&1"'])
-            #             assert _err is None
-            #             self.T.id.ip_addr   =   _out.rstrip('\n')
-            #             break
-            #         else:
-            #             self.T.delay(           5)
-            #
-            #     nbr                         =   self._parent._parent.Browser(self).build()
-            #
-            # ---------  TEST BROWSER CONFIG ---------
+                # START SERVER
+                cmd                         =   [' '.join([
+                                                    'sudo %s/hma_vpn.sh'    %   self.vpn_exec_path,
+                                                    '-d -c ~/.vpnpass -p tcp %(_state)s.*%(_city)s.*%(_local)s %(_server)s' % row])]
+                (_out,_err)                 =   self.T.exec_cmds(cmd,root=True)
+                assert _err is None
+                assert _out.count('Connecting to')>0
 
-            self.T.browser_type='chrome'
-            nbr                             =   self._parent._parent.Browser(self).build()
-            nbr.open_page(                      'https://panopticlick.eff.org/index.php?action=log&js=yes')
-            i_trace()
+                # WAIT FOR CONNECTION OR ERROR
+                wait_time                   =   3*60 # 3 minute wait
+                end_time                    =   self.T.time.time() + wait_time
+                while True:
+
+                    if self.T.time.time()>end_time:
+                        self.T.id.ip_addr   =   ''
+                        break
+
+                    cmd                     =   ['%s/hma_vpn.sh -s' %   self.vpn_exec_path,]
+                    (_out,_err)             =   self.T.exec_cmds(cmd,root=True)
+                    assert _err is None
+
+                    if _out.count('Connected to')>0:
+                        (_out,_err)         =   self.T.exec_cmds(['bash -l -i -c "get_my_ip_ext 2>&1"'])
+                        assert _err is None
+                        self.T.id.vpn.ip_addr   =   self.T.re_sub('^(.*[^0-9]+)([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)([^0-9]+.*)$',r'\2',_out.rstrip('\n'))
+                        break
+                    else:
+                        self.T.delay(           5)
+
+                nbr                         =   self._parent._parent.Browser(self).build()
+                nbr.open_page(                  chk_page)
+
+                src                         =   nbr.source()
+                if src.count('This IP has been automatically blocked'):
+                    self.T.conn.set_isolation_level(0)
+                    self.T.cur.execute(         "UPDATE vpns SET is_blocked=True,ip_addr='%(ip_addr)s'::cidr WHERE uid=%(uid)s" % self.T.id.vpn)
+                elif src.count('Account Log In'):
+                    self.T.id.vpn.uid       =   row.uid
+                    self.T.conn.set_isolation_level(0)
+                    self.T.cur.execute(         "UPDATE vpns SET is_blocked=False,ip_addr='%(ip_addr)s'::cidr WHERE uid=%(uid)s" % self.T.id.vpn)
+                    break
+                else:
+                    i_trace()
 
             return self.T.id.details.vpn
 
@@ -1745,13 +1750,16 @@ class Auto_Poster:
                                                  '_org_unit'                :   self.T.F.job().replace('/','\/').replace("'",''),
                                                 })
                     g                       =   self.T.randrange(0,2)
+                    gender                  =   'Female' if g==0 else 'Male'
                     name                    =   self.T.F.name_female() if g==0 else self.T.F.name_male()
                     while len(name.split())!=2:
                         name                =   self.T.F.name_female() if g==0 else self.T.F.name_male()
                     first,last              =   name.replace("'",'').split()
                     D.update(                   {'_first_name'              :   first,
                                                  '_last_name'               :   last,
-                                                 '_name'                    :   ' '.join([first,last])})
+                                                 '_name'                    :   ' '.join([first,last]),
+                                                 '_gender_num'              :   g,
+                                                 '_gender'                  :   gender})
                     return D
                 def update_pgsql_with_details(D=None):
                     if not D:
@@ -1837,33 +1845,25 @@ class Auto_Poster:
                 return '%s/%s.pem'          %   (self.T.id.details.SAVE_DIR,self.T.id.guid)
 
             def vpn_connection(self):
-                self._parent.VPN.find_cl_compatible_vpn(self)
+                return self._parent.VPN.find_cl_compatible_vpn(self)
 
             def new(self):
-                self.T.id                   =   self.user_profile()
+                # self.T.id                   =   self.user_profile()
+                # self.T.id.cookie            =   self.cookie()
+                # self.T.id.ssl_cert          =   self.ssl_cert()
+                # self.id.vpn                 =   self.vpn_connection()
+                
 
-                # self.guid                       =   str(self.T.get_guid().hex)[:7]
-                # self.T.conn.set_isolation_level(    0)
-                # self.T.cur.execute(                 "INSERT INTO identities (guid) VALUES ('%s');" % self.guid)
-                # self.id.guid='e3e1ed2'
-                # self.id.details={"_org": "Ratke Inc", 
-                #             "_city": "Tillamook", 
-                #             "_name": "Ms. Theodora Lemke PhD", 
-                #             "_email": "e3e1ed2@gmail.com", 
-                #             "_state": "Oregon", 
-                #             "_country": "US", 
-                #             "_BASE_DIR": "/home/ub1/SERVER1/autoposter/identities", 
-                #             "_SAVE_DIR": "/home/ub1/SERVER1/autoposter/identities/e3e1ed2", 
-                #             "_org_unit": "Theme park manager", 
-                #             "_user_name": "e3e1ed2", 
-                #             "_state_abbr": "OR", 
-                #             "_user_agent": "Mozilla/5.0 (Windows CE) AppleWebKit/5312 (KHTML, like Gecko) Chrome/15.0.874.0 Safari/5312"}
+                x=self.T.pd.read_sql("select * from identities where guid='dd2072d'",self.T.eng).iloc[0,:]
+                self.T.id = self.T.To_Class({})
+                self.T.id.guid = 'dd2072d'
+                self.T.id.details = self.T.To_Class(x.details)
 
-                self.T.id.cookie            =   self.cookie()
-                self.T.id.ssl_cert          =   self.ssl_cert()
-                self.id.vpn                 =   self.vpn_connection()
                 self.email                  =   self.gmail_act()
                 self.cl                     =   self.craigslist_act()
+
+                # self.T.conn.set_isolation_level(    0)
+                # self.T.cur.execute(                 "INSERT INTO identities (guid) VALUES ('%s');" % self.guid)
 
                 return self
 

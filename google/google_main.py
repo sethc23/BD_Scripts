@@ -8,15 +8,17 @@ except:
 class Google:
 
     def __init__(self,_parent=None):
+        from os                             import environ                  as os_environ
+        from sys                            import path                     as py_path
+        py_path.append(                         os_environ['HOME'] + '/.scripts')
         if _parent:            self._parent =   _parent
         if not _parent or not hasattr(_parent,'T'):
-            from os                             import environ                  as os_environ
-            from sys                            import path                     as py_path
-            py_path.append(                         os_environ['HOME'] + '/.scripts')
             from System_Control                 import System_Lib
             self.T                          =   System_Lib().T
         else:
             self.T                          =   _parent.T
+            from System_Control                 import System_Reporter
+            self.Reporter                   =   System_Reporter(self)
         locals().update(                        self.T.__getdict__())
         # self.Google                         =   self
         # self.Voice                          =   self.Voice(self)
@@ -285,9 +287,9 @@ class Google:
                 T                           =   {}
 
                 if hasattr(self.T,'id') and hasattr(self.T.id,'details'):
-                    for k,v in self.T.id.details.iteritems():
+                    for k,v in self.T.id.details.__dict__.iteritems():
+                        T.update(               {k.strip('_')               :   v})
                         kwargs.update(          {k.strip('_')               :   v})
-
 
                 for k,v in kwargs.iteritems():
                     if account_info_keys.count(k):
@@ -297,11 +299,12 @@ class Google:
 
                 if not T.has_key('FirstName') or not T.has_key('LastName'):
                     g                       =   self.T.randrange(0,2)
+                    gender                  =   'Female' if g==0 else 'Male'
                     name                    =   self.T.Identity.F.name_female() if g==0 else self.T.Identity.F.name_male()
                     while len(name.split())!=2:
                         name                =   self.T.Identity.F.name_female() if g==0 else self.T.Identity.F.name_male()
                     first,last              =   name.split()
-                    T.update(                   {'FirstName':first,'LastName':last,'gender_num':g})
+                    T.update(                   {'FirstName':first,'LastName':last,'gender_num':g,'gender':gender})
 
                 if not T.has_key('GmailAddress'):
                     _user                   =   str(self.T.get_guid().hex)[:10]
@@ -333,7 +336,10 @@ class Google:
             T                               =   setup_account_info()
 
 
-            self.T.br                       =   self.T.scraper('chrome',**self.T.__dict__).browser
+            self.T.br                       =   self.T.scraper('chrome',dict=self.T).browser
+
+            print "CAN YOU ACCESS http://sys.sanspaper.com/tmp/phantomjs.html ??"
+            i_trace()
 
             start_page                      =   ''.join(['https://accounts.google.com/SignUp?',
                                                          'continue=https%3A%2F%2Fwww.google.com%2F%3Fgws_rd%3Dssl&hl=en'])
@@ -391,7 +397,7 @@ class Google:
             self.T.br.scroll_to_element(        "recaptcha_response_field")
             self.T.br.set_element_val(          'recaptcha_response_field',captcha_input,str)
 
-            # VERIFY INFORMATION
+            # VERIFY INFORMATIONse
             most_vars_inputted              =   ['FirstName','LastName','GmailAddress',
                                                  'BirthDay','BirthYear','RecoveryPhoneNumber','RecoveryEmailAddress']
             for it in most_vars_inputted:
