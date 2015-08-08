@@ -335,11 +335,7 @@ class Google:
 
             T                               =   setup_account_info()
 
-
             self.T.br                       =   self.T.scraper('chrome',dict=self.T).browser
-
-            print "CAN YOU ACCESS http://sys.sanspaper.com/tmp/phantomjs.html ??"
-            i_trace()
 
             start_page                      =   ''.join(['https://accounts.google.com/SignUp?',
                                                          'continue=https%3A%2F%2Fwww.google.com%2F%3Fgws_rd%3Dssl&hl=en'])
@@ -389,7 +385,7 @@ class Google:
 
             # Communicate CAPTCHA
             self.T.update(                      {'line_no'                  :   self.T.I.currentframe().f_back.f_lineno})
-            self.T.Reporter._growl(             '%(line_no)s GOOG@%(user)s<%(guid)s>: NEED CAPTCHA' % self.T,
+            self._parent.Reporter._growl(       '%(line_no)s GOOG@%(user)s<%(guid)s>: NEED CAPTCHA' % self.T,
                                                 'http://sys.sanspaper.com/tmp/phantomjs.html' )
 
             # Receive & Enter Input
@@ -410,9 +406,6 @@ class Google:
 
             self.T.br.scroll_to_element(        "TermsOfService")
             self.T.br.window.execute_script(    'document.getElementById("TermsOfService").checked = true;')
-
-            i_trace()
-
             self.T.br.window.execute_script(    'document.getElementById("createaccount").submit();')
 
             T['guid']                       =   T['GmailAddress']
@@ -421,9 +414,9 @@ class Google:
             details                         =   {'_name'                :   '%s %s' % (T['FirstName'],T['LastName']),}
             details.update(                     {'_recovery_phone'      :   T['RecoveryPhoneNumber'],})
             details.update(                     {'_recovery_email'      :   T['RecoveryEmailAddress'],})
-            details.update(                     {'_birthday'            :   '%04d.%02d.%02d' % (T['BirthYear'],
-                                                                                                T['birth_month'],
-                                                                                                T['BirthDay']),})
+            details.update(                     {'_birthday'            :   '%04d.%02d.%02d' % (int(T['BirthYear']),
+                                                                                                int(T['birth_month']),
+                                                                                                int(T['BirthDay'])),})
             details.update(                     {'_gender'              :   gender_dict[ T['gender_num'] ],})
             T['details']                    =   self.T.j_dump(details)
 
@@ -431,6 +424,8 @@ class Google:
                                                     VALUES ('%(guid)s','%(email)s','%(pw)s','%(details)s'::jsonb) """ % T
             self.T.conn.set_isolation_level(    0)
             self.T.cur.execute(                 qry)
+
+            i_trace()
 
 
 
