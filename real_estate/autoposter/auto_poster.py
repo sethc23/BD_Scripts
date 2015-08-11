@@ -1848,16 +1848,16 @@ class Auto_Poster:
                 return self._parent.VPN.find_cl_compatible_vpn(self)
 
             def new(self):
-                # self.T.id                   =   self.user_profile()
-                # self.T.id.cookie            =   self.cookie()
-                # self.T.id.ssl_cert          =   self.ssl_cert()
+                self.T.id                   =   self.user_profile()
+                self.T.id.cookie            =   self.cookie()
+                self.T.id.ssl_cert          =   self.ssl_cert()
                 # self.id.vpn                 =   self.vpn_connection()
                 
 
-                x=self.T.pd.read_sql("select * from identities where guid='dd2072d'",self.T.eng).iloc[0,:]
-                self.T.id = self.T.To_Class({})
-                self.T.id.guid = 'dd2072d'
-                self.T.id.details = self.T.To_Class(x.details)
+                # x=self.T.pd.read_sql("select * from identities where guid='dd2072d'",self.T.eng).iloc[0,:]
+                # self.T.id = self.T.To_Class({})
+                # self.T.id.guid = 'dd2072d'
+                # self.T.id.details = self.T.To_Class(x.details)
 
                 self.email                  =   self.gmail_act()
                 self.cl                     =   self.craigslist_act()

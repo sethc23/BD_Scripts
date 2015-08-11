@@ -29,4 +29,11 @@ ENV
 *.*~
 
 real_estate/autoposter/identities
-html/logs/chromedriver.log
+**.log
+**/Session Storage/**
+*.pem
+*.key
+**/Local Storage/**
+**/Application Cache/**
+**/Cache/**
+

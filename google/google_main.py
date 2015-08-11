@@ -319,10 +319,10 @@ class Google:
                     T['birth_month']        =   birth_month_dict[ T['birth_month'] ]
 
                 if not T.has_key('RecoveryPhoneNumber'):
-                    T.update(                   {'RecoveryPhoneNumber'      :   '6174295700'})
+                    T.update(                   {'RecoveryPhoneNumber'      :   '6177024233'})
 
                 if not T.has_key('RecoveryEmailAddress'):
-                    T.update(                   {'RecoveryEmailAddress'     :   'seth.t.chase@gmail.com'})
+                    T.update(                   {'RecoveryEmailAddress'     :   'a2547e2@mail.com'})
 
                 return T
 
@@ -334,12 +334,19 @@ class Google:
                 self.T.update(                  AP.T.__getdict__())
 
             T                               =   setup_account_info()
-
+            self.T.excluded_defaults        =   ['user-agent','no-java']
             self.T.br                       =   self.T.scraper('chrome',dict=self.T).browser
+
+            i_trace()
 
             start_page                      =   ''.join(['https://accounts.google.com/SignUp?',
                                                          'continue=https%3A%2F%2Fwww.google.com%2F%3Fgws_rd%3Dssl&hl=en'])
             self.T.br.open_page(                start_page)
+
+            for k,v in T.iteritems():
+                print k,v
+            i_trace()
+
             min_wait                        =   4
             Actions                         =   self.T.br.Actions(self.T.br.window)
 
@@ -414,6 +421,9 @@ class Google:
             details                         =   {'_name'                :   '%s %s' % (T['FirstName'],T['LastName']),}
             details.update(                     {'_recovery_phone'      :   T['RecoveryPhoneNumber'],})
             details.update(                     {'_recovery_email'      :   T['RecoveryEmailAddress'],})
+            birth_month_dict                =   {10:'a',11:'b',12:'c'}
+            birth_month_dict_rev            =   dict(zip(birth_month_dict.values(),birth_month_dict.keys()))
+            T['birth_month']                =   T['birth_month'] if not birth_month_dict_rev.has_key(T['birth_month']) else birth_month_dict_rev[T['birth_month']]
             details.update(                     {'_birthday'            :   '%04d.%02d.%02d' % (int(T['BirthYear']),
                                                                                                 int(T['birth_month']),
                                                                                                 int(T['BirthDay'])),})
@@ -427,5 +437,9 @@ class Google:
 
             i_trace()
 
+            # COPY USER_DATA_DIR TO IDENTITIES
+            
+
+            a=0
 
 

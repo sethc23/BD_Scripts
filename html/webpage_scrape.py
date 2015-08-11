@@ -1,11 +1,10 @@
 
+from os                                     import environ                  as os_environ
 from sys                                    import argv, path
 path.append(                                    '../appscript')
 path.append(                                    '..')
 # import                                    Safari_API
 from handle_cookies                         import getFirefoxCookie,set_cookies_from_text
-import mechanize
-from selenium.webdriver.common.keys         import Keys
 from time                                   import time                     as TIME
 from time                                   import sleep                    as delay
 from ipdb                                   import set_trace                as i_trace
@@ -84,14 +83,15 @@ class Webdriver:
         #     setattr(self,k,v)
 
         if browser == 'firefox':    
-            self.window                     =   self.set_firefox()
+            self.window,T                   =   self.set_firefox()
         if browser == 'phantom':    
-            self.window                     =   self.set_phantom()
+            self.window,T                   =   self.set_phantom()
         if browser == 'chrome':    
-            self.window                     =   self.set_chrome()
-        # self.window             =   self.browser
-        from selenium.webdriver.common.keys import Keys 
-        self.keys               =   Keys
+            self.window,T                   =   self.set_chrome()
+        self.T                              =   T
+
+        from selenium.webdriver.common.keys import Keys
+        self.keys                           =   Keys
 
     def config_browser(self,browser,kwargs):
         browser_config                      =   {} if not kwargs.has_key('browser_config') else kwargs['browser_config']
@@ -134,7 +134,7 @@ class Webdriver:
             # profile = webdriver.firefox.firefox_profile.FirefoxProfile()
             self.browser        =   webdriver.Firefox()
 
-    def set_chrome(self,with_profile=False,**kwargs):
+    def set_chrome(self,**kwargs):
         """
         ----------------------------------------------------------------------------
 
@@ -167,89 +167,73 @@ class Webdriver:
 
         """
 
-        from selenium.webdriver             import Chrome,ChromeOptions,DesiredCapabilities,Proxy
-        from os                             import environ                  as os_environ
-
-        default_settings                    =   {'bin_path'                 :   '/usr/local/bin/chromedriver',
-                                                 'port'                     :   15010,
-                                                 'log_path'                 :   os_environ['BD'] + '/html/logs/chromedriver.log',
-                                                 'user-agent'               :   "Mozilla/5.0 (Windows NT 5.1; rv:13.0) Gecko/20100101 Firefox/13.0.1",
-                                                 'log-level'                :   0,
-                                                 'cookie_content'           :   {},
-                                                 }
-
-        T                                   =   default_settings
-
-        ## ----------------------------     <<<<<
-        ## ----------------------------     <<<<<
-
-        # TODO:  Integrate default options in settings file to save with each project
-        tmp_settings                        =   {'enable-profiling'                     :   False,
+        def set_defaults():
+            default_settings                =   {'bin_path'                             :   '/usr/local/bin/chromedriver',
+                                                 'port'                                 :   15010,
+                                                 'log_path'                             :   os_environ['BD'] + '/html/logs/chromedriver.log',
+                                                 'user-agent'                           :   "Mozilla/5.0 (Windows NT 5.1; rv:13.0) Gecko/20100101 Firefox/13.0.1",
+                                                 # 1 in 1788 per panopticlick !!
+                                                 'no_java'                              :   True,
+                                                 'no_plugins'                           :   True,
                                                  'net-log-capture-mode'                 :   'IncludeCookiesAndCredentials',
-                                                 'acceptSslCerts'                       :   True,
-                                                 'databaseEnabled'                      :   False,
-                                                 'unexpectedAlertBehaviour'             :   "accept",
-                                                 'applicationCacheEnabled'              :   False,
-                                                 'webStorageEnabled'                    :   False,
-                                                 'browserConnectionEnabled'             :   False,
-                                                 'locationContextEnabled'               :   True,}
+                                                 'log-level'                            :   0,
+                                                 'cookie_content'                       :   {},
+                                                 'capabilities'                         :
+                                                     {  'acceptSslCerts'                :   True,
+                                                        'databaseEnabled'               :   False,
+                                                        'unexpectedAlertBehaviour'      :   "accept",
+                                                        'applicationCacheEnabled'       :   False,
+                                                        'webStorageEnabled'             :   False,
+                                                        'browserConnectionEnabled'      :   False,
+                                                        'locationContextEnabled'        :   True,
+                                                        },
+                                                'loggingPrefs'                          :
+                                                    {   "driver"                        :   "ALL",
+                                                        "server"                        :   "ALL",
+                                                        "browser"                       :   "ALL"},
+                                                'true_opts'                             :
+                                                     [
+                                                        'disable-core-animation-plugins',
+                                                        'disable-plugins',
+                                                        'disable-extensions',
+                                                        'disable-plugins-discovery',
+                                                        'disable-site-engagement-service',
+                                                        'disable-text-input-focus-manager',
 
-        T.update(                               tmp_settings)
+                                                        'enable-account-consistency',
+                                                        'enable-devtools-experiments',
+                                                        'enable-logging',
+                                                        'enable-network-information',
+                                                        'enable-net-benchmarking',
+                                                        'enable-network-portal-notification',
 
-        ## ----------------------------     >>>>>
-        ## ----------------------------     >>>>>
+                                                        'enable-strict-site-isolation',
+                                                        # 'incognito',
+                                                        'log-net-log',
+                                                        'scripts-require-action',
+                                                        'system-developer-mode',
+                                                       # 'use-mobile-user-agent',
+                                                     ],
+                                                'false_opts'                            :
+                                                    [
+                                                        'enable-profiling',
+                                                    ],
+                                                 }
+            excluded                        =   [] if not kwargs.has_key('excluded_defaults') else kwargs['excluded_defaults']
+            for k,v in default_settings.iteritems():
+                if not excluded.count(k):
+                    T.update(                   default_settings)
+            return T
+        def set_desired_capabilities():
+            from selenium.webdriver             import DesiredCapabilities
+            dc                              =   DesiredCapabilities.CHROME.copy()
+            platforms                       =   ['WINDOWS', 'XP', 'VISTA', 'MAC', 'LINUX', 'UNIX', 'ANDROID', 'ANY']
 
-        # Cycle Through kwargs and Store for Later
-        if kwargs:
-            T.update(                           kwargs)
-        if hasattr(self.T,'id'):
-            T.update(                           self.T.id.__dict__)
+            # -PROXY OBJECT
+            # from selenium.webdriver import Proxy
 
-            if hasattr(self.T.id,'details'):
-                for k,v in self.T.id.details.__dict__.iteritems():
-                    T.update(                   { k.strip('_')                      :   v})
-
-            if hasattr(self.T.id,'cookie'):
-                if hasattr(self.T.id.cookie,'content'):
-                    T.update(                   {'cookie_content'                   :   self.T.id.cookie.content})
-
-        if T.has_key('user_agent'):
-            T['user-agent']                 =   T['user_agent']
-        if T.has_key('SAVE_DIR'):
-            T['user-data-dir']              =   T['SAVE_DIR']
-            T['profile-directory']          =   'Profile'
-        if T.has_key('guid'):
-            T['log_path']                   =   '%s/%s.log' % (T['SAVE_DIR'],T['guid'])
-
-        if T.has_key('no_java') and T['no_java']:
-            if T.has_key('no_plugins') and T['no_plugins']:
-                T['user-data-dir']          =   os_environ['BD'] + '/real_estate/autoposter/identities/no_java_no_plugins/'
-                del T['profile-directory']
-            else:
-                T['user-data-dir']          =   os_environ['BD'] + '/real_estate/autoposter/identities/no_java/'
-                del T['profile-directory']
-        elif T.has_key('no_plugins') and T['no_plugins']:
-            T['user-data-dir']              =   os_environ['BD'] + '/real_estate/autoposter/identities/no_plugins/'
-            del T['profile-directory']
-
-        # EXECUTABLE,PORT and SERVICE ARGS
-        bin_path                            =   T['bin_path']
-        port                                =   T['port']
-        # SERVICE ARGS          # ( somewhat documented in executable help, i.e., chromedriver --help )
-        service_args                        =   ["--verbose",
-                                                 "--log-path=%(log_path)s" % T]
-
-
-        #
-        # DESIRED CAPABILITIES:
-        dc                                  =   DesiredCapabilities.CHROME.copy()
-        platforms                           =   ['WINDOWS', 'XP', 'VISTA', 'MAC', 'LINUX', 'UNIX', 'ANDROID', 'ANY']
-
-        # -PROXY OBJECT
-        # from selenium.webdriver import Proxy
-
-        # -READ-WRITE CAPABILITIES
-        rw_capabilities                     =   [
+            # -READ-WRITE CAPABILITIES
+            rw_capabilities                 =   [
                                                  'acceptSslCerts',              # boolean unless specified
                                                  'javascriptEnabled',
                                                  'databaseEnabled',
@@ -264,109 +248,137 @@ class Webdriver:
                                                  'nativeEvents'
                                                  ]
 
-        for it in rw_capabilities:
-            if T.has_key(it):
-                dc[it]                      =   str(T[it])
-
-        # -loggingPrefs                         OBJECT (dict)
-        #   "OFF",  "SEVERE", "WARNING",
-        #   "INFO", "CONFIG", "FINE",
-        #   "FINER","FINEST", "ALL"
-        loggingPrefs                        =   {"driver"                           :   "ALL",
-                                                 "server"                           :   "ALL",
-                                                 "browser"                          :   "ALL"}
-        dc["loggingPrefs"]                  =   loggingPrefs
+            assert T.has_key('capabilities')
+            for it in rw_capabilities:
+                if T['capabilities'].has_key(it):
+                    dc[it]                  =   str(T['capabilities'][it])
 
 
-        # CHROME OPTIONS
+            # -loggingPrefs                         OBJECT (dict)
+            #   "OFF",  "SEVERE", "WARNING",
+            #   "INFO", "CONFIG", "FINE",
+            #   "FINER","FINEST", "ALL"
 
-        opts                                =   ChromeOptions()
+            if T.has_key('loggingPrefs'):
+                dc[it]                      =   T['loggingPrefs']
 
-        true_opts                           =   [
-                                                 'disable-core-animation-plugins',
-                                                 'disable-plugins',
-                                                 'disable-extensions',
-                                                 'disable-plugins-discovery',
-                                                 'disable-site-engagement-service',
-                                                 'disable-text-input-focus-manager',
+            return dc
+        def set_profile():
+            profile                         =   {#"download.default_directory"       :   "C:\\SeleniumTests\\PDF",
+                                                 "download.prompt_for_download"     :   False,
+                                                 "download.directory_upgrade"       :   True,
+                                                 "plugins.plugins_disabled"         :   ["Chromoting Viewer",
+                                                                                         "Chromium PDF Viewer"],
+                                                                                         }
+            opts.add_experimental_option(       "prefs", profile)
+        def set_performance_logging():
+            perfLogging                     =   {
+                                                 "enableNetwork"                    :   True,
+                                                 "enablePage"                       :   True,
+                                                 "enableTimeline"                   :   True,
+                                                 #"tracingCategories":<string>,
+                                                 "bufferUsageReportingInterval"     :   1000
+                                                }
 
-                                                 'enable-account-consistency',
-                                                 'enable-devtools-experiments',
-                                                 'enable-logging',
-                                                 'enable-network-information',
-                                                 'enable-net-benchmarking',
-                                                 'enable-network-portal-notification',
+            opts.add_experimental_option(     "perfLoggingPrefs",perfLogging)
+        def set_chrome_options():
+            from selenium.webdriver             import ChromeOptions
+            opts                            =   ChromeOptions()
 
-                                                 # 'enable-profiling',                        # No
-                                                 'enable-strict-site-isolation',
-                                                 'incognito',
-                                                 'log-net-log',
-                                                 'scripts-require-action',
-                                                 'system-developer-mode',
-                                                 # 'use-mobile-user-agent',
-                                                 ]
+            ### Add Boolean Arguments
+            if T.has_key('true_opts'):
+                for it in T['true_opts']:
+                    opts.add_argument(          '%s=1' % it )
+            if T.has_key('false_opts'):
+                for it in T['false_opts']:
+                    opts.add_argument(          '%s=0' % it )
 
-        ### Add boolean arguments
-        for it in true_opts:
-            if not T.has_key(it):
-                opts.add_argument(              '%s=1' % it )
-
-        false_opts                          =   [
-                                                 'enable-profiling',                        # No
-                                                 ]
-        for it in false_opts:
-            if not T.has_key(it):
-                opts.add_argument(              '%s=0' % it )
-
-        value_opts                          =   [
-                                                 # 'profile-directory',
+            value_opts                      =   [
+                                                 'profile-directory',
                                                  'log-level',                   # 0 to 3: INFO = 0, WARNING = 1, LOG_ERROR = 2, LOG_FATAL = 3
                                                  'net-log-capture-mode',        # "Default" "IncludeCookiesAndCredentials" "IncludeSocketBytes"'
-                                                 # 'register-font-files',       # might be windows only
-                                                 # 'remote-debugging-port',
-                                                 # 'user-agent',
-                                                 'user-data-dir',             # don't use b/c it negates no-extension options
+                                                 'register-font-files',         # might be windows only
+                                                 'remote-debugging-port',
+                                                 'user-agent',
+                                                 'user-data-dir',               # don't use b/c it negates no-extension options
                                                  ]
 
-        # Add other arguments
-        for it in value_opts:
-            if T.has_key(it):
-                opts.add_argument(              '%s=%s' % (it,T[it]) )
+            ### Add Value Arguments
+            for it in value_opts:
+                if T.has_key(it):
+                    opts.add_argument(           '%s=%s' % (it,T[it]) )
 
-        # 1 in 1788 per panopticlick !!
-        opts.add_argument('user-agent=Mozilla/5.0 (Windows NT 5.1; rv:13.0) Gecko/20100101 Firefox/13.0.1')
+            ### OTHER CHROME OPTIONS NOT YET FULLY CONFIGURED
 
-        # -extensions        list str
-        # -localState        dict
-        # -prefs             dict
-        # profile                             =   {#"download.default_directory"       :   "C:\\SeleniumTests\\PDF",
-                                                 # "download.prompt_for_download"     :   False,
-                                                 # "download.directory_upgrade"       :   True,
-                                                 # "plugins.plugins_disabled"         :   ["Chromoting Viewer",
-                                                 #                                         "Chromium PDF Viewer"],
-                                                 #                                         }
-        # opts.add_experimental_option(           "prefs", profile)
+            # -extensions        list str
+            # -localState        dict
+            # -prefs             dict
+            # set_profile()
 
-        # -detach            bool
-        # -debuggerAddress   str
-        # -excludeSwitches   list str
-        # -minidumpPath      str
-        # -mobileEmulation   dict
+            # -detach            bool
+            # -debuggerAddress   str
+            # -excludeSwitches   list str
+            # -minidumpPath      str
+            # -mobileEmulation   dict
 
-        # -perfLoggingPrefs                     OBJECT (dict)
-        # perfLogging                         =    {
-        #                                              "enableNetwork"                :   True,
-        #                                              "enablePage"                   :   True,
-        #                                              "enableTimeline"               :   True,
-        #                                              #"tracingCategories":<string>,
-        #                                              "bufferUsageReportingInterval" :   1000
-        #                                              }
-        #
-        # opts.add_experimental_option(           "perfLoggingPrefs",perfLogging)
+            # -perfLoggingPrefs             OBJECT (dict)
+            # set_performance_logging()
+
+            return opts
+
+        from selenium.webdriver             import Chrome
+
+        T                                   =  {}
+        if kwargs:
+            T.update(                           kwargs)
+
+        # Cycle Through kwargs and Extract Configs
+        if hasattr(self.T,'id'):
+            T.update(                           self.T.id.__dict__)
+
+            if hasattr(self.T.id,'details'):
+                for k,v in self.T.id.details.__dict__.iteritems():
+                    T.update(                   { k.strip('_')                      :   v})
+
+            if hasattr(self.T.id,'cookie'):
+                if hasattr(self.T.id.cookie,'content'):
+                    T.update(                   {'cookie_content'                   :   self.T.id.cookie.content})
+
+        # Set Defaults if not provided
+        if not T.has_key('defaults'):
+            T                               =   set_defaults()
+
+        # Config Data Storage if Possible
+        if T.has_key('SAVE_DIR'):
+            T['user-data-dir']              =   T['SAVE_DIR']
+            T['profile-directory']          =   'Profile'
+        if T.has_key('guid'):
+            T['log_path']                   =   '%s/%s.log' % (T['SAVE_DIR'],T['guid'])
+
+        # Configure with Special Profiles if Requested
+        special_profiles                    =   os_environ['BD'] + '/html/webdrivers/chrome/profiles'
+        if T.has_key('no_java') and T['no_java']:
+            if T.has_key('no_plugins') and T['no_plugins']:
+                T['user-data-dir']          =   special_profiles + '/no_java_no_plugins/'
+                del T['profile-directory']
+            else:
+                T['user-data-dir']          =   special_profiles + '/no_java/'
+                del T['profile-directory']
+        elif T.has_key('no_plugins') and T['no_plugins']:
+            T['user-data-dir']              =   special_profiles + '/no_plugins/'
+            del T['profile-directory']
 
 
-        d                                   =   Chrome(  executable_path        =   bin_path,
-                                                         port                   =   port,
+
+        # SERVICE ARGS          # ( somewhat documented in executable help, i.e., chromedriver --help )
+        service_args                        =   ["--verbose",
+                                                 "--log-path=%(log_path)s" % T]
+
+        dc                                  =   set_desired_capabilities()
+        opts                                =   set_chrome_options()
+
+        d                                   =   Chrome(  executable_path        =   T['bin_path'],
+                                                         port                   =   T['port'],
                                                          service_args           =   service_args,
                                                          desired_capabilities   =   dc,
                                                          chrome_options         =   opts)
@@ -376,7 +388,8 @@ class Webdriver:
 
         self.config_browser(                    d,kwargs)
 
-        return d
+
+        return d,T
 
     def set_phantom(self,**kwargs):
         from selenium                       import webdriver
@@ -439,7 +452,7 @@ class Webdriver:
 
         self.config_browser()
 
-        return d
+        return d,self.T.br.service_args
 
     def Select(self,element):
         """
@@ -478,6 +491,10 @@ class Webdriver:
 
     def get_url(self):
         return self.window.current_url
+
+    def get_uniqueness_info(self):
+        url                                 =   'https://panopticlick.eff.org/index.php?action=log'
+        self.window.get(                        url)
 
     def open_page(self, gotoUrl):
         self.window.get(gotoUrl)
