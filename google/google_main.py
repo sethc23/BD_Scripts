@@ -334,26 +334,20 @@ class Google:
                 self.T.update(                  AP.T.__getdict__())
 
             T                               =   setup_account_info()
-            self.T.excluded_defaults        =   ['user-agent','no-java']
+            self.T.excluded_defaults        =   ['user-agent','no_java']
             self.T.br                       =   self.T.scraper('chrome',dict=self.T).browser
-
-            i_trace()
-
             start_page                      =   ''.join(['https://accounts.google.com/SignUp?',
                                                          'continue=https%3A%2F%2Fwww.google.com%2F%3Fgws_rd%3Dssl&hl=en'])
             self.T.br.open_page(                start_page)
-
-            for k,v in T.iteritems():
-                print k,v
-            i_trace()
+            self.T.br.wait_for_page(            )
 
             min_wait                        =   4
-            Actions                         =   self.T.br.Actions(self.T.br.window)
 
             form_parts                      =   ['FirstName','LastName','GmailAddress','Passwd','PasswdAgain']
             for it in form_parts:
-                self.T.br.set_element_val(      it,T[it],str)
+                self.T.br.click_element_id_and_type(it,T[it])
                 self.T.delay(                   self.T.randrange(min_wait,10))
+
 
             self.T.br.window.find_element_by_xpath('//*[@id=":0"]').click()
             self.T.delay(                       self.T.randrange(min_wait+3,min_wait+9))
@@ -362,7 +356,7 @@ class Google:
 
             form_parts                      =   ['BirthDay','BirthYear']
             for it in form_parts:
-                self.T.br.set_element_val(      it,T[it],int)
+                self.T.br.click_element_id_and_type(it,T[it])
                 self.T.delay(                   self.T.randrange(min_wait,10))
 
             # Gender
@@ -373,22 +367,21 @@ class Google:
                 self.T.br.window.find_element_by_xpath('//*[@id=":f"]').click()    # Male
 
             # Phone // Current Email
-            self.T.br.set_element_val(          'RecoveryPhoneNumber',T['RecoveryPhoneNumber'],int)
+            self.T.br.click_element_id_and_type('RecoveryPhoneNumber',T['RecoveryPhoneNumber'])
             self.T.delay(                       self.T.randrange(min_wait,10))
-            it                              =   'RecoveryEmailAddress'
-            self.T.br.set_element_val(          'RecoveryEmailAddress',T['RecoveryEmailAddress'],str)
+            self.T.br.click_element_id_and_type('RecoveryEmailAddress',T['RecoveryEmailAddress'])
             self.T.delay(                       self.T.randrange(min_wait,10))
 
             # CAPTCHA
+            self.T.br.zoom(                     '200%')
+            start_size                      =   self.T.br.window.get_window_size()
+            self.T.br.window.set_window_size(   630,280)
             K                               =   self.T.br.window.find_element_by_id('recaptcha_challenge_image')
             start_location                  =   self.T.br.window.get_window_position()
-            start_size                      =   self.T.br.window.get_window_size()
-            self.T.br.zoom(                     '200%')
-            self.T.br.window.set_window_size(   630,280)
             self.T.br.scroll_to_element(        "recaptcha_challenge_image")
             self.T.br.post_screenshot(          )
-            self.T.br.zoom(                     '100%')
             self.T.br.window.set_window_size(   start_size['width'],start_size['height'])
+            self.T.br.zoom(                     '100%')
 
             # Communicate CAPTCHA
             self.T.update(                      {'line_no'                  :   self.T.I.currentframe().f_back.f_lineno})
@@ -397,23 +390,44 @@ class Google:
 
             # Receive & Enter Input
             captcha_input                   =   get_input("Captcha code?\n")
-            self.T.br.scroll_to_element(        "recaptcha_response_field")
-            self.T.br.set_element_val(          'recaptcha_response_field',captcha_input,str)
+            self.T.br.click_element_id_and_type('recaptcha_response_field',captcha_input)
 
-            # VERIFY INFORMATIONse
+            # VERIFY INFORMATION
             most_vars_inputted              =   ['FirstName','LastName','GmailAddress',
                                                  'BirthDay','BirthYear','RecoveryPhoneNumber','RecoveryEmailAddress']
             for it in most_vars_inputted:
-                assert self.T.br.execute('return document.getElementById("%s").value;' % it) == str(T[it])
+                assert self.T.br.get_element_id_val(it) == str(T[it])
             month_dict                      =   {1:'January',2:'February',3:'March',4:'April',5:'May',6:'June',
                                                  7:'July',8:'August',9:'September','a':'October','b':'November','c':'December'}
             assert self.T.br.window.find_element_by_xpath('//*[@id=":0"]').text == month_dict[ T['birth_month'] ]
             gender_dict                     =   { 0:'Female',1:'Male'}
             assert self.T.br.window.find_element_by_xpath('//*[@id=":d"]').text == gender_dict[ T['gender_num'] ]
 
-            self.T.br.scroll_to_element(        "TermsOfService")
-            self.T.br.window.execute_script(    'document.getElementById("TermsOfService").checked = true;')
-            self.T.br.window.execute_script(    'document.getElementById("createaccount").submit();')
+            self.T.br.scroll_and_click_id(      "TermsOfService")
+            self.T.br.scroll_and_click_id(      "submitbutton")
+            self.T.br.wait_for_page(            )
+
+            # IF ASKED TO 'Verify your account'
+            if self.T.br.source().count('Verify your account'):
+                assert self.T.br.get_element_id_val('signupidvinput') == str(T['RecoveryPhoneNumber'])
+                self.T.br.scroll_and_click_id(  'signupidvmethod-voice')
+                self.T.br.scroll_and_click_id(  'next-button')
+                self.T.br.wait_for_page(        )
+                if self.T.br.source().count('This phone number cannot be used for verification.'):
+                    print 'Verification Error'
+                    i_trace()
+                    a=0
+                    raise SystemExit
+
+            # COPY USER_DATA_DIR TO IDENTITIES
+            cmds                            =   ['cp -r %s %s;' % ( self.T.br.window_cfg['user-data-dir'].rstrip('/'),
+                                                                    self.T.br.window_cfg['SAVE_DIR'].rstrip('/'))]
+            (_out,_err)                     =   self.T.exec_cmds(cmds)
+            assert not _out
+            assert _err is None
+
+            # UPDATE COOKIES
+            self.T.br.update_cookies(           )
 
             T['guid']                       =   T['GmailAddress']
             T['email']                      =   T['GmailAddress'] + '@gmail.com'
@@ -437,9 +451,23 @@ class Google:
 
             i_trace()
 
-            # COPY USER_DATA_DIR TO IDENTITIES
-            
+            ## CONFIGURE ACCOUNT
+            # 25ebeab2ff@gmail.com
+            # fcc836b996044605a0d6ef16318706aa
+            #
+            # rec_email:a2547e2@mail.com
+            # rec_phone:(617) 702-4233
+            #
+            # //*[@id="close-button"] -- click
+            #
+            # https://mail.google.com/mail/u/1/#settings/fwdandpop -- open
+            #
+            # //*[@id=":45"]/input -- click
+            #
+            # //*[@id=":4c"] -- paste  a2547e2@mail.com
+            # /html/body/div[30]/div[3]/button[1] --click
 
-            a=0
+
+
 
 

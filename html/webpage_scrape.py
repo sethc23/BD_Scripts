@@ -72,25 +72,15 @@ class Nginx:
 class Webdriver:
 
     def __init__(self,_parent,browser=None):
-        if hasattr(_parent,'T'):
-            self.T              =   _parent.T
-        else:
-            self.T              =   _parent
-        self.browser            =   '  '
-        self.type               =   browser
-        
-        # for k,v in kwargs.iteritems():
-        #     setattr(self,k,v)
-
-        if browser == 'firefox':    
-            self.window,T                   =   self.set_firefox()
-        if browser == 'phantom':    
-            self.window,T                   =   self.set_phantom()
-        if browser == 'chrome':    
-            self.window,T                   =   self.set_chrome()
-        self.T                              =   T
-
+        self._parent                        =   _parent
+        self.T                              =   _parent.T
+        self.type                           =   browser
+        assert ['chrome','firefox','phantom'].count(browser)>0
+        self.window,T                       =   getattr(self,'set_%s' % browser)()
+        self.window_cfg                     =   T
+        import pickle
         from selenium.webdriver.common.keys import Keys
+        self.pickle                         =   pickle
         self.keys                           =   Keys
 
     def config_browser(self,browser,kwargs):
@@ -99,9 +89,9 @@ class Webdriver:
             browser.set_window_position(        browser_config.window_position)
 
         if browser_config.has_key('window_size'):
-            browser.set_window_position(        browser_config.window_size)
+            browser.set_window_size(            browser_config.window_size)
         else:
-            browser.set_window_position(        100,0)
+            browser.set_window_size(            800,1000)
 
         if browser_config.has_key('maximize_window') and browser_config['maximize_window']:
             browser.maximize_window(            )
@@ -167,7 +157,7 @@ class Webdriver:
 
         """
 
-        def set_defaults():
+        def set_defaults(self):
             default_settings                =   {'bin_path'                             :   '/usr/local/bin/chromedriver',
                                                  'port'                                 :   15010,
                                                  'log_path'                             :   os_environ['BD'] + '/html/logs/chromedriver.log',
@@ -187,44 +177,47 @@ class Webdriver:
                                                         'browserConnectionEnabled'      :   False,
                                                         'locationContextEnabled'        :   True,
                                                         },
-                                                'loggingPrefs'                          :
-                                                    {   "driver"                        :   "ALL",
+                                                 'loggingPrefs'                         :
+                                                     {  "driver"                        :   "ALL",
                                                         "server"                        :   "ALL",
                                                         "browser"                       :   "ALL"},
-                                                'true_opts'                             :
+                                                 'true_opts'                            :
                                                      [
-                                                        'disable-core-animation-plugins',
-                                                        'disable-plugins',
-                                                        'disable-extensions',
-                                                        'disable-plugins-discovery',
-                                                        'disable-site-engagement-service',
-                                                        'disable-text-input-focus-manager',
+                                                         'disable-core-animation-plugins',
+                                                         'disable-plugins',
+                                                         'disable-extensions',
+                                                         'disable-plugins-discovery',
+                                                         'disable-site-engagement-service',
+                                                         'disable-text-input-focus-manager',
 
-                                                        'enable-account-consistency',
-                                                        'enable-devtools-experiments',
-                                                        'enable-logging',
-                                                        'enable-network-information',
-                                                        'enable-net-benchmarking',
-                                                        'enable-network-portal-notification',
+                                                         'enable-account-consistency',
+                                                         'enable-devtools-experiments',
+                                                         'enable-logging',
+                                                         'enable-network-information',
+                                                         'enable-net-benchmarking',
+                                                         'enable-network-portal-notification',
 
-                                                        'enable-strict-site-isolation',
-                                                        # 'incognito',
-                                                        'log-net-log',
-                                                        'scripts-require-action',
-                                                        'system-developer-mode',
-                                                       # 'use-mobile-user-agent',
+                                                         'enable-strict-site-isolation',
+                                                         'incognito',                           # if incognito, extensions must be disabled
+                                                         'log-net-log',
+                                                         'scripts-require-action',
+                                                         'system-developer-mode',
+                                                         # 'use-mobile-user-agent',
                                                      ],
-                                                'false_opts'                            :
-                                                    [
-                                                        'enable-profiling',
-                                                    ],
+                                                 'false_opts'                           :
+                                                     [
+                                                         'enable-profiling',
+                                                         ],
                                                  }
-            excluded                        =   [] if not kwargs.has_key('excluded_defaults') else kwargs['excluded_defaults']
+            excluded                        =   [] if not (hasattr(self,'T') and hasattr(self.T,'excluded_defaults')) else self.T.excluded_defaults
             for k,v in default_settings.iteritems():
-                if not excluded.count(k):
-                    T.update(                   default_settings)
+                if excluded.count(k):
+                    if T.has_key(k):
+                        del T[k]
+                else:
+                    T.update(                   {k                                      :   v})
             return T
-        def set_desired_capabilities():
+        def set_desired_capabilities(self):
             from selenium.webdriver             import DesiredCapabilities
             dc                              =   DesiredCapabilities.CHROME.copy()
             platforms                       =   ['WINDOWS', 'XP', 'VISTA', 'MAC', 'LINUX', 'UNIX', 'ANDROID', 'ANY']
@@ -263,7 +256,7 @@ class Webdriver:
                 dc[it]                      =   T['loggingPrefs']
 
             return dc
-        def set_profile():
+        def set_profile(self):
             profile                         =   {#"download.default_directory"       :   "C:\\SeleniumTests\\PDF",
                                                  "download.prompt_for_download"     :   False,
                                                  "download.directory_upgrade"       :   True,
@@ -271,7 +264,7 @@ class Webdriver:
                                                                                          "Chromium PDF Viewer"],
                                                                                          }
             opts.add_experimental_option(       "prefs", profile)
-        def set_performance_logging():
+        def set_performance_logging(self):
             perfLogging                     =   {
                                                  "enableNetwork"                    :   True,
                                                  "enablePage"                       :   True,
@@ -281,7 +274,7 @@ class Webdriver:
                                                 }
 
             opts.add_experimental_option(     "perfLoggingPrefs",perfLogging)
-        def set_chrome_options():
+        def set_chrome_options(self):
             from selenium.webdriver             import ChromeOptions
             opts                            =   ChromeOptions()
 
@@ -331,6 +324,8 @@ class Webdriver:
         T                                   =  {}
         if kwargs:
             T.update(                           kwargs)
+        if (hasattr(self,'T') and hasattr(self.T,'kwargs')):
+            T.update(                           self.T.kwargs)
 
         # Cycle Through kwargs and Extract Configs
         if hasattr(self.T,'id'):
@@ -346,7 +341,7 @@ class Webdriver:
 
         # Set Defaults if not provided
         if not T.has_key('defaults'):
-            T                               =   set_defaults()
+            T                               =   set_defaults(self)
 
         # Config Data Storage if Possible
         if T.has_key('SAVE_DIR'):
@@ -374,8 +369,8 @@ class Webdriver:
         service_args                        =   ["--verbose",
                                                  "--log-path=%(log_path)s" % T]
 
-        dc                                  =   set_desired_capabilities()
-        opts                                =   set_chrome_options()
+        dc                                  =   set_desired_capabilities(self)
+        opts                                =   set_chrome_options(self)
 
         d                                   =   Chrome(  executable_path        =   T['bin_path'],
                                                          port                   =   T['port'],
@@ -480,6 +475,16 @@ class Webdriver:
         # Example: action_chains.context_click(p).perform()
         return ActionChains(browser)
 
+    def click_element_id_and_type(self,element_id,type_text):
+        self.scroll_to_element(                 element_id)
+        pt                                  =   self.window.find_element_by_id(element_id)
+        pt_offset                           =   (pt.location['x'] + randrange(0,pt.size['width']),
+                                                 pt.location['y'] + randrange(0,pt.size['height']))
+        Actions                             =   self.Actions(self.window)
+        Actions.move_to_element_with_offset(    pt,*pt_offset)
+        Actions.send_keys_to_element(           pt,type_text)
+        Actions.perform(                        )
+
     def execute(self,script,*args):
         return self.window.execute_script(script,*args)
 
@@ -495,6 +500,9 @@ class Webdriver:
     def get_uniqueness_info(self):
         url                                 =   'https://panopticlick.eff.org/index.php?action=log'
         self.window.get(                        url)
+
+    def get_element_id_val(self,element_id):
+        return self.execute('return document.getElementById("%s").value;' % element_id)
 
     def open_page(self, gotoUrl):
         self.window.get(gotoUrl)
@@ -518,7 +526,8 @@ class Webdriver:
         return
 
     def quit(self):
-        self.window.quit()
+        self.update_cookies(                    )
+        self.window.quit(                       )
 
     def randomize_keystrokes(self,keys,element,**kwargs):
         T                                   =   {'shortest_delay_ms'        :   500,
@@ -545,6 +554,10 @@ class Webdriver:
     def scroll_to_element(self,element):
         return self.window.execute_script('document.getElementById("%s").scrollIntoView(true)'%element)
 
+    def scroll_and_click_id(self,element_id):
+        self.scroll_to_element(                 element_id)
+        return self.window.find_element_by_id(element_id).click()
+
     def set_element_val(self,element,val,val_type):
         _str_sub                            =   '"%s"' % val if val_type is str else '%s' % val
         _script                             =   'var elem = document.getElementById("%s"); elem.value = %s;' % (element,_str_sub)
@@ -552,6 +565,29 @@ class Webdriver:
 
     def source(self):
         return self.window.page_source
+
+    def update_cookies(self):
+        assert hasattr(self,'window_cfg') and self.window_cfg.has_key('cookie')
+        _cookie                             =   self.window_cfg['cookie']
+        assert _cookie.has_key('content') and _cookie.has_key('f_path')
+        _current                            =   self.window.get_cookies()
+        try:
+            _stored                         =   self.pickle.load(open(self.window_cfg['cookie']['f_path'], "rb"))
+        except:
+            _stored                         =   []
+
+        if not _stored and not _current:
+            pass
+
+        elif _stored and not _current:
+            for it in _stored:
+                self.window.add_cookie(         it)
+
+        elif (_current and not _stored) or ( (_current and _stored) and _current != _stored ):
+            self.pickle.dump(                   _current ,
+                                                open(self.window_cfg['cookie']['f_path'],"wb"))
+
+        return
 
     def wait_for_condition(self,condition,param1,param2,invert=False,timeout_seconds=45,poll_frequency=0.5):
         """
@@ -712,6 +748,7 @@ class scraper:
         
         if ['firefox','phantom','chrome'].count(browser):
             self.browser                    =   Webdriver(self,browser)
+            self.browser.update_cookies(        )
         
         if browser == 'urllib2': 
             self.browser                    =   Urllib2(self)

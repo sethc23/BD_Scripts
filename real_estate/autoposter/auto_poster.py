@@ -1832,7 +1832,7 @@ class Auto_Poster:
 
             def ssl_cert(self):
                 self.T.id.details.update(       {'email'                    :   self.T.id.email})
-                cmds                        =   ['mkdir -p %(SAVE_DIR)s && cd %(SAVE_DIR)s && rm -f ./*;' % self.T.id.details,
+                cmds                        =   ['mkdir -p %(SAVE_DIR)s && cd %(SAVE_DIR)s;' % self.T.id.details,
                                                  'openssl genrsa -out %(guid)s.key 4096 > /dev/null 2>&1;' % self.T.id,
                                                  ' '.join(['openssl req -x509 -new -nodes',
                                                          '-key %(guid)s.key -days 1024' % self.T.id,
