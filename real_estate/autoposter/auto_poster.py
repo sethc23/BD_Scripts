@@ -32,8 +32,55 @@ class PP_Functions:
         self.PP                             =   self
         self.T.py_path.append(                  self.T.os_environ['BD'] + '/html')
         from HTML_API                           import getTagsByAttr,google,safe_url,getSoup
+        from json                               import dumps                as j_dump
         import re
         from random                             import randrange
+        from webpage_scrape                     import scraper
+
+        # CASE WHERE browser_type != ''
+        if not self.T.browser_type:
+            self.T['br']                    =   None
+
+        else:
+            self.T['br']                    =   self.T.To_Class({})
+
+            for k,v in kwargs.iteritems():
+                setattr(self.T.br,k,v)
+
+            if hasattr(self.T.br,'identity'):
+                D                           =   self.T.pd.read_sql("""select * from identities 
+                                                                      where guid='%(identity)s'"""%self.T.br,
+                                                                      self.T.eng).ix[0,:].to_dict()
+                self.T.br.identity          =   self.T.To_Class({})
+                for it in ['guid','email','pw','details']:
+                    setattr(                    self.T.br.identity,it,D[it])
+
+
+            self.T.br['service_args']       =   self.T.To_Class(
+                                                {'ignore_ssl_errors'        :   True,
+                                                 'load_images'              :   True,
+                                                 'debugger_port'            :   9901,
+                                                 'wd_log_level'             :   'DEBUG'})
+
+            if hasattr(self.T.br,'identity'):
+                self.T.br.service_args.update(  {'ssl_cert_path'            :   '%s/%s.pem' % (self.T.br.identity.details['_SAVE_DIR'],
+                                                                                               self.T.br.identity.guid),
+                                                 'cookie_file'              :   '%s/%s.cookie' % (self.T.br.identity.details['_SAVE_DIR'],
+                                                                                                  self.T.br.identity.guid),})
+                                                     
+            self.T.br['capabilities']       =   ['applicationCacheEnabled',
+                                                 'databaseEnabled',
+                                                 'webStorageEnabled',
+                                                 'acceptSslCerts',
+                                                 'browserConnectionEnabled',
+                                                 'rotatable']
+
+            self.T.br['browser_config']     =   {'window_size'              :   (300,300),
+                                                 'implicitly_wait'          :   120,
+                                                 'page_load_timeout'        :   150}
+
+            
+            self.T.br                       =   scraper(self.T.browser_type,**self.T.__dict__).browser
         
         all_imports                         =   locals().keys()
         for k in all_imports:
@@ -869,6 +916,7 @@ class PP_Functions:
 
         self.T.br.quit()
 
+# """Main Class for Initiating & Managing AutoPoster"""
 class Auto_Poster:
     """Main Class for Initiating & Managing AutoPoster
 
@@ -1504,12 +1552,6 @@ class Auto_Poster:
             self.vpn_cfg_path               =   '/etc/openvpn/hma'
             self.vpn_exec_path              =   '%s/vpns'                   %   os_environ['PWD']
             self.credentials                =   '%s/.vpnpass'               %   self.T.os_environ['HOME']
-
-        def check_config(self):
-            #files exist:
-            chk_files = ['%s/.vpnpass' % self.T.os_environ['HOME'],
-                         '/etc/openvpn/update-resolv-conf.sh',
-                         '/etc/openvpn/hma/']
 
         def upsert_to_pgsql(self):
             self.T.conn.set_isolation_level(        0)

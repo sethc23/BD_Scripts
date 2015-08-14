@@ -43,6 +43,7 @@ CREATE TABLE vpns (
     _state_abbr                             text,
     _city                                   text,
     _local                                  text,
+    _server                                 text,
     _file                                   text
 );
 

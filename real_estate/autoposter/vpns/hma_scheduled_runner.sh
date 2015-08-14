@@ -8,8 +8,13 @@ ovpn_file=$1
 process_to_run=$2
 vpn_cfg_dir="/etc/openvpn/hma"
 
-ovpn_file="/home/ub2/BD_Scripts/real_estate/autoposter/vpns/USA.Oregon.Portland_LOC1S1.TCP.ovpn"
+# Colors
+red="\033[1;31m" green="\033[1;32m" yellow="\033[1;33m" white="\033[1;37m" normal="\033[0m"
+# permissions
+if [ $USER != root ]; then echo -e $red"ERROR:$normal You need root privileges to continue... (sudo)" ; exit 0; fi
 
+function title () {
+echo -e $green"====$yellow HMA-SCHEDULED-RUNNER$green ===="$normal; }
 function show.progress () { i=0
 while [ -r $TEMP ]; do clear; title
 echo -e $yellow"elapsed time $i seconds"$normal
@@ -25,16 +30,17 @@ while true
 		echo "Press CTRL+C to stop."
 		echo "#####################"
 		echo "Waiting 60 seconds for connection to be established"
-         show.progress &
+        show.progress &
         sleep 60 # <<<< wait for connection to be established
 		# do something here
         echo "Running Script"
-        # bash -l -i -c "$process_to_run"
+        echo `ps | grep openvpn`
+        bash -l -i -c $process_to_run
         bash -l -i -c "get_my_ip_ext"
         echo "Killing openVPN"
-		#killall openvpn # <<<< disconnect
+		killall openvpn # <<<< disconnect
         echo "Waiting 30 seconds to make sure that the openvpn has been properly disconnected"
-		#sleep 30 # <<<< wait a bit more to make sure that the openvpn has been properly disconnected 
+		sleep 30 # <<<< wait a bit more to make sure that the openvpn has been properly disconnected 
         echo "DONE!"
         exit 1
     done
