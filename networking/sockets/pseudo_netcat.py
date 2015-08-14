@@ -221,15 +221,16 @@ def main(*args,**kwargs):
         elif o in ("-n", "--no_stdin"):
             stdin                           =   False
         elif o in ("-v", "--verbose"):
-            stdin                           =   True
+            verbose                         =   True
         else:
             assert False,"Unhandled Option"
 
-    # if port and listen:
-    #     cmd                                 =   'fuser -k %s/tcp' % port
-    #     proc                                =   sub_popen(cmd, stdout=sub_PIPE, shell=True)
-    #     (_out, _err)                        =   proc.communicate()
-    #     assert not _out and _err is None
+    if port and listen:
+        cmd                                 =   'fuser -k %s/tcp' % port
+        proc                                =   sub_popen(cmd, stdout=sub_PIPE, shell=True)
+        (_out, _err)                        =   proc.communicate()
+        assert not _out and _err is None
+
 
     # are we going to listen or just send data from stdin?
     if (#stdin and
@@ -238,13 +239,9 @@ def main(*args,**kwargs):
         port > 0):
 
         if verbose:                             print "running client_sender"
-        # read in the buffer from the commandline
-        # this will block, so send CTRL-D if not sending input
-        # to stdin
-        buffer                              =   '' if not stdin else sys.stdin.read()
 
-        # send data off
-        client_sender(                          buffer)
+        # make initial connection
+        client_sender(                          '')
 
     # we are going to listen and potentially
     # upload things, execute commands, and drop a shell back
@@ -252,4 +249,6 @@ def main(*args,**kwargs):
     if listen:                              server_loop()
 
 if __name__ == '__main__':
+    # in first terminal:  ./pseudo_netcat.py -l -p 11111 -c -v
+    # in second terminal: ./pseudo_netcat.py -t 0.0.0.0 -p 11111 -n -v
     main()
