@@ -1,0 +1,210 @@
+Help on class HTTPRequest in libmproxy.protocol.http:
+
+libmproxy.protocol.http.HTTPRequest = class HTTPRequest(HTTPMessage)
+ |  An HTTP request.
+ |  
+ |  Exposes the following attributes:
+ |  
+ |      method: HTTP method
+ |  
+ |      scheme: URL scheme (http/https)
+ |  
+ |      host: Target hostname of the request. This is not neccessarily the
+ |      directy upstream server (which could be another proxy), but it's always
+ |      the target server we want to reach at the end. This attribute is either
+ |      inferred from the request itself (absolute-form, authority-form) or from
+ |      the connection metadata (e.g. the host in reverse proxy mode).
+ |  
+ |      port: Destination port
+ |  
+ |      path: Path portion of the URL (not present in authority-form)
+ |  
+ |      httpversion: HTTP version tuple, e.g. (1,1)
+ |  
+ |      headers: odict.ODictCaseless object
+ |  
+ |      content: Content of the request, None, or CONTENT_MISSING if there
+ |      is content associated, but not present. CONTENT_MISSING evaluates
+ |      to False to make checking for the presence of content natural.
+ |  
+ |      form_in: The request form which mitmproxy has received. The following
+ |      values are possible:
+ |  
+ |           - relative (GET /index.html, OPTIONS *) (covers origin form and
+ |             asterisk form)
+ |           - absolute (GET http://example.com:80/index.html)
+ |           - authority-form (CONNECT example.com:443)
+ |           Details: http://tools.ietf.org/html/draft-ietf-httpbis-p1-messaging-25#section-5.3
+ |  
+ |      form_out: The request form which mitmproxy will send out to the
+ |      destination
+ |  
+ |      timestamp_start: Timestamp indicating when request transmission started
+ |  
+ |      timestamp_end: Timestamp indicating when request transmission ended
+ |  
+ |  Method resolution order:
+ |      HTTPRequest
+ |      HTTPMessage
+ |      libmproxy.stateobject.StateObject
+ |      __builtin__.object
+ |  
+ |  Methods defined here:
+ |  
+ |  __hash__(self)
+ |  
+ |  __init__(self, form_in, method, scheme, host, port, path, httpversion, headers, content, timestamp_start=None, timestamp_end=None, form_out=None)
+ |  
+ |  __repr__(self)
+ |  
+ |  anticache(self)
+ |      Modifies this request to remove headers that might produce a cached
+ |      response. That is, we remove ETags and If-Modified-Since headers.
+ |  
+ |  anticomp(self)
+ |      Modifies this request to remove headers that will compress the
+ |      resource's data.
+ |  
+ |  assemble(self, form=None)
+ |      Assembles the request for transmission to the server. We make some
+ |      modifications to make sure interception works properly.
+ |      
+ |      Raises an Exception if the request cannot be assembled.
+ |  
+ |  constrain_encoding(self)
+ |      Limits the permissible Accept-Encoding values, based on what we can
+ |      decode appropriately.
+ |  
+ |  get_cookies(self)
+ |      Returns a possibly empty netlib.odict.ODict object.
+ |  
+ |  get_form(self)
+ |      Retrieves the URL-encoded or multipart form data, returning an ODict object.
+ |      Returns an empty ODict if there is no data or the content-type
+ |      indicates non-form data.
+ |  
+ |  get_form_multipart(self)
+ |  
+ |  get_form_urlencoded(self)
+ |      Retrieves the URL-encoded form data, returning an ODict object.
+ |      Returns an empty ODict if there is no data or the content-type
+ |      indicates non-form data.
+ |  
+ |  get_path_components(self)
+ |      Returns the path components of the URL as a list of strings.
+ |      
+ |      Components are unquoted.
+ |  
+ |  get_query(self)
+ |      Gets the request query string. Returns an ODict object.
+ |  
+ |  pretty_host(self, hostheader)
+ |      Heuristic to get the host of the request.
+ |      
+ |      Note that pretty_host() does not always return the TCP destination
+ |      of the request, e.g. if an upstream proxy is in place
+ |      
+ |      If hostheader is set to True, the Host: header will be used as
+ |      additional (and preferred) data source. This is handy in
+ |      transparent mode, where only the IO of the destination is known,
+ |      but not the resolved name. This is disabled by default, as an
+ |      attacker may spoof the host header to confuse an analyst.
+ |  
+ |  pretty_url(self, hostheader)
+ |  
+ |  replace(self, pattern, repl, *args, **kwargs)
+ |      Replaces a regular expression pattern with repl in the headers, the
+ |      request path and the body of the request. Encoded content will be
+ |      decoded before replacement, and re-encoded afterwards.
+ |      
+ |      Returns the number of replacements made.
+ |  
+ |  set_cookies(self, odict)
+ |      Takes an netlib.odict.ODict object. Over-writes any existing Cookie
+ |      headers.
+ |  
+ |  set_form_urlencoded(self, odict)
+ |      Sets the body to the URL-encoded form data, and adds the
+ |      appropriate content-type header. Note that this will destory the
+ |      existing body if there is one.
+ |  
+ |  set_path_components(self, lst)
+ |      Takes a list of strings, and sets the path component of the URL.
+ |      
+ |      Components are quoted.
+ |  
+ |  set_query(self, odict)
+ |      Takes an ODict object, and sets the request query string.
+ |  
+ |  update_host_header(self)
+ |      Update the host header to reflect the current target.
+ |  
+ |  ----------------------------------------------------------------------
+ |  Class methods defined here:
+ |  
+ |  from_state(cls, state) from __builtin__.type
+ |  
+ |  from_stream(cls, rfile, include_body=True, body_size_limit=None, wfile=None) from __builtin__.type
+ |      Parse an HTTP request from a file stream
+ |      
+ |      Args:
+ |          rfile (file): Input file to read from
+ |          include_body (bool): Read response body as well
+ |          body_size_limit (bool): Maximum body size
+ |          wfile (file): If specified, HTTP Expect headers are handled automatically.
+ |                        by writing a HTTP 100 CONTINUE response to the stream.
+ |      
+ |      Returns:
+ |          HTTPRequest: The HTTP request
+ |      
+ |      Raises:
+ |          HttpError: If the input is invalid.
+ |  
+ |  ----------------------------------------------------------------------
+ |  Data descriptors defined here:
+ |  
+ |  url
+ |      Returns a URL string, constructed from the Request's URL components.
+ |  
+ |  ----------------------------------------------------------------------
+ |  Methods inherited from HTTPMessage:
+ |  
+ |  copy(self)
+ |  
+ |  decode(self)
+ |      Decodes content based on the current Content-Encoding header, then
+ |      removes the header. If there is no Content-Encoding header, no
+ |      action is taken.
+ |      
+ |      Returns True if decoding succeeded, False otherwise.
+ |  
+ |  encode(self, e)
+ |      Encodes content with the encoding e, where e is "gzip", "deflate"
+ |      or "identity".
+ |  
+ |  get_decoded_content(self)
+ |      Returns the decoded content based on the current Content-Encoding
+ |      header.
+ |      Doesn't change the message iteself or its headers.
+ |  
+ |  get_state(self, short=False)
+ |  
+ |  size(self, **kwargs)
+ |      Size in bytes of a fully rendered message, including headers and
+ |      HTTP lead-in.
+ |  
+ |  ----------------------------------------------------------------------
+ |  Methods inherited from libmproxy.stateobject.StateObject:
+ |  
+ |  load_state(self, state)
+ |      Load object state from data returned by a get_state call.
+ |  
+ |  ----------------------------------------------------------------------
+ |  Data descriptors inherited from libmproxy.stateobject.StateObject:
+ |  
+ |  __dict__
+ |      dictionary for instance variables (if defined)
+ |  
+ |  __weakref__
+ |      list of weak references to the object (if defined)
+

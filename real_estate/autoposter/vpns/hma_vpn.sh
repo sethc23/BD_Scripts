@@ -495,6 +495,8 @@ echo "proto $proto" >> /tmp/hma-config.cfg
 echo "route-up /tmp/hma-routeup.sh" >> /tmp/hma-config.cfg
 echo "down /tmp/hma-down.sh" >> /tmp/hma-config.cfg
 echo "script-security 3" >> /tmp/hma-config.cfg
+echo "up /etc/openvpn/update-resolv-conf.sh" >> /tmp/hma-config.cfg
+echo "down /etc/openvpn/update-resolv-conf.sh" >> /tmp/hma-config.cfg
 
 # If credentials file was specified, add location to config file
 if [ "$authfile" ]; then
@@ -589,7 +591,7 @@ echo
 
 # If Debian or Ubuntu, run OpenVPN as service
 if [[ "$os" == *"Debian"* ]] || [[ "$os" == *"Ubuntu"* ]]; then
-	echo "Calling OpenVPN as service..."
+	echo "Calling OpenVPN as service HERE..."
 	startas="service"
 	${SERVICE_INTERFACE} ${OPENVPN_SERVICE} start ${HMA_VPN_NAME} > /dev/null
 # Otherwise run OpenVPN as process
@@ -597,6 +599,7 @@ else
 # elif [[ "$os" == *"CentOS"* ]] || [[ "$os" == *"Fedora"* ]]; then
 	echo "Calling OpenVPN as process..."
 	startas="process"
+    echo "RUNNING SCRIPT HERE 2"
 	$openvpn --daemon --config /etc/openvpn/${HMA_VPN_NAME}.conf
 fi
 

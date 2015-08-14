@@ -23,4 +23,17 @@ RD/src/perm_data/
 RD/src/ENV/
 RD/.idea/
 ghostdriver.log
-ENV/
+**/ENV/**
+ENV/**
+ENV
+*.*~
+
+real_estate/autoposter/identities
+**.log
+**/Session Storage/**
+*.pem
+*.key
+**/Local Storage/**
+**/Application Cache/**
+**/Cache/**
+
