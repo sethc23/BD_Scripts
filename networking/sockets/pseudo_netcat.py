@@ -24,8 +24,8 @@ execute                                     =   ""
 target                                      =   ""
 upload_destination                          =   ""
 port                                        =   11111
-stdin                                       =   True
-verbose                                     =   False
+stdin                                       =   False
+verbose                                     =   True
 
 def usage():
     print "BHP Net Tool"
@@ -58,7 +58,7 @@ def client_sender(buffer):
         if len(buffer):                         client.send(buffer)
         while True:
 
-            # now wait for data back
+            # now wait for data back and print
             recv_len                        =   1
             response                        =   ""
             while recv_len:
@@ -242,6 +242,7 @@ def main(*args,**kwargs):
 
         # make initial connection
         client_sender(                          '')
+        print 'moving from sender'
 
     # we are going to listen and potentially
     # upload things, execute commands, and drop a shell back
