@@ -37,3 +37,4 @@ real_estate/autoposter/identities
 **/Application Cache/**
 **/Cache/**
 
+__init__.py

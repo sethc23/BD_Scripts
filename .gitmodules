@@ -1,0 +1,19 @@
+[submodule "seamless_yelp_scraping"]
+	path = html/seamless_yelp_scraping
+	url = git@github.com:sethc23/seamless_yelp_scraping.git
+[submodule "logrotate_config_tester"]
+	path = logrotate
+	url = git@github.com:sethc23/logrotate_config_tester.git
+[submodule "Lua"]
+	path = Lua
+	url = git@github.com:sethc23/Lua.git
+[submodule "NYC_GIS"]
+	path = NYC_GIS
+	url = git@github.com:sethc23/NYC_GIS.git
+[submodule "PastebinPython"]
+	path = PastebinPython
+	url = git@github.com:sethc23/PastebinPython.git
+	branch = custom
+[submodule "py_classes"]
+	path = py_classes
+	url = git@github.com:sethc23/py_classes.git
