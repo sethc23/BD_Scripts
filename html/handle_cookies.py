@@ -77,7 +77,7 @@ def getFirefoxCookie():
     except KeyError:
         cookie_jar = None
      
-    path = '/Users/admin/Library/Application Support/Firefox/Profiles/nvoog4xy.default/cookies.sqlite'
+    path = os.environ['HOME'] + '/Library/Application Support/Firefox/Profiles/nvoog4xy.default/cookies.sqlite'
     # raw_input('Path to cookie jar file [%s]: ' % cookie_jar)
     if path.strip():
         # Some input specified, set it

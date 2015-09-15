@@ -1,9 +1,5 @@
 
 from os                                     import environ                  as os_environ
-from sys                                    import argv, path
-path.append(                                    '../appscript')
-path.append(                                    '..')
-# import                                    Safari_API
 from handle_cookies                         import getFirefoxCookie,set_cookies_from_text
 from time                                   import time                     as TIME
 from time                                   import sleep                    as delay
@@ -45,30 +41,6 @@ class Mechanize:
     def get_file(self,filePath,savePath):
         self.browser.retrieve(filePath, savePath,timeout=3600)[0]
 
-class Browsermob_Proxy:
-    
-    def __init__(self,package_type='server'):
-        if package_type=='server':
-            self                            =   self.Server()
-        elif package_type=='client':
-            self                            =   self.Client()
-        
-    def Server(self):
-        from browsermobproxy                import Server
-        self                                =   Server("/usr/local/bin/browsermob-proxy",options={'port':11001})
-
-    def Client(self):
-        from browsermobproxy                import Client
-        self                                =   Client('%(scheme)s://%(remote_ip)s:%(remote_port)s' % self.prox_client_data)
-
-class Nginx:
-    def __init__(self,_parent):
-        self.T                              =   _parent.T
-    def reload(self):
-        (_out,_err)                         =   self.T.exec_cmds(           ['bash -i -l -c "ng_reload"'],
-                                                                            root=True)
-        assert not _out and _err is None
-
 class Webdriver:
 
     def __init__(self,_parent,browser=None):
@@ -76,8 +48,8 @@ class Webdriver:
         self.T                              =   _parent.T
         self.type                           =   browser
         assert ['chrome','firefox','phantom'].count(browser)>0
-        self.window,T                       =   getattr(self,'set_%s' % browser)()
-        self.window_cfg                     =   T
+        self.window                         =   getattr(self,'set_%s' % browser)()
+        self.window_cfg                     =   self.T
         import pickle
         from selenium.webdriver.common.keys import Keys
         self.pickle                         =   pickle
@@ -451,7 +423,7 @@ class Webdriver:
 
     def Select(self,element):
         """
-        Example:
+        Related Example:
 
         time_element            =   br.browser.find_element_by_id('deliveryTime')
         time_str                =   "1:00 PM"
@@ -509,14 +481,14 @@ class Webdriver:
         #sleep(10)
 
     def post_screenshot(self):
-        fpath                               =   '/home/ub2/.scripts/tmp/phantom_shot'
-        if self.T.THIS_PC=='ub2':
+        fpath                               =   os_environ['HOME'] + '/.scripts/tmp/phantom_shot'
+        if self.T.THIS_PC=='ub2':   # i.e., PC running web server is also running scraper
             self.screenshot(                      fpath )
         else:
             self.screenshot(                    '/tmp/phantom_shot' )
             cmds                            =   ['scp /tmp/phantom_shot %(host)s@%(serv)s:%(fpath)s;'
-                                                 % ({ 'host'                :   'ub2',
-                                                      'serv'                :   'ub2',
+                                                 % ({ 'host'                :   self.T.user,
+                                                      'serv'                :   self.T.user,
                                                       'fpath'               :   fpath }),
                                                  'rm -f /tmp/phantom_shot;']
             p                               =   self.T.sub_popen(cmds,stdout=self.T.sub_PIPE,shell=True)
@@ -548,7 +520,7 @@ class Webdriver:
     def reset_frames(self):
         return self.window.switch_to_window(self.window.current_window_handle)
 
-    def screenshot(self,save_path='/Volumes/mbp2/Users/admin/Desktop/screen.png'):
+    def screenshot(self,save_path='$SHARE2/Desktop/screen.png'):
         self.window.save_screenshot(save_path)
 
     def scroll_to_element(self,element):
@@ -567,10 +539,13 @@ class Webdriver:
         return self.window.page_source
 
     def update_cookies(self):
-        assert hasattr(self,'window_cfg') and self.window_cfg.has_key('cookie')
-        _cookie                             =   self.window_cfg['cookie']
-        assert _cookie.has_key('content') and _cookie.has_key('f_path')
-        _current                            =   self.window.get_cookies()
+        try:
+            assert hasattr(self,'window_cfg') and self.window_cfg.has_key('cookie')
+            _cookie                             =   self.window_cfg['cookie']
+            assert _cookie.has_key('content') and _cookie.has_key('f_path')
+            _current                            =   self.window.get_cookies()
+        except:
+            return
         try:
             _stored                         =   self.pickle.load(open(self.window_cfg['cookie']['f_path'], "rb"))
         except:
@@ -698,41 +673,6 @@ class Urllib2:
     def get_page(self, gotoUrl):
         return self.browser.urlopen(gotoUrl, data=None,timeout=3600)
 
-class EXTRAS:
-    """
-    Usage:
-        from html.webpage_scrape import EXTRAS
-        Select                  =   EXTRAS()._select
-
-    """
-
-    def __init__(self):
-        pass
-
-    def _alert(self):
-        from selenium.webdriver.common.alert import Alert
-        self._alert             =   Alert
-
-    def _select(self,element):
-        """
-        Example:
-
-        time_element            =   br.browser.find_element_by_id('deliveryTime')
-        time_str                =   "1:00 PM"
-        _select                 =   Select(time_element)
-        _select.select_by_value(    time_str)
-        assert time_element.get_attribute("value")==time_str
-
-        ALSO:
-
-        addresses               =   br.window.find_element_by_xpath("//select[@id='Address']")
-        last_option             =   len(addresses.find_elements_by_tag_name('option'))-1
-        addresses.find_elements_by_tag_name('option')[last_option].click()
-
-        """
-        from selenium.webdriver.support.select import Select
-        self._select            =   Select(element)
-
 class scraper:
 
     def __init__(self,browser=None,**kwargs):
@@ -752,206 +692,3 @@ class scraper:
         
         if browser == 'urllib2': 
             self.browser                    =   Urllib2(self)
-
-
-    
-    # request = mechanize.Request("http://example.com/", data)
-    # txt=br.response().read()
-    # print txt
-    
-    # txt=getUrl(gotoUrl)
-    # print txt#txt[txt.find('style21'):txt.find('style21')+1000]
-    
-    # import spynner
-    # from spynner import browser
-    # import pyquery
-    # import private
-    # import pynotify
-    # import time
-    '''
-    cj = getFirefoxCookie()
-    #opener=spynner.get_opener(cj)
-    #.HTTPCookieProcessor(cookielib.CookieJar()))
-    opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
-    opener.addheaders = [
-        ('User-Agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:17.0) Gecko/20100101 Firefox/17.0'),
-        ('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'),
-        ('Accept-Language', 'en-gb,en;q=0.5'),
-        ('Accept-Encoding', 'gzip,deflate'),
-        ('Accept-Charset', 'ISO-8859-1,utf-8;q=0.7,*;q=0.7'),
-        ('Keep-Alive', '115'),
-        ('Connection', 'keep-alive'),
-        ('Cache-Control', 'max-age=0'),
-        ('Referer', 'http://iapps.courts.state.ny.us/iscroll/'),
-    ]
-    '''
-    
-    '''
-    agent = browser.Browser()
-    agent.manager.setCookieJar(cj)
-    #agent.get_mozilla_cookies()
-    agent.load(gotoUrl)
-    agent.wait(3)
-    agent.create_webview(True)
-    agent.show()
-    '''
-    
-    # g=getOneElement(txt,'class','style21')
-    # print g
-    
-    # class="style21"
-    # span class="style21"
-    '''
-    import urllib2
-    import cookielib
-    from sqlite3 import dbapi2
-    
-    host = 'iapps.courts.state.ny.us'
-    ff_cookie_file= '/Users/admin/Library/Application Support/Firefox/Profiles/nvoog4xy.default/cookies.sqlite'
-    
-    file = open("cookie.txt", "w")
-    file.write("#LWP-Cookies-2.0\n")
-    match = '%%%s%%' % host
-    
-    con = dbapi2.connect(ff_cookie_file)
-    cur = con.cursor()
-    cur.execute("select name, value, path, host from moz_cookies where host like ?", [match])
-    for item in cur.fetchall():
-        cookie = "Set-Cookie3: %s=\"%s\"; path=\"%s\";  \
-        domain=\"%s\"; expires=\"2038-01-01 00:00:00Z\"; version=0\n" % (
-        item[0], item[1], item[2], item[3],
-        )
-    file.write(cookie)
-    file.close()
-    cj = cookielib.LWPCookieJar()
-    cj.load("cookie.txt")
-    
-    opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
-    opener.addheaders = [
-        ('User-Agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:17.0) Gecko/20100101 Firefox/17.0'),
-        ('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'),
-        ('Accept-Language', 'en-gb,en;q=0.5'),
-        ('Accept-Encoding', 'gzip,deflate'),
-        ('Accept-Charset', 'ISO-8859-1,utf-8;q=0.7,*;q=0.7'),
-        ('Keep-Alive', '115'),
-        ('Connection', 'keep-alive'),
-        ('Cache-Control', 'max-age=0'),
-        ('Referer', 'http://iapps.courts.state.ny.us/iscroll/'),
-    ]
-    urllib2.install_opener(opener)
-    
-    #urllib2.install_opener(opener)
-    
-    
-    #req = urllib2.Request(gotoUrl)
-    res = urllib2.urlopen(gotoUrl)
-    print res.read()
-    '''
-#     pass
-# 
-# def setup_browser():
-#     import mechanize
-#     br = mechanize.Browser()
-#     # Cookie Jar
-#     # cj = cookielib.LWPCookieJar()
-#     cj = getFirefoxCookie()
-#     br.set_cookiejar(cj)
-#     # Browser options 
-#     br.set_handle_equiv(True) 
-#     br.set_handle_gzip(True) 
-#     br.set_handle_redirect(True) 
-#     br.set_handle_referer(True) 
-#     br.set_handle_robots(False)
-#     # Debug Options
-#     br.set_debug_http(True) 
-#     br.set_debug_redirects(True) 
-#     br.set_debug_responses(True)
-#     # Follows refresh 0 but not hangs on refresh > 0 
-#     br.set_handle_refresh(mechanize._http.HTTPRefreshProcessor(), max_time=1)
-#     # User-Agent
-#     br.addheaders = [('user-agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:17.0) Gecko/20100101 Firefox/17.0'),
-#     ('accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8')]
-#     return br
-# 
-# def addFormVars(_type, _name, _value):
-#     #------------LOGIN
-#     startUrl = 'https://store.law.com/Registration/Login.aspx?source=' + today_url
-#     # print startUrl
-#     br.open(startUrl)
-#     # print br.forms
-#     br.select_form(nr=0)
-# 
-#     br.new_control("text", "uid", {'value': usr})
-#     br.new_control("password", "upass", {'value': pw})
-#     # br.new_control("password", "upass", {pw})
-#     br.form.fixup()
-#     # control = br.form.find_control("action")
-#     # control.readonly = False
-#     # br["action"] = "login"
-#      
-#     # form = br.form
-#     # print form
-#     # form['uid'] = usr
-#     # form['upass'] = pw
-#     # form.set_value("schase@cozen.com","uid")
-#     # form.set_value("ferrarif50","upass")
-#     print br.form
-#     br.submit()  # submit current form
-# 
-# 
-# def getUrl(url):
-#     return urllib2.urlopen(url).read()
-# 
-# def runLinks(links, start=0):
-#     a = links
-#     for i in range(0, len(a)):
-#         gotoUrl = 'http://iapps.courts.state.ny.us/iscroll/CaseCap.jsp?IndexNo=' + a[i]
-#         Safari_API.openUrl(gotoUrl)
-#         sleep(5)
-#         try:
-#             Safari_API.saveHTML(saveBase + a[i] + '_status' + '.html', findStr=['table', 'width', '300'])
-#         except:    
-#             Safari_API.saveHTML(saveBase + a[i] + '_status' + '.html', findStr=['div', 'class', 'style21'])
-#         
-#         Safari_API.saveHTML(saveBase + a[i] + '_names' + '.html', findStr=['table', 'width', '97%'])
-#         sleep(10)
-# 
-# def runLink(link, linkID, saveBase):
-#     Safari_API.openUrl(link)
-#     sleep(5)
-#     try:
-#         Safari_API.saveHTML(saveBase + linkID + '_status' + '.html', findStr=['table', 'width', '300'])
-#     except:    
-#         Safari_API.saveHTML(saveBase + linkID + '_status' + '.html', findStr=['div', 'class', 'style21'])
-#     
-#     Safari_API.saveHTML(saveBase + linkID + '_names' + '.html', findStr=['table', 'width', '97%'])
-#     sleep(10)
-
-
-# f=open('/Users/admin/Desktop/case_check.txt','r')
-# x=f.readlines()
-# f.close()
-#
-# a=[]
-# for it in x:
-#     #print it[7]
-#     #break
-#     it=it.rstrip('\r')
-#     it=it.rstrip('\n')
-#     it=it[:-1]
-#     if it[7]=='9': b=it[:6]+'-19'+it[7:]
-#     else: b=it[:6]+'-20'+it[7:]
-#     if a.count(b)==0: a.append(b)
-#
-#
-#
-# baseUrl='http://iapps.courts.state.ny.us/iscroll/CaseCap.jsp?IndexNo='
-# saveBase='/Users/admin/Desktop/HB/'
-#
-# #runLinks(a)
-
-
-
-# gotoUrl = SEARCH_URL_0
-# html_hard_coding(gotoUrl)
-# scraper(browser='mechanize',cookies='')
