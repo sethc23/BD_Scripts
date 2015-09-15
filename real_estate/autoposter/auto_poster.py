@@ -1906,7 +1906,7 @@ class Auto_Poster:
                                                      'implicitly_wait'          :   120,
                                                      'page_load_timeout'        :   150}
 
-                self.T.br                       =   self.T.scraper('phantom',**self.T.__dict__).browser
+                self.T.br                       =   self.T.scraper('phantom',**self.T.__dict__).browser  # **{'dict':self.T}
                 return self.T.br
 
             for k,v in kwargs.iteritems():
