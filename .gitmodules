@@ -17,3 +17,9 @@
 [submodule "py_classes"]
 	path = py_classes
 	url = git@github.com:sethc23/py_classes.git
+[submodule "sethc23_blog"]
+	path = sethc23_blog
+	url = git@github.com:sethc23/sethc23.github.io.git
+[submodule "blog"]
+	path = blog
+	url = git@github.com:sethc23/sethc23.github.io.git
