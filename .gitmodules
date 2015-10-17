@@ -26,3 +26,6 @@
 [submodule "sethc23.github.io"]
 	path = sethc23.github.io
 	url = git@github.com:sethc23/sethc23.github.io.git
+[submodule "google_tools"]
+	path = google_tools
+	url = git@github.com:sethc23/google_tools.git
