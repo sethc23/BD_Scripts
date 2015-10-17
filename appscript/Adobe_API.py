@@ -5,7 +5,7 @@ from sys import path, argv
 path.append('/Users/admin/SERVER2/BD_Scripts/utility')
 from SortStringListByLength import *
 
-adobe = app(u'Adobe Acrobat Professional')
+adobe = app(u'Adobe Acrobat Pro')
 adobeProcess = app(u'System Events').processes[u'Acrobat']
 pyShell = app(u'System Events').processes[u'IDLE'].windows[u'Python Shell']
 
@@ -15,7 +15,7 @@ def cleanPath(workPath):
     else: return workPath
 
 def startAcrobat():
-    app(u'Adobe Acrobat Professional').activate()
+    app(u'Adobe Acrobat Pro').activate()
     sleep(2.5)
     try:
         app(u'System Events').processes[u'Acrobat'].windows[1].buttons[u'No'].click()
@@ -33,12 +33,12 @@ def startAcrobat():
                     raise SystemExit
 
 def quitAcrobat():
-    app(u'Adobe Acrobat Professional').quit() 
+    app(u'Adobe Acrobat Pro').quit() 
 
 def openPDF(filePath):
     startAcrobat()
-    app(u'Adobe Acrobat Professional').activate()
-    app(u'Adobe Acrobat Professional').open(filePath)
+    app(u'Adobe Acrobat Pro').activate()
+    app(u'Adobe Acrobat Pro').open(filePath)
 
 def openFile(fileName):
     startAcrobat()
@@ -97,26 +97,26 @@ def checkFileName(docPath):
     
 
 def saveCurrent(refFile):
-    app(u'Adobe Acrobat Professional').activate()
-    openDocs = app(u'Adobe Acrobat Professional').documents.name.get()
+    app(u'Adobe Acrobat Pro').activate()
+    openDocs = app(u'Adobe Acrobat Pro').documents.name.get()
     for i in range(0, len(openDocs)):
         if openDocs[i].find(refFile) == 0:
             docRefInd = i + 1
-    app(u'Adobe Acrobat Professional').documents[docRefInd].save()
+    app(u'Adobe Acrobat Pro').documents[docRefInd].save()
 
 def savePDF():
-    app(u'Adobe Acrobat Professional').documents[1].save(timeout=75000)
+    app(u'Adobe Acrobat Pro').documents[1].save(timeout=75000)
 
 def closeFileWindow(fileTitle):
-    app(u'Adobe Acrobat Professional').activate()
-    openDocs = app(u'Adobe Acrobat Professional').documents.name.get()
+    app(u'Adobe Acrobat Pro').activate()
+    openDocs = app(u'Adobe Acrobat Pro').documents.name.get()
     if len(openDocs) == 1:
         docRefInd = 0
     else:
         for i in range(0, len(openDocs)):
             if openDocs[i].find(fileTitle) != 0:
                 docRefInd = i    
-    app(u'Adobe Acrobat Professional').documents[openDocs[docRefInd]].close()
+    app(u'Adobe Acrobat Pro').documents[openDocs[docRefInd]].close()
 
 def deleteOrigFile(filePath):
     origPath = "/" + filePath.replace(":", "/")
@@ -125,7 +125,7 @@ def deleteOrigFile(filePath):
 def closePDF():
     script = ('this.closeDoc(true);')
     doScript(script)
-    # app(u'Adobe Acrobat Professional').documents[1].close()
+    # app(u'Adobe Acrobat Pro').documents[1].close()
     
 
 def newPDF():
@@ -133,12 +133,12 @@ def newPDF():
     doScript(script)
 
 def doScript(x):
-    app(u'Adobe Acrobat Professional').activate()
-    app(u'Adobe Acrobat Professional').do_script(x, timeout=2400)
+    app(u'Adobe Acrobat Pro').activate()
+    app(u'Adobe Acrobat Pro').do_script(x, timeout=2400)
 
 def doScriptReturn(x):
-    app(u'Adobe Acrobat Professional').activate()
-    return app(u'Adobe Acrobat Professional').do_script(x, timeout=2400)
+    app(u'Adobe Acrobat Pro').activate()
+    return app(u'Adobe Acrobat Pro').do_script(x, timeout=2400)
 
 def doCustScr(x):
     script = (
@@ -527,25 +527,25 @@ def rotatePage(start, end, degree):
     rotatePage = doScriptReturn(script)
 
 def setupPDFwindow():
-    app(u'Adobe Acrobat Professional').activate()
+    app(u'Adobe Acrobat Pro').activate()
     # set bounds
-    # print 'adobe',app(u'Adobe Acrobat Professional').active_doc.bounds.get()
+    # print 'adobe',app(u'Adobe Acrobat Pro').active_doc.bounds.get()
     try:
         f = open('/Users/admin/Work/ScanBusiness/Clients/UNH/Bayh-Dole/logs/macPrefs.txt', 'r')
         x = f.readlines()
         f.close()
         for it in x:
             if it.split(':')[0] == 'adobe': 
-                app(u'Adobe Acrobat Professional').active_doc.bounds.set(eval(it.split(':')[1]))
+                app(u'Adobe Acrobat Pro').active_doc.bounds.set(eval(it.split(':')[1]))
                 break
     except:
-        app(u'Adobe Acrobat Professional').active_doc.bounds.set([7, 2, 875, 896])
+        app(u'Adobe Acrobat Pro').active_doc.bounds.set([7, 2, 875, 896])
     # set zoom type
-    app(u'Adobe Acrobat Professional').active_doc.PDF_Window.zoom_type.set([k.no_vary])
+    app(u'Adobe Acrobat Pro').active_doc.PDF_Window.zoom_type.set([k.no_vary])
     # set view to single-page
-    app(u'Adobe Acrobat Professional').page_layout.set(u'Single Page')
+    app(u'Adobe Acrobat Pro').page_layout.set(u'Single Page')
     # set zoom factor
-    app(u'Adobe Acrobat Professional').active_doc.PDF_Window.zoom_factor.set([70])
+    app(u'Adobe Acrobat Pro').active_doc.PDF_Window.zoom_factor.set([70])
     # set window position
     app(u'System Events').processes[u'Acrobat'].windows[1].position.set([7, 2])
 
@@ -560,11 +560,11 @@ def setupPYwindow():
     sleep(.25)
 
 def nextPage():
-    app(u'Adobe Acrobat Professional').activate()
+    app(u'Adobe Acrobat Pro').activate()
     app(u'System Events').application_processes[u'Acrobat'].key_code(124)
 
 def prevPage():
-    app(u'Adobe Acrobat Professional').activate()
+    app(u'Adobe Acrobat Pro').activate()
     app(u'System Events').application_processes[u'Acrobat'].key_code(123)
 
 def gotoPage(pgNum):
@@ -586,12 +586,12 @@ def gotoPage(pgNum):
 
 def firstPage():
     gotoPage(0)
-    # app(u'Adobe Acrobat Professional').activate()
+    # app(u'Adobe Acrobat Pro').activate()
     # app(u'System Events').application_processes[u'Acrobat'].key_code(115)
 
 
 def runPageOCR(pages='all'):
-    app(u'Adobe Acrobat Professional').activate()
+    app(u'Adobe Acrobat Pro').activate()
     sleep(.5)
     # app(u'System Events').application_processes[u'Acrobat'].menu_bars[1].menus[u'Document'].click()
     # sleep(.1)
@@ -641,7 +641,7 @@ def runPageOCR(pages='all'):
                 sleep(.5)
 
 def runBatchOCR():
-    app(u'Adobe Acrobat Professional').activate()
+    app(u'Adobe Acrobat Pro').activate()
     app(u'System Events').processes[u'Acrobat'].menu_bars[1].menu_bar_items[u'Advanced'].menus[1].menu_items[u'Document Processing'].menus[1].menu_items[u'Batch Processing...'].click()
     app(u'System Events').processes[u'Acrobat'].windows[u'Batch Sequences'].select()
     app(u'System Events').application_processes[u'Acrobat'].key_code(31)
@@ -784,7 +784,7 @@ def reversePDF(filePath):
 # x=getAllWords()
 # print x
 
-# app(u'Adobe Acrobat Professional').activate()
+# app(u'Adobe Acrobat Pro').activate()
 
 # try:
     # x=app(u'System Events').processes[u'Acrobat'].menu_bars[1].menu_bar_items[u'Acrobat'].menus[1].menu_items[u'Preferences...'].name.get()
@@ -825,7 +825,7 @@ if __name__ == '__main__':
 #openPDF('/Users/admin/SERVER2/BD_Scripts/crons/NYLJ/NYLJmondayA')
 openFile('/Users/admin/SERVER2/BD_Scripts/crons/NYLJ/NYLJmondayA')
 
-app(u'Adobe Acrobat Professional').activate()
+app(u'Adobe Acrobat Pro').activate()
 app(u'System Events').processes[u'Acrobat'].windows[1].checkboxes[u'Do not show this message again'].value.get()
 
 app.execMenuItem("OptimizerMenuItem");
