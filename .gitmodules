@@ -29,3 +29,6 @@
 [submodule "google_tools"]
 	path = google_tools
 	url = git@github.com:sethc23/google_tools.git
+[submodule "pgsql"]
+	path = pgsql
+	url = git@github.com:sethc23/pgsql_base
