@@ -39,3 +39,5 @@ real_estate/autoposter/identities
 
 __init__.py
 google_tools/.idea
+Android/android-sdk_r24.4.1-macosx.zip
+Android/android-sdk-macosx/

@@ -45,11 +45,13 @@ class Webdriver:
 
     def __init__(self,_parent,browser=None):
         self._parent                        =   _parent
-        self.T                              =   _parent.T
+        if hasattr(_parent,'T'):
+            self.T                              =   _parent.T
+            self.window_cfg                     =   self.T
         self.type                           =   browser
         assert ['chrome','firefox','phantom'].count(browser)>0
         self.window                         =   getattr(self,'set_%s' % browser)()
-        self.window_cfg                     =   self.T
+        
         import pickle
         from selenium.webdriver.common.keys import Keys
         self.pickle                         =   pickle
