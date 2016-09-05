@@ -6,6 +6,7 @@ from os import environ as os_environ
 from os import path as os_path
 from sys import path as py_path
 from xgoogle.search import GoogleSearch
+import re
 
 def getSoup(x):
     if type(x) == str: return BeautifulSoup(x)
@@ -80,7 +81,7 @@ def safe_url(url):
     return quote_plus(url)
 
 def remove_non_ascii(text):
-    return re_sub(r'[^\x00-\x7F]+',' ', text)
+    return re.sub(r'[^\x00-\x7F]+',' ', text)
 
 class google:
 

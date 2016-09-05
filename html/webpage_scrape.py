@@ -1,5 +1,5 @@
 
-from os                                     import environ                  as os_environ
+import os
 from handle_cookies                         import getFirefoxCookie,set_cookies_from_text
 from time                                   import time                     as TIME
 from time                                   import sleep                    as delay
@@ -43,14 +43,20 @@ class Mechanize:
 
 class Webdriver:
 
-    def __init__(self,_parent,browser=None):
+    def __init__(self,_parent=None,browser=None):
         self._parent                        =   _parent
-        if hasattr(_parent,'T'):
-            self.T                              =   _parent.T
-            self.window_cfg                     =   self.T
+        if _parent.__class__.__name__=='To_Class':
+            self.T                          =   _parent if not hasattr(_parent,'T') else _parent.T
+            self.window_cfg                 =   self.T
+        elif type(_parent)==dict:
+            self.T                          =   _parent
+        else:
+            self.T                          =   {}
+
         self.type                           =   browser
         assert ['chrome','firefox','phantom'].count(browser)>0
-        self.window                         =   getattr(self,'set_%s' % browser)()
+        self.window                         =   getattr(self,'set_%s' % browser)(kwargs=self.T)
+        self.browser                        =   self.window
         
         import pickle
         from selenium.webdriver.common.keys import Keys
@@ -59,26 +65,31 @@ class Webdriver:
 
     def config_browser(self,browser,kwargs):
         browser_config                      =   {} if not kwargs.has_key('browser_config') else kwargs['browser_config']
+        if not type(browser_config)==dict:
+            if hasattr(browser_config,'__dict__'):
+                browser_config = browser_config.__dict__
+            else:
+                print('Unknown browser_config variable type: '+type(browser_config))
+                return
+        browser_config['window_position']   =   {'x': 350,'y': 50, 'windowHandle':'current'} if not browser_config.has_key('window_size') else browser_config['window_size']
+        browser_config['window_size']       =   {'width': 1200, 'height': 700} if not browser_config.has_key('window_size') else browser_config['window_size']
+        browser_config['implicitly_wait' ]  =   120 if not browser_config.has_key('implicitly_wait') else browser_config['implicitly_wait']
+        browser_config['page_load_timeout'] =   150 if not browser_config.has_key('page_load_timeout') else browser_config['page_load_timeout']
+
         if browser_config.has_key('window_position'):
-            browser.set_window_position(        browser_config.window_position)
+            browser.set_window_position(        **browser_config['window_position'])
 
         if browser_config.has_key('window_size'):
-            browser.set_window_size(            browser_config.window_size)
-        else:
-            browser.set_window_size(            800,1000)
+            browser.set_window_size(            **browser_config['window_size'])
 
         if browser_config.has_key('maximize_window') and browser_config['maximize_window']:
             browser.maximize_window(            )
 
         if browser_config.has_key('implicitly_wait'):
-            browser.implicitly_wait(            browser_config.implicitly_wait)
-        else:
-            browser.implicitly_wait(            120)
+            browser.implicitly_wait(            browser_config['implicitly_wait'])
 
         if browser_config.has_key('page_load_timeout'):
-            browser.set_page_load_timeout(      browser_config.page_load_timeout)
-        else:
-            browser.set_page_load_timeout(      150)
+            browser.set_page_load_timeout(      browser_config['page_load_timeout'])
 
         return
 
@@ -100,41 +111,109 @@ class Webdriver:
 
     def set_chrome(self,**kwargs):
         """
-        ----------------------------------------------------------------------------
+            ------------------------------------------------------------------------------
 
-        Configuration Method:
-            1. EXECUTABLE,SERVICE ARGS and PORT
-            2. DESIRED CAPABILITIES
-            3. CHROME OPTIONS
-
-
-        Command Line Switches:
-            http://peter.sh/experiments/chromium-command-line-switches/
-
-        Capabilities:
-            https://sites.google.com/a/chromium.org/chromedriver/capabilities
+            Configuration Method:
+                1. EXECUTABLE,SERVICE ARGS and PORT
+                2. DESIRED CAPABILITIES
+                3. CHROME OPTIONS
 
 
-        ----------------------------------------------------------------------------
-        This function should be a class for webdriver.
-        For now, just setting up Chrome.
+            Command Line Switches:
+                http://peter.sh/experiments/chromium-command-line-switches/
+                https://chromium.googlesource.com/chromium/src/+/master/chrome/common/pref_names.cc
 
-        driver_browsers                     =   ['android',
-                                                 'chrome',
-                                                 'firefox',
-                                                 'htmlunit',
-                                                 'internet explorer',
-                                                 'iPhone',
-                                                 'iPad',
-                                                 'opera',
-                                                 'safari']
+            Capabilities:
+                https://sites.google.com/a/chromium.org/chromedriver/capabilities
+
+            Check Browser Fingerprint:
+                https://panopticlick.eff.org/tracker
+
+
+            ------------------------------------------------------------------------------
+            This function should be a class for webdriver.
+            For now, just setting up Chrome.
+
+            driver_browsers     =   ['android',
+                                     'chrome',
+                                     'firefox',
+                                     'htmlunit',
+                                     'internet explorer',
+                                     'iPhone',
+                                     'iPad',
+                                     'opera',
+                                     'safari']
 
         """
+        def _update_chrome_switches_json(update='auto'):
+            from subprocess import Popen as sub_popen
+            from subprocess import PIPE as sub_PIPE
 
+            def run_cmd(cmd):
+                p = sub_popen(cmd,stdout=sub_PIPE,
+                              shell=True,
+                              executable='/bin/zsh')
+                (_out,_err) = p.communicate()
+                assert _err is None
+                return _out.rstrip('\n')
+
+            day=60*60*24
+            update_period_in_seconds=day*30
+            store_file = os.environ['BD'] + '/html/chromedriver_switches.json'
+            
+            if update=='auto' and os.path.exists(store_file):
+                last_updated,now = run_cmd("stat -c '%Y' " + store_file + "; date +%s").split('\n')
+                last_updated,now = int(last_updated),int(now)
+                if (now-last_updated) <= update_period_in_seconds:
+                    # print('not updating')
+                    return
+
+            print('Updating ' + store_file)
+            
+            cmd="curl -s http://peter.sh/experiments/chromium-command-line-switches;"
+            x = run_cmd(cmd)
+                    # {'store_dir':os.environ['BD'] + '/html',
+                    #  'store_file':store_file,
+                    #  'url':'http://peter.sh/experiments/chromium-command-line-switches',
+                    # }
+            
+            from bs4 import BeautifulSoup as BS
+            p1="<!-- ========= ENUM CONSTANTS DETAIL ======== -->"
+            p2="<!-- ========= FIELD DETAIL ======== -->"
+            start=x.find(p1)+len(p1)
+            end=x.find(p2)
+            h = BS('<html>%s</html>' % x[start:end])
+            p = h.a.find_next_siblings()
+            p.insert(0,h.a)
+            assert len(p) % 2 == 0  # even number
+            cnt = len(p)/2
+            res = []
+
+            for i in range(cnt):
+                a_tag = p[2*i]
+                d_tag = p[(2*i)+1]
+                _val,_bits = d_tag.find('p',string=re.compile("^Constant Value:.*")).get_text()[len("Constant Value:"):].split()
+                res.append({   
+                    "name": a_tag.get('name'),
+                    "api": d_tag.find('div',attrs={'class':'api-level'}).a.get_text().replace('API level ',''),
+                    "value": _val,
+                    })
+            import json
+            with open('android_inputs_out','w') as f:
+                f.write(json.dumps(res))
+
+            cmd="""
+                cd ~/android; cat android_inputs_out | jq '.' > %s; rm android_inputs_out;
+                echo true;
+                """ % store_file
+            res = run_cmd(cmd)
+            print(res)
+            return res
         def set_defaults(self):
             default_settings                =   {'bin_path'                             :   '/usr/local/bin/chromedriver',
                                                  'port'                                 :   15010,
-                                                 'log_path'                             :   os_environ['BD'] + '/html/logs/chromedriver.log',
+                                                 'log_path'                             :   os.environ['BD'] + '/html/logs/chromedriver.log',
+                                                 'user-data-dir'                        :   os.environ['BD'] + '/html/webdrivers/chrome/profiles/Default',
                                                  'user-agent'                           :   "Mozilla/5.0 (Windows NT 5.1; rv:13.0) Gecko/20100101 Firefox/13.0.1",
                                                  # 1 in 1788 per panopticlick !!
                                                  'no_java'                              :   True,
@@ -144,44 +223,82 @@ class Webdriver:
                                                  'cookie_content'                       :   {},
                                                  'capabilities'                         :
                                                      {  'acceptSslCerts'                :   True,
-                                                        'databaseEnabled'               :   False,
+                                                        'databaseEnabled'               :   True,
                                                         'unexpectedAlertBehaviour'      :   "accept",
-                                                        'applicationCacheEnabled'       :   False,
-                                                        'webStorageEnabled'             :   False,
-                                                        'browserConnectionEnabled'      :   False,
+                                                        'applicationCacheEnabled'       :   True,
+                                                        'webStorageEnabled'             :   True,
+                                                        'browserConnectionEnabled'      :   True,
                                                         'locationContextEnabled'        :   True,
                                                         },
                                                  'loggingPrefs'                         :
                                                      {  "driver"                        :   "ALL",
                                                         "server"                        :   "ALL",
                                                         "browser"                       :   "ALL"},
+                                                 'detach'                               :   True,
+                                                 'add_opts'                             :
+                                                    [
+                                                        # 'user-data-dir=%s'            % '/path/to/your/custom/profile',
+                                                        # 'log-net-log=%s'              % some_var,
+                                                        # 'load-and-launch-app=%s'      % some_var,
+                                                        # 'load-apps=%s'                % some_var,
+                                                        # 'load-extension=%s'           % some_var,
+                                                        # 'oauth2-client-id=%s'         % some_var,
+                                                        # 'oauth2-client-secret=%s'     % some_var,
+                                                    ],
                                                  'true_opts'                            :
                                                      [
-                                                         'disable-core-animation-plugins',
-                                                         'disable-plugins',
-                                                         'disable-extensions',
-                                                         'disable-plugins-discovery',
-                                                         'disable-site-engagement-service',
-                                                         'disable-text-input-focus-manager',
+                                                        'allow-cross-origin-auth-prompt',
+                                                        'allow-external-pages',
+                                                        'allow-file-access',
+                                                        'allow-file-access-from-files',
+                                                        'allow-http-background-page',
 
-                                                         'enable-account-consistency',
-                                                         'enable-devtools-experiments',
-                                                         'enable-logging',
-                                                         'enable-network-information',
-                                                         'enable-net-benchmarking',
-                                                         'enable-network-portal-notification',
+                                                        'ash-copy-host-background-at-boot',
+                                                        'automation-reinitialize-on-channel-error',
+                                                        "auto-open-devtools-for-tabs",
+                                                        
+                                                        'disable-extensions-http-throttling',
+                                                        # 'disable-file-system',                  # dont enable
+                                                        'disable-web-security',
+                                                        'disable-webusb-security',
+                                                        'disable-remote-fonts',
+                                                        
+                                                        'embedded-extension-options',
+                                                        
+                                                        'enable-account-consistency',
+                                                        'enable-devtools-experiments',
+                                                        
+                                                        'enable-logging',
+                                                        'enable-net-benchmarking',
+                                                        'enable-network-information',
+                                                        'enable-network-portal-notification',
+                                                        'enable-offline-auto-reload',
+                                                        'enable-profiling',
 
-                                                         'enable-strict-site-isolation',
-                                                         'incognito',                           # if incognito, extensions must be disabled
-                                                         'log-net-log',
-                                                         'scripts-require-action',
-                                                         'system-developer-mode',
-                                                         # 'use-mobile-user-agent',
+                                                        'enable-strict-site-isolation',
+                                                        'enable-tab-switcher',
+                                                        'enable-tcp-fastopen',
+                                                        'enable-web-bluetooth',
+                                                        
+                                                        'incognito',                            
+                                                        'keep-alive-for-test',
+                                                        
+                                                        'mark-non-secure-as',
+                                                        'ppapi-in-process',
+                                                        'restore-last-session',
+                                                        'scripts-require-action',
+                                                        'system-developer-mode',
+                                                        'unlimited-storage',
+                                                        'unsafely-treat-insecure-origin-as-secure',
+                                                        # 'use-mobile-user-agent',                # disable
                                                      ],
                                                  'false_opts'                           :
                                                      [
-                                                         'enable-profiling',
+                                                         # 'enable-profiling',
                                                          ],
+                                                 'window_size'                          :   '800,1000',
+                                                 'implicitly_wait'                      :   120,
+                                                 'page_load_timeout'                    :   150,
                                                  }
             excluded                        =   [] if not (hasattr(self,'T') and hasattr(self.T,'excluded_defaults')) else self.T.excluded_defaults
             for k,v in default_settings.iteritems():
@@ -230,29 +347,54 @@ class Webdriver:
                 dc[it]                      =   T['loggingPrefs']
 
             return dc
-        def set_profile(self):
-            profile                         =   {#"download.default_directory"       :   "C:\\SeleniumTests\\PDF",
-                                                 "download.prompt_for_download"     :   False,
-                                                 "download.directory_upgrade"       :   True,
-                                                 "plugins.plugins_disabled"         :   ["Chromoting Viewer",
-                                                                                         "Chromium PDF Viewer"],
-                                                                                         }
-            opts.add_experimental_option(       "prefs", profile)
-        def set_performance_logging(self):
-            perfLogging                     =   {
-                                                 "enableNetwork"                    :   True,
-                                                 "enablePage"                       :   True,
-                                                 "enableTimeline"                   :   True,
-                                                 #"tracingCategories":<string>,
-                                                 "bufferUsageReportingInterval"     :   1000
-                                                }
-
-            opts.add_experimental_option(     "perfLoggingPrefs",perfLogging)
         def set_chrome_options(self):
+
+            def set_switches():
+                import chrome_switches 
+                self.chrome_switches = chrome_switches.get(update='auto')
+            def set_extensions():
+                base_dir = T['os'].path.join(['os'].environ['BD'],
+                                          'html/webdrivers/chrome/extensions') \
+                            if not T.has_key('extensions_dir') \
+                            else T['extensions_dir']
+                if T.has_key('extensions'):
+                    for it in T['extensions']:
+                        opts.add_extension(T['os'].path.join(base_dir,it))
+            def set_prefs():
+                if T.has_key('prefs'):
+                    profile = T['prefs']
+                else:
+                    profile                 =   {   #"download.default_directory"       :   "C:\\SeleniumTests\\PDF",
+                                                    "download.prompt_for_download"     :   False,
+                                                    "download.directory_upgrade"       :   True,
+                                                    "plugins.plugins_disabled"         :   ["Chromoting Viewer",
+                                                                                             "Chromium PDF Viewer"],
+                                                }
+                opts.add_experimental_option(       "prefs", profile)
+            def set_performance_logging():
+                perfLogging                     =   {
+                                                     "enableNetwork"                    :   True,
+                                                     "enablePage"                       :   True,
+                                                     "enableTimeline"                   :   True,
+                                                     #"tracingCategories":<string>,
+                                                     "bufferUsageReportingInterval"     :   1000
+                                                    }
+
+                opts.add_experimental_option(     "perfLoggingPrefs",perfLogging)
+            def set_window_types():
+                pass
+            def set_detach():
+                if T.has_key('detach'):
+                    if T['detach']:
+                        opts.add_experimental_option("detach",True)
+            
             from selenium.webdriver             import ChromeOptions
             opts                            =   ChromeOptions()
 
-            ### Add Boolean Arguments
+            ### Add arguments by type
+            if T.has_key('add_opts'):
+                for it in T['add_opts']:
+                    opts.add_argument(          '%s'   % it )
             if T.has_key('true_opts'):
                 for it in T['true_opts']:
                     opts.add_argument(          '%s=1' % it )
@@ -275,31 +417,41 @@ class Webdriver:
                 if T.has_key(it):
                     opts.add_argument(           '%s=%s' % (it,T[it]) )
 
+
             ### OTHER CHROME OPTIONS NOT YET FULLY CONFIGURED
 
-            # -extensions        list str
-            # -localState        dict
-            # -prefs             dict
-            # set_profile()
-
-            # -detach            bool
-            # -debuggerAddress   str
+            # set_switches()
             # -excludeSwitches   list str
+            set_extensions()
+            # -localState        dict
+            set_prefs()
+            set_detach()
+            # -debuggerAddress   str
             # -minidumpPath      str
             # -mobileEmulation   dict
-
-            # -perfLoggingPrefs             OBJECT (dict)
             # set_performance_logging()
+            # set_window_types()
 
             return opts
 
+        if not kwargs.has_key('os'):
+            import os
+        else: os = kwargs['os']
+
         from selenium.webdriver             import Chrome
+        DEBUG                               =   False
 
         T                                   =  {}
         if kwargs:
             T.update(                           kwargs)
+
         if (hasattr(self,'T') and hasattr(self.T,'kwargs')):
             T.update(                           self.T.kwargs)
+        elif hasattr(self,'T') and type(self.T.__dict__)==dict:
+            T.update(                           self.T.__dict__)
+
+        # if hasattr(self.T,'To_Class'):
+        #     T = self.T.To_Class(T)
 
         # Cycle Through kwargs and Extract Configs
         if hasattr(self.T,'id'):
@@ -316,28 +468,29 @@ class Webdriver:
         # Set Defaults if not provided
         if not T.has_key('defaults'):
             T                               =   set_defaults(self)
+        else:
+            T.update(                           T['defaults'] )
 
         # Config Data Storage if Possible
         if T.has_key('SAVE_DIR'):
             T['user-data-dir']              =   T['SAVE_DIR']
             T['profile-directory']          =   'Profile'
-        if T.has_key('guid'):
-            T['log_path']                   =   '%s/%s.log' % (T['SAVE_DIR'],T['guid'])
+
+            if (not T.has_key('log_path') and T.has_key('guid')):
+                T['log_path']               =   '%s/%s.log' % (T['SAVE_DIR'],T['guid'])
 
         # Configure with Special Profiles if Requested
-        special_profiles                    =   os_environ['BD'] + '/html/webdrivers/chrome/profiles'
+        special_profiles                    =   os.environ['BD'] + '/html/webdrivers/chrome/profiles'
         if T.has_key('no_java') and T['no_java']:
             if T.has_key('no_plugins') and T['no_plugins']:
                 T['user-data-dir']          =   special_profiles + '/no_java_no_plugins/'
-                del T['profile-directory']
+                if T.has_key('profile-directory'): del T['profile-directory']
             else:
                 T['user-data-dir']          =   special_profiles + '/no_java/'
-                del T['profile-directory']
+                if T.has_key('profile-directory'): del T['profile-directory']
         elif T.has_key('no_plugins') and T['no_plugins']:
             T['user-data-dir']              =   special_profiles + '/no_plugins/'
-            del T['profile-directory']
-
-
+            if T.has_key('profile-directory'): del T['profile-directory']
 
         # SERVICE ARGS          # ( somewhat documented in executable help, i.e., chromedriver --help )
         service_args                        =   ["--verbose",
@@ -345,20 +498,28 @@ class Webdriver:
 
         dc                                  =   set_desired_capabilities(self)
         opts                                =   set_chrome_options(self)
+        
+        # CHECK CONFIGURATION
+        assert os.path.isfile(T['bin_path']), 'No executable found at path: ' + T['bin_path']
 
         d                                   =   Chrome(  executable_path        =   T['bin_path'],
                                                          port                   =   T['port'],
                                                          service_args           =   service_args,
                                                          desired_capabilities   =   dc,
                                                          chrome_options         =   opts)
-        d.set_window_size(                      1280,720)
+        
         if T['cookie_content']:
             d.add_cookie(                       T['cookie_content'])
 
         self.config_browser(                    d,kwargs)
 
+        if DEBUG:
+            print opts.experimental_options
+            print opts.arguments
+            print opts.extensions
+            print opts.to_capabilities()
 
-        return d,T
+        return d
 
     def set_phantom(self,**kwargs):
         from selenium                       import webdriver
@@ -465,6 +626,9 @@ class Webdriver:
     def frame_count(self):
         return self.window.frame_attr()
 
+    def get_body_text(self):
+        return self.window.execute_script("return $('body')[0].innerText;")
+
     def get_cookies(self):
         self.cookies=self.window.get_cookies()
 
@@ -483,7 +647,7 @@ class Webdriver:
         #sleep(10)
 
     def post_screenshot(self):
-        fpath                               =   os_environ['HOME'] + '/.scripts/tmp/phantom_shot'
+        fpath                               =   os.environ['HOME'] + '/.scripts/tmp/phantom_shot'
         if self.T.THIS_PC=='ub2':   # i.e., PC running web server is also running scraper
             self.screenshot(                      fpath )
         else:
@@ -677,20 +841,25 @@ class Urllib2:
 
 class scraper:
 
-    def __init__(self,browser=None,**kwargs):
-        if kwargs.has_key('dict'):
+    def __init__(self,browser=None,kwargs={}):
+        if kwargs.__class__.__name__=='To_Class':
+            self.T                          =   kwargs
+        elif type(kwargs)==dict and kwargs.has_key('dict'):
             self.T                          =   kwargs['dict']
             del kwargs['dict']
-        if kwargs:
-            self.kwargs                     =   kwargs
+        elif kwargs:
+            self.T                          =   kwargs
 
         if browser == 'mechanize':
             t                               =   Mechanize(self)
             self.browser,self.browserType   =   t.browser,t.browserType
         
         if ['firefox','phantom','chrome'].count(browser):
-            self.browser                    =   Webdriver(self,browser)
+            self.browser                    =   Webdriver(self.T,browser)
             self.browser.update_cookies(        )
         
         if browser == 'urllib2': 
             self.browser                    =   Urllib2(self)
+
+
+

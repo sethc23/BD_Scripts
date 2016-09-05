@@ -1,0 +1,90 @@
+#!/bin/bash
+
+# VALIDATE IF NOT ROOT
+[[ -n "$(sudo -n true 2>&1)" ]] && sudo --validate
+
+
+
+
+# LOG_METHOD="NFLOG"
+LOG_METHOD="LOG"
+
+LOG_LOWER=$(python -c "print '$LOG_METHOD'.lower()")
+if [ "$1" = "rules" ]; then
+    
+    iptables -F
+    iptables -A INPUT --in-interface dummy0 -j ACCEPT
+    iptables -A INPUT --destination 10.0.0.92 -j ACCEPT
+    iptables -A OUTPUT --out-interface dummy0 -j ACCEPT
+    iptables -A OUTPUT --source 10.0.0.92 -j ACCEPT
+
+
+    iptables -A INPUT -p tcp --dport 9092 -j ACCEPT
+    iptables -A INPUT --destination 10.0.0.52 -j ACCEPT
+    iptables -A OUTPUT --source 10.0.0.52 -j ACCEPT
+
+    # iptables -I INPUT -j ACCEPT
+    # iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+    # iptables -I FORWARD -j ACCEPT
+
+    for i in INPUT OUTPUT FORWARD; do
+        # iptables -A $i -p tcp -m limit --limit 12/m \
+            # -j $LOG_METHOD --$LOG_LOWER-prefix "$i: "
+        iptables -A $i -p tcp \
+            -j $LOG_METHOD --$LOG_LOWER-prefix "$i: "
+    done
+
+    iptables -t nat -F
+    iptables -t nat -I POSTROUTING --out-interface dummy0 -j MASQUERADE
+    iptables -t nat -I OUTPUT -j ACCEPT
+
+
+    for i in PREROUTING INPUT OUTPUT POSTROUTING; do
+        # iptables -t nat -A $i -p tcp -m \ 
+            # limit --limit 12/m \
+            # -j $LOG_METHOD --$LOG_LOWER-prefix "NAT-$i: "
+        iptables -t nat -A $i -p tcp -j $LOG_METHOD --$LOG_LOWER-prefix "NAT-$i: "
+    done
+
+    iptables -t mangle -F
+    iptables -t mangle -A OUTPUT --source 10.0.0.92 -m limit --limit 6/m -j $LOG_METHOD --$LOG_LOWER-prefix "mangle OUTPUT_1: "
+    iptables -t mangle -A OUTPUT --source 10.0.0.92 -j ACCEPT
+    iptables -t mangle -A POSTROUTING --source 10.0.0.92 -j ACCEPT
+    # iptables -t mangle -A POSTROUTING --source 10.0.0.92 -j MASQUERADE
+
+    # iptables -t mangle -A PREROUTING --destination 10.0.0.52 -j ACCEPT
+    # iptables -t mangle -A INPUT --destination 10.0.0.52 -j ACCEPT
+    iptables -t mangle -A PREROUTING -p tcp --dport 9092 -j ACCEPT
+    iptables -t mangle -A INPUT -p tcp --dport 9092 -j ACCEPT
+    iptables -t mangle -A FORWARD --destination 10.0.0.52 -j ACCEPT
+    iptables -t mangle -A OUTPUT --source 10.0.0.52 -j ACCEPT
+    iptables -t mangle -A POSTROUTING --source 10.0.0.52 -j ACCEPT
+
+    for i in PREROUTING INPUT FORWARD OUTPUT POSTROUTING; do
+        # iptables -t nat -A $i -p tcp -m \ 
+            # limit --limit 12/m \
+            # -j $LOG_METHOD --$LOG_LOWER-prefix "NAT-$i: "
+        iptables -t mangle -A $i -p tcp -j $LOG_METHOD --$LOG_LOWER-prefix "mangle-$i: "
+    done
+
+    iptables -t mangle -I OUTPUT --source 204.157.3.70 -j LOG --log-prefix "mangle-OUTPUT_2:  "
+    iptables -t mangle -I INPUT --source 204.157.3.70 -j LOG --log-prefix "mangle-INPUT_2:  "
+    iptables -I INPUT --source 204.157.3.70 -j LOG --log-prefix "INPUT_2:  "
+    iptables -t nat -I INPUT --source 204.157.3.70 -j LOG --log-prefix "nat-INPUT_2:  "
+    
+
+fi
+
+if [ "$1" = "watch" ]; then
+    if [ "$LOG_METHOD" = "LOG" ]; then
+        journalctl -fk | grep "IN=.*OUT=.*"
+    elif [ "$LOG_METHOD" = "NFLOG" ]; then
+        [ "$(systemctl is-active ulogd2)" != "active" ] && \
+            systemctl start ulogd2.service
+        tail -f /var/log/ulog/syslogemu.log
+    fi
+fi
+
+
+# iptables -t nat -I PREROUTING 1 -p tcp —match multiport —dports 80,443 -j REDIRECT —to-port 8080
+# iptables -t nat -I OUTPUT 1 -o eth0 -p tcp —match multiport —dports 80,443 -j REDIRECT —to-port 8080

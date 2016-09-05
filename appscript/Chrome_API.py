@@ -1,5 +1,6 @@
+import os
 from sys import path
-path.append('/Users/admin/SERVER2/BD_Scripts/files_folders')
+path.append(os.path.join(os.environ['BD'],'files_folders'))
 from API_system import getClipboardData
 from appscript import *
 from time import sleep
@@ -13,7 +14,7 @@ def activate():
 
 def openUrl(url):
     activate()
-    app(u'Google Chrome').windows[1].tabs[1].properties.set({k.URL: url})
+    gotoUrl(url)
 
 def runScript(script):
     activate()

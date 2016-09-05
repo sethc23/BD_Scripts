@@ -2,9 +2,10 @@ from appscript import *
 from bs4 import BeautifulSoup
 from os import system, listdir
 from time import sleep
+import os
 from sys import path
-path.append('/Users/admin/SERVER2/BD_Scripts/appscript')
-path.append('/Users/admin/SERVER2/BD_Scripts/files_folders')
+path.append(os.path.join(os.environ['BD'],'appscript'))
+path.append(os.path.join(os.environ['BD'],'files_folders'))
 from Chrome_API import activate, runScript, gotoUrl, goBack, getUrl, checkLoaded, getSource
 from Chrome_API import expand_current_TOC, saveHTML
 # from Safari_API import activate,runScript,gotoUrl,goBack,getUrl,checkLoaded,getSource

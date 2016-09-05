@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# test:  ./tmp "argX" "argY" --debug
+
+# $0 script
+# $1 _arg1
+# $2 _arg2
+
+arg1=""
+arg2=""
+
+for i in "$@"; do    
+    case $i in
+        -a=*|--arg=*)
+        DEMO="${i#*=}"
+        ;;
+        --debug)
+        DEBUG="True"
+        ;;
+        *)
+        [[ -z "$arg1" ]] && arg1=$i
+        [[ -z "$arg2" ]] && arg2=$i
+        ;;
+    esac
+done
+echo arg1 = ${arg1}
+echo arg2 = ${arg2}
+echo DEMO = ${DEMO}
+echo DEBUG = ${DEBUG}

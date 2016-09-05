@@ -3,7 +3,7 @@
 from os                                     import environ                  as os_environ
 from sys                                    import path                     as py_path
 py_path.append(                             os_environ['HOME'] + '/.scripts')
-from system_argparse                        import *
+from sysparse                               import *
 
 
 class pb_tools:
@@ -12,8 +12,9 @@ class pb_tools:
     def __init__(self):
         py_path.insert(                 0,'./')
         from pastebin_python            import PastebinPython
+        from getpass                    import getpass
         user_name                   =   'mech_coder'
-        passw                       =   'Delivery100%'
+        passw                       =   getpass('Password for the "%s" pastebin.com account: ' % user_name)
         dev_key                     =   '4f26d1cb7a08f03b02ab24dae43bc431'
         pb                          =   PastebinPython(api_dev_key=dev_key)
         pb.createAPIUserKey(            user_name,passw)

@@ -8,19 +8,18 @@
 import os, time
 from datetime import datetime
 import subprocess
-from os import environ as os_environ
-from os import path as os_path
 from sys import argv, path
 # path.append(os_path.join(os_environ['BD'],'utility'))
 #path.append(os_path.join(os_environ['BD'],'law'))
-path.append(os_path.join(os_environ['BD'],'appscript'))
+path.append(os.path.join(os.environ['BD'],'appscript'))
 # from Adobe_API import getFolderPDFCount, openPDF, closePDF
 # from Adobe_API import renamePDF, deletePages, savePDF, openFile, insertPages
 # from Adobe_API import getPageCount, zipSinglePDF, extract_delete
 # from Adobe_API import reversePDF, getPageCount, runPageOCR
-path.append(os_path.join(os_environ['BD'],'html'))
-from HTML_API import html_space, addTag, horizontalRule
-from HTML_API import makeTableRowsFromFilePaths, makeTableFromRows, getAllTag
+path.append(os.path.join(os.environ['BD'],'html'))
+from HTML_API import *
+# from HTML_API import html_space, addTag, horizontalRule
+# from HTML_API import makeTableRowsFromFilePaths, makeTableFromRows, getAllTag
 import os
 
 

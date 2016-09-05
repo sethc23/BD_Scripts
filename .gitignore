@@ -41,3 +41,9 @@ __init__.py
 google_tools/.idea
 Android/android-sdk_r24.4.1-macosx.zip
 Android/android-sdk-macosx/
+jobs/law/relativity/cookie_file
+jobs/law/relativity/mgm_batch_updates
+html/logs/chromedriver.log
+html/webdrivers/chrome/profiles/relativity/chrome_shutdown_ms.txt
+html/webdrivers/chrome/profiles/relativity/DOWNLOADS/**
+html/webdrivers/chrome/profiles/relativity/ShaderCache
