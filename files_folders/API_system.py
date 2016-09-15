@@ -22,6 +22,43 @@ from HTML_API import *
 # from HTML_API import makeTableRowsFromFilePaths, makeTableFromRows, getAllTag
 import os
 
+def file_attribute(fpath,attr):
+    attr_dict = {
+        'access_rights_human': 'A',
+        'access_rights_octal': 'a',
+        'block_number': 'b',
+        'block_size_bytes': 'B',
+        'device_decimal': 'd',
+        'device_hex': 'D',
+        'file_access_epoch': 'X',
+        'file_access_human': 'x',
+        'file_birth_epoch': 'W',
+        'file_birth_human': 'w',
+        'file_change_epoch': 'Z',
+        'file_change_human': 'z',
+        'file_mod_epoch': 'Y',
+        'file_mod_human': 'y',
+        'file_name': 'n',
+        'file_type': 'F',
+        'hard_link_number': 'h',
+        'inode_number': 'i',
+        'major_device_hex': 't',
+        'minor_device_hex': 'T',
+        'mount_point': 'm',
+        'optimal_xfer': 'o',
+        'owner_group_ID': 'g',
+        'owner_group_name': 'G',
+        'owner_user_ID': 'u',
+        'owner_user_name': 'U',
+        'quoted_file_name': 'N',
+        'raw_mode_hex': 'f',
+        'SELinux': 'C',
+        'total_size_bytes': 's'
+         }
+
+    assert attr_dict.keys().count(attr),"Attribute request is not recognized: "+attr
+    K=attr_dict[attr]
+    return run_cmd("stat -c \"%"+K+"\" \""+fpath.replace('$',r'\$')+"""\"""")
 
 def exec_cmd(cmd):
     from os import system
