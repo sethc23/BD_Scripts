@@ -1,0 +1,110 @@
+
+function normalizeWheelEventDelta(evt) {
+        var delta = Math.sqrt(evt.deltaX * evt.deltaX + evt.deltaY * evt.deltaY);
+        var angle = Math.atan2(evt.deltaY, evt.deltaX);
+        if (-0.25 * Math.PI < angle && angle < 0.75 * Math.PI) {
+          // All that is left-up oriented has to change the sign.
+          delta = -delta;
+        }
+        var MOUSE_DOM_DELTA_PIXEL_MODE = 0;
+        var MOUSE_DOM_DELTA_LINE_MODE = 1;
+        var MOUSE_PIXELS_PER_LINE = 30;
+        var MOUSE_LINES_PER_PAGE = 30;
+        // Converts delta to per-page units
+        if (evt.deltaMode === MOUSE_DOM_DELTA_PIXEL_MODE) {
+          delta /= MOUSE_PIXELS_PER_LINE * MOUSE_LINES_PER_PAGE;
+        } else if (evt.deltaMode === MOUSE_DOM_DELTA_LINE_MODE) {
+          delta /= MOUSE_LINES_PER_PAGE;
+        }
+        return delta;
+      }
+
+var PDFViewerApplication.pageContents = [];
+function extractPageText(pageIndex) {
+    PDFViewerApplication.pdfViewer.getPageTextContent(pageIndex).then(
+        function textContentResolved(textContent) {
+            var textItems = textContent.items;
+            var str = [];
+            for (var i = 0, len = textItems.length; i < len; i++) {
+                str.push(textItems[i].str);
+            }
+            // Store the pageContent as a string.
+            PDFViewerApplication.pageContents.push(str.join(''));
+            extractTextPromisesResolves[pageIndex](pageIndex);
+            if (pageIndex + 1 < PDFViewerApplication.pdfViewer.pagesCount) {
+                extractPageText(pageIndex + 1);
+            }
+        }
+        )
+    };
+
+function pdfViewRotatePages(delta) {
+    var pageNumber = PDFViewerApplication.page;
+    PDFViewerApplication.pageRotation = (this.pageRotation + 360 + delta) % 360;
+    PDFViewerApplication.pdfViewer.pagesRotation = this.pageRotation;
+    PDFViewerApplication.pdfThumbnailViewer.pagesRotation = this.pageRotation;
+    PDFViewerApplication.forceRendering();
+    PDFViewerApplication.pdfViewer.currentPageNumber = pageNumber;
+    }
+
+var _window = PDFViewerApplication.pdfViewer.container;
+var doc_height = _window.getBoundingClientRect()['height'];
+var scrollPercent = 0.75;
+var scroll_amount = Math.round( scrollPercent * doc_height )
+_window.scrollBy(0,scroll_amount)
+_window.scrollBy(0,scroll_amount*-1)
+
+// PDFViewerApplication.pdfViewer.container.scrollHeight 33085
+// PDFViewerApplication.pdfViewer.container.scrollTop 18997 19474
+
+var scrollPercent = (scrollTop) / (docHeight - winHeight);
+var scrollPercentRounded = Math.round(scrollPercent*100);
+
+// $('#scrollPercentLabel>span').html(scrollPercentRounded);
+// repositionLabel();
+
+
+// $(window).resize(function(){
+    // repositionLabel();
+// });
+
+// function repositionLabel() {
+$('#viewer').css({
+    position:'fixed',
+    left: ($(window).width() - $('#viewer').outerWidth()) / 2,
+    top: (($(window).height() - $('#viewer').outerHeight()) / 2) - $('#viewer').height()
+});
+
+
+var previousScale = PDFViewerApplication.pdfViewer.currentScale;
+var delta = normalizeWheelEventDelta(evt);
+var MOUSE_WHEEL_DELTA_PER_PAGE_SCALE = 6.0;
+var ticks = delta * MOUSE_WHEEL_DELTA_PER_PAGE_SCALE;
+if (ticks < 0) {
+PDFViewerApplication.zoomOut(-ticks);
+} else {
+PDFViewerApplication.zoomIn(ticks);
+}
+
+var scaleCorrectionFactor = currentScale / previousScale - 1;
+var rect = PDFViewerApplication.pdfViewer.container.getBoundingClientRect();
+var dx = evt.clientX - rect.left;
+var dy = evt.clientY - rect.top;
+pdfViewer.container.scrollLeft += dx * scaleCorrectionFactor;
+pdfViewer.container.scrollTop += dy * scaleCorrectionFactor;
+
+
+var xDiff = event.clientX - this.clientXStart;
+var yDiff = event.clientY - this.clientYStart;
+var scrollTop = this.scrollTopStart - yDiff;
+var scrollLeft = this.scrollLeftStart - xDiff;
+if (this.element.scrollTo) {
+this.element.scrollTo({
+  top: scrollTop,
+  left: scrollLeft,
+  behavior: 'instant'
+});
+} else {
+this.element.scrollTop = scrollTop;
+this.element.scrollLeft = scrollLeft;
+}

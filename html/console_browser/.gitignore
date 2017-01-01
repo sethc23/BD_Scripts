@@ -1,0 +1,7 @@
+*.pyc
+*.log
+chrome_profile
+chrome_webdriver
+cookies/
+logs/
+

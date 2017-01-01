@@ -1,13 +1,13 @@
 
-import os
+import os,sys
 from handle_cookies                         import getFirefoxCookie,set_cookies_from_text
 from time                                   import time                     as TIME
 from time                                   import sleep                    as delay
-from ipdb                                   import set_trace                as i_trace
+#from ipdb                                   import set_trace                as i_trace
 from random                                 import randrange
 
 class Mechanize:
-    
+
     def __init__(self,browser,cookies):
         from mechanize import Browser
         br = Browser()
@@ -15,17 +15,17 @@ class Mechanize:
         if cookies == "firefox": cj = getFirefoxCookie()
         else: cj=set_cookies_from_text(cookies)
         br.set_cookiejar(cj)
-        # Browser options 
-        br.set_handle_equiv(True) 
-        #br.set_handle_gzip(True) 
-        br.set_handle_redirect(True) 
-        br.set_handle_referer(True) 
+        # Browser options
+        br.set_handle_equiv(True)
+        #br.set_handle_gzip(True)
+        br.set_handle_redirect(True)
+        br.set_handle_referer(True)
         br.set_handle_robots(False)
         # Debug Options
-        #br.set_debug_http(True) 
-        #br.set_debug_redirects(True) 
+        #br.set_debug_http(True)
+        #br.set_debug_redirects(True)
         #br.set_debug_responses(True)
-        # Follows refresh 0 but not hangs on refresh > 0 
+        # Follows refresh 0 but not hangs on refresh > 0
         br.set_handle_refresh(mechanize._http.HTTPRefreshProcessor(), max_time=1)
         # User-Agent
         br.addheaders = [('user-agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/40.0.2214.45 Safari/537.36'),
@@ -57,13 +57,21 @@ class Webdriver:
         assert ['chrome','firefox','phantom'].count(browser)>0
         self.window                         =   getattr(self,'set_%s' % browser)(kwargs=self.T)
         self.browser                        =   self.window
-        
+
         import pickle
         from selenium.webdriver.common.keys import Keys
         self.pickle                         =   pickle
         self.keys                           =   Keys
 
     def config_browser(self,browser,kwargs):
+        default_config = {
+            'window_position'       : {'x': 350,'y': 50, 'windowHandle':'current'},
+            'window_size'           : {'width': 1200, 'height': 700},
+            'implicitly_wait'       : 120,
+            'page_load_timeout'     : 150,
+            }
+        # print 'webpage_scrape|Webdriver|config_browser'
+        # print kwargs
         browser_config                      =   {} if not kwargs.has_key('browser_config') else kwargs['browser_config']
         if not type(browser_config)==dict:
             if hasattr(browser_config,'__dict__'):
@@ -71,10 +79,11 @@ class Webdriver:
             else:
                 print('Unknown browser_config variable type: '+type(browser_config))
                 return
-        browser_config['window_position']   =   {'x': 350,'y': 50, 'windowHandle':'current'} if not browser_config.has_key('window_size') else browser_config['window_size']
-        browser_config['window_size']       =   {'width': 1200, 'height': 700} if not browser_config.has_key('window_size') else browser_config['window_size']
-        browser_config['implicitly_wait' ]  =   120 if not browser_config.has_key('implicitly_wait') else browser_config['implicitly_wait']
-        browser_config['page_load_timeout'] =   150 if not browser_config.has_key('page_load_timeout') else browser_config['page_load_timeout']
+        for k,v in default_config.iteritems():
+            if kwargs.has_key(k):
+                browser_config[k] = kwargs[k]
+            else:
+                browser_config[k] = v
 
         if browser_config.has_key('window_position'):
             browser.set_window_position(        **browser_config['window_position'])
@@ -160,7 +169,7 @@ class Webdriver:
             day=60*60*24
             update_period_in_seconds=day*30
             store_file = os.environ['BD'] + '/html/chromedriver_switches.json'
-            
+
             if update=='auto' and os.path.exists(store_file):
                 last_updated,now = run_cmd("stat -c '%Y' " + store_file + "; date +%s").split('\n')
                 last_updated,now = int(last_updated),int(now)
@@ -169,14 +178,14 @@ class Webdriver:
                     return
 
             print('Updating ' + store_file)
-            
+
             cmd="curl -s http://peter.sh/experiments/chromium-command-line-switches;"
             x = run_cmd(cmd)
                     # {'store_dir':os.environ['BD'] + '/html',
                     #  'store_file':store_file,
                     #  'url':'http://peter.sh/experiments/chromium-command-line-switches',
                     # }
-            
+
             from bs4 import BeautifulSoup as BS
             p1="<!-- ========= ENUM CONSTANTS DETAIL ======== -->"
             p2="<!-- ========= FIELD DETAIL ======== -->"
@@ -193,7 +202,7 @@ class Webdriver:
                 a_tag = p[2*i]
                 d_tag = p[(2*i)+1]
                 _val,_bits = d_tag.find('p',string=re.compile("^Constant Value:.*")).get_text()[len("Constant Value:"):].split()
-                res.append({   
+                res.append({
                     "name": a_tag.get('name'),
                     "api": d_tag.find('div',attrs={'class':'api-level'}).a.get_text().replace('API level ',''),
                     "value": _val,
@@ -256,18 +265,18 @@ class Webdriver:
                                                         'ash-copy-host-background-at-boot',
                                                         'automation-reinitialize-on-channel-error',
                                                         "auto-open-devtools-for-tabs",
-                                                        
+
                                                         'disable-extensions-http-throttling',
                                                         # 'disable-file-system',                  # dont enable
                                                         'disable-web-security',
                                                         'disable-webusb-security',
                                                         'disable-remote-fonts',
-                                                        
+
                                                         'embedded-extension-options',
-                                                        
+
                                                         'enable-account-consistency',
                                                         'enable-devtools-experiments',
-                                                        
+
                                                         'enable-logging',
                                                         'enable-net-benchmarking',
                                                         'enable-network-information',
@@ -279,10 +288,10 @@ class Webdriver:
                                                         'enable-tab-switcher',
                                                         'enable-tcp-fastopen',
                                                         'enable-web-bluetooth',
-                                                        
-                                                        'incognito',                            
+
+                                                        'incognito',
                                                         'keep-alive-for-test',
-                                                        
+
                                                         'mark-non-secure-as',
                                                         'ppapi-in-process',
                                                         'restore-last-session',
@@ -350,10 +359,10 @@ class Webdriver:
         def set_chrome_options(self):
 
             def set_switches():
-                import chrome_switches 
+                import chrome_switches
                 self.chrome_switches = chrome_switches.get(update='auto')
             def set_extensions():
-                base_dir = T['os'].path.join(['os'].environ['BD'],
+                base_dir = os.path.join(os.environ['BD'],
                                           'html/webdrivers/chrome/extensions') \
                             if not T.has_key('extensions_dir') \
                             else T['extensions_dir']
@@ -387,7 +396,7 @@ class Webdriver:
                 if T.has_key('detach'):
                     if T['detach']:
                         opts.add_experimental_option("detach",True)
-            
+
             from selenium.webdriver             import ChromeOptions
             opts                            =   ChromeOptions()
 
@@ -434,6 +443,43 @@ class Webdriver:
 
             return opts
 
+        """
+
+
+            ENABLE
+            DevToolsDiscoverTCPTargetsEnabled[] =
+            DevToolsFileSystemPaths[] = "devtools.file_system_paths";
+            DevToolsPortForwardingConfig[] = "devtools.port_forwarding_config";
+            DevToolsPortForwardingDefaultSet[] =
+            DevToolsPortForwardingEnabled[] =
+            DevToolsPreferences[] = "devtools.preferences";
+            DevToolsRemoteEnabled[] = "devtools.remote_enabled";
+            DevToolsTCPDiscoveryConfig[] = "devtools.tcp_discovery_config";
+            EnableDoNotTrack[] = "enable_do_not_track";
+            SavingBrowserHistoryDisabled[] = "history.saving_disabled";
+
+            URLsToRestoreOnStartup[] = "session.startup_urls";
+
+            DISABLE
+            ContextualSearchEnabled
+            ConfirmToQuitEnabled
+            DevToolsDisabled[] = "devtools.disabled";
+            ExternalStorageDisabled[] = "hardware.external_storage_disabled";
+            ExternalStorageReadOnly[] = "hardware.external_storage_read_only";
+            HideWebStoreIcon[] = "hide_web_store_icon";
+            InitialLocale[] = "intl.initial_locale";
+            LabsAdvancedFilesystemEnabled[] =
+            PepperFlashSettingsEnabled[] =
+            PrintingDevices[] = "printing.devices";
+            PrintingEnabled[] = "printing.enabled";
+
+            SearchSuggestEnabled[] = "search.suggest_enabled";
+
+            ???
+            ClickedUpdateMenuItem[] = "omaha.clicked_update_menu_item";
+        """
+
+
         if not kwargs.has_key('os'):
             import os
         else: os = kwargs['os']
@@ -445,9 +491,13 @@ class Webdriver:
         if kwargs:
             T.update(                           kwargs)
 
+        # print kwargs
+        # import ipdb as I; I.set_trace()
+        # self.T = self.T.To_Class(self.T)
+
         if (hasattr(self,'T') and hasattr(self.T,'kwargs')):
             T.update(                           self.T.kwargs)
-        elif hasattr(self,'T') and type(self.T.__dict__)==dict:
+        elif hasattr(self,'T') and hasattr(self.T,'__dict__') and type(self.T.__dict__)==dict:
             T.update(                           self.T.__dict__)
 
         # if hasattr(self.T,'To_Class'):
@@ -469,7 +519,9 @@ class Webdriver:
         if not T.has_key('defaults'):
             T                               =   set_defaults(self)
         else:
-            T.update(                           T['defaults'] )
+            upd                             =   T['defaults'] if not hasattr(T['defaults'],'__dict__') \
+                                                    else T['defaults'].__dict__
+            T.update(                           upd )
 
         # Config Data Storage if Possible
         if T.has_key('SAVE_DIR'):
@@ -492,26 +544,31 @@ class Webdriver:
             T['user-data-dir']              =   special_profiles + '/no_plugins/'
             if T.has_key('profile-directory'): del T['profile-directory']
 
-        # SERVICE ARGS          # ( somewhat documented in executable help, i.e., chromedriver --help )
-        service_args                        =   ["--verbose",
-                                                 "--log-path=%(log_path)s" % T]
+        wd = webdriver                      =   self.T.To_Class()
 
-        dc                                  =   set_desired_capabilities(self)
-        opts                                =   set_chrome_options(self)
-        
+        # SERVICE ARGS          # ( somewhat documented in executable help, i.e., chromedriver --help )
+        wd.service_args                     =   [
+                                                "--verbose"
+                                                ,"--log-path=%(log_path)s" % T
+                                                ]
+
+        wd.dc                               =   set_desired_capabilities(self)
+        wd.opts                             =   set_chrome_options(self)
+
         # CHECK CONFIGURATION
         assert os.path.isfile(T['bin_path']), 'No executable found at path: ' + T['bin_path']
 
-        d                                   =   Chrome(  executable_path        =   T['bin_path'],
+        wd._webdriver                       =   Chrome(  executable_path        =   T['bin_path'],
                                                          port                   =   T['port'],
-                                                         service_args           =   service_args,
-                                                         desired_capabilities   =   dc,
-                                                         chrome_options         =   opts)
-        
+                                                         service_args           =   wd.service_args,
+                                                         desired_capabilities   =   wd.dc,
+                                                         chrome_options         =   wd.opts)
+
         if T['cookie_content']:
             d.add_cookie(                       T['cookie_content'])
 
-        self.config_browser(                    d,kwargs)
+        self.config_browser(                    wd._webdriver,T)
+        self.webdriver_config               =   wd
 
         if DEBUG:
             print opts.experimental_options
@@ -519,7 +576,7 @@ class Webdriver:
             print opts.extensions
             print opts.to_capabilities()
 
-        return d
+        return wd._webdriver
 
     def set_phantom(self,**kwargs):
         from selenium                       import webdriver
@@ -533,11 +590,11 @@ class Webdriver:
 
         # CAPABILITIES
         dcap                                =   dict(DesiredCapabilities.PHANTOMJS)
-        
+
         if not hasattr(self.T.br.user_agent,'user_agent'):
             self.T.br.user_agent            =   ("Mozilla/5.0 (Windows NT 5.1; rv:13.0) Gecko/20100101 Firefox/13.0.1")
         dcap["phantomjs.page.settings.userAgent"] = self.T.br.user_agent
-        
+
 
         # SERVICE ARGS
         service_args                        =   []
@@ -821,7 +878,7 @@ class Webdriver:
         #     br.find_element_by_name("uid").send_keys(usr)
         #     br.find_element_by_name("upass").send_keys(pw)
         #     br.find_element_by_name("continueButtonExisting").click()
-        #     br.find_element_by_xpath("//a[contains(@href,'"+it+"')]").click()  
+        #     br.find_element_by_xpath("//a[contains(@href,'"+it+"')]").click()
         #     br.get_window_size('current')
         #     br.switch_to_window(br.window_handles[0])
         pass
@@ -835,7 +892,7 @@ class Urllib2:
             cj                              =   set_cookies_from_text(cookies)
             opener                          =   urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
             self.browser.install_opener(        opener)
-        
+
     def get_page(self, gotoUrl):
         return self.browser.urlopen(gotoUrl, data=None,timeout=3600)
 
@@ -853,12 +910,12 @@ class scraper:
         if browser == 'mechanize':
             t                               =   Mechanize(self)
             self.browser,self.browserType   =   t.browser,t.browserType
-        
+
         if ['firefox','phantom','chrome'].count(browser):
             self.browser                    =   Webdriver(self.T,browser)
             self.browser.update_cookies(        )
-        
-        if browser == 'urllib2': 
+
+        if browser == 'urllib2':
             self.browser                    =   Urllib2(self)
 
 
