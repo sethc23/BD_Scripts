@@ -53,6 +53,7 @@ class Console:
                                                 ,'uid_col'          :   'uid'
                                                 ,'attr_col'         :   '_attr'
                                                 ,'url_col'          :   'fpath'
+                                                ,'notes_idx_col'    :   'page_notes'
                                                 ,'url_substitution' :   ('/home/ub2/ARCHIVE','http://10.0.0.52:14382/files')
                                                 ,'npages_col'       :   'npages'
                                                 ,'regex_fpath'      :   ''
@@ -70,6 +71,7 @@ class Console:
         ALL_CONFIG_PARAMS                   =   config_defaults
         self._config(                           ALL_CONFIG_PARAMS)
         self.exts                           =   PDF_Viewer(self)
+        self.path_history                   =   []
 
     def __update__(self,upd_dict):
         for k,v in upd_dict.iteritems():
@@ -121,6 +123,7 @@ class Console:
         self.T.br.window.implicitly_wait(       2)
 
     def reset_console(self,browser_class_obj):
+
         browser_class_obj.cs.__init__(browser_class_obj)
 
     def run_review(self,debug=False):
@@ -136,126 +139,12 @@ class Console:
         #     ocr_content                     =   ' '.join(get_ipython().getoutput(
         #                                                  u'%(shell)s -c "' % self.__dict__ + c + '"'))
         #     return                              ocr_content
-        def gen_and_goto_pg():
-
-            if hasattr(self,'jump_uid') and self.jump_uid:
-                nf                          =   pd.read_sql(self.jump_query % self.jump_uid,eng)
-                nf[self.url_col]            =   nf.fpath.map(lambda s: s.replace(*self.url_substitution))
-                self.RECORD                 =   nf.ix[idx_list[0],:]
-                self.new_path               =   self.RECORD[ self.url_col ]
-            elif self._idx>=len(path_list):
-                print(                          "END OF FILES")
-                return
-            else:
-                self.new_path               =   path_list[self._idx]
-
-            if self._path!=self.new_path:
-                self.RECORD                 =   df.ix[self.path_idx_dict[self.new_path],:]
-                br.open_page(                   self.RECORD[url_col])
-                self._path                  =   self.new_path
-                # self._attr                  =   r[attr_col]
-
-            return
-        def update():
+        def change_path():
             pass
-        def sig_int(signal, frame):
-            self.RUN_LOOP                   =   False
-        self.T.signal.signal(                   self.T.signal.SIGINT, sig_int)
-
-        locals().update(                        **self.__dict__)
-        globals().update(                       **self.__dict__)
-        locals().update(                        **self.T.__dict__)
-        globals().update(                       **self.T.__dict__)
-
-        idx_list                            =   df.index.astype(int).tolist()
-        col_list                            =   df.columns.astype(str).tolist()
-        uid_list                            =   df[ uid_col ].astype(str).tolist()
-        path_list                           =   df[ url_col ].astype(str).tolist()
-        attr_list                           =   df[ attr_col ].tolist()
-        self.path_uid_dict                  =   dict(zip(path_list,uid_list))
-        self.path_idx_dict                  =   dict(zip(path_list,idx_list))
-        self.path_attr_dict                 =   dict(zip(path_list,attr_list))
-
-        self.RECORD                         =   df.ix[idx_list[0],:]
-
-        self._idx                           =   df.first_valid_index().tolist()
-        self._path                          =   path_list[self._idx]
-        # self._attr                          =   self.path_attr_dict[self._path]
-
-        self.qry_clean                      =   self.T.re.sub(r'[\s\n\t][\s\t\n]+',' ',self.select_query.lower())
-        self.tbl_name                       =   self.T.re.sub(r'(.*) from ([^ ]+)(.*)','\\2',self.qry_clean)
-        self.qry_start                      =   " UPDATE " + self.tbl_name + " SET "
-        self.jump_query                     =   self.select_query + ' AND uid = %d ; ' if not hasattr(self,'jump_query') or not self.jump_query else self.jump_query
-        self.jump_uid                       =   None
-        RUN                                 =   gen_and_goto_pg()
-        get_ipython().system(                   u'%(shell)s -c "cd %(script_dir)s; date --iso-8601=seconds >> %(notes_fpath)s"' % self.__dict__)
-
-        # signal.pause()
-
-        self.RUN_LOOP                       =   True
-        new_page                            =   True
-        print('\n\nStarting Loop.\n')
-        while self.RUN_LOOP==True:
-
-            if new_page:
-                print( self.T.json.dumps(       self.RECORD.to_dict(), indent=4, sort_keys=True) )
-                print ''
-                new_page                    = False
-
-            # _update                         =   self.T.json.dumps({'pg_notes' : '; '.join(self.pg_notes)})
-            # self.jump_query                 =   '\n\t' + '\n\t'.join([
-            #                                         self.qry_start
-            #                                         ,"_attr=json_append('" + _update + "'::json,_attr::json)"
-            #                                         ,"WHERE uid=%s;" % self.path_uid_dict[self._path]
-            #                                     ])
-            # upd_qry                         =   '\n\t' + '\n\t'.join([
-            #                                         self.qry_start
-            #                                         ,"_attr='" + self._attr + "'::json"
-            #                                         ,"WHERE uid=%s;" % self.path_uid_dict[self._path]
-            #                                     ])
-
-            res                             =   raw_input(' ')
-            print(                              ' ')
-            OPTS                            =   {
-
-                                                'q'         : 'quit',
-                                                'm'         : 'mark file (append filepath to save file)',
-                                                'P'         : 'goto previous file',
-                                                'N'         : 'goto next file',
-                                                'p'         : 'goto previous page in file',
-                                                'n'         : 'goto next page in file',
-                                                'f'         : 'goto first page of file',
-                                                'e'         : 'goto last page of file',
-                                                '?'         : 'show info about file and update query',
-                                                'o'         : 'print OCR of file',
-                                                'D'         : 'execute update query and goto next file',
-
-                                                're [str]'  : 'test,save,edit,remove regex queries re: OCR text',
-                                                '! [str]'   : 'execute ipython command in this namespace',
-                                                'j [int]'   : 'jump to file having input uid',
-
-                                                }
-                                                #
-                                                # ? CREATE FUNCTION FOR CUSTOMIZING SHORT-HANDS ON-THE-GO ?
-                                                #   list
-                                                #   new
-                                                #   edit
-                                                #   del
-                                                #
-                                                # 't [str]'   : 'set contract type',
-                                                # 'd [str]'   : 'set contract department',
-                                                # 's [str]'   : 'set contract status',
-                                                # 'n [str]'   : 'set contract title',
-                                                # 'd [str]'   : 'set effective date',
-                                                # 'v [str]'   : 'set vendor name',
-                                                # 'a [str]'   : 'set address',
-                                                # 'x [str]'   : 'set expiration',
-                                                # 'r [str]'   : 'set requestor',
-                                                # 'i [str]'   : 'append/set notes',
-
+        def iter_loop():
             if   len(res)==0:   pass
             elif len(res)==1:
-                if   res=='q':  break
+                if   res=='q':  return False
                 elif res=='m':
                     if self._path:
                         with open(self.notes_fpath,'a') as f:        f.write(self._path+'\n')
@@ -264,11 +153,10 @@ class Console:
                     self.jump_uid           =   None
                     z                       =   idx_list.index(self._idx) - 1
                     if z < 0:
-                        pass
+                        print(                  "This is the First RECORD.")
                     else:
                         self._idx           =   idx_list[ z ]
-                        self.RECORD         =   df.ix[self._idx,:]
-                        RUN                 =   gen_and_goto_pg()
+                        RUN                 =   gen_and_goto_pg(path_history='remove')
                         new_page            =   True
                         if debug:               print(self._path)
                 elif res=='N':
@@ -277,21 +165,37 @@ class Console:
                     self.jump_uid           =   None
                     z                       =   idx_list.index(self._idx) + 1
                     if z >= len(idx_list):
-                        pass
+                        print(                  "This is the Last RECORD.")
                     else:
                         self._idx           =   idx_list[ z ]
-                        self.RECORD         =   df.ix[self._idx,:]
-                        RUN                 =   gen_and_goto_pg()
+                        RUN                 =   gen_and_goto_pg(path_history='add')
                         new_page            =   True
                         if debug:               print(self._path)
 
-                elif res=='p':                  self.exts.goto_prev_page()
-                elif res=='n':                  self.exts.goto_next_page()
-                elif res=='e':                  self.exts.goto_last_page(   )
-                elif res=='f':                  self.exts.goto_first_page()
+                elif res=='p':
+                    self.pgnum              =   self.exts.goto_prev_page()
+                    self.path_history.append(   {'path':self._path,'page':self.pgnum})
+                elif res=='n':
+                    self.pgnum              =   self.exts.goto_next_page()
+                    self.path_history.append(   {'path':self._path,'page':self.pgnum})
+                elif res=='e':
+                    self.pgnum              =   self.exts.goto_last_page()
+                    self.path_history.append(   {'path':self._path,'page':self.pgnum})
+                elif res=='f':
+                    self.pgnum              =   self.exts.goto_first_page()
+                    self.path_history.append(   {'path':self._path,'page':1})
+                elif res=='L':
+                    rotation                =   self.exts.set_rotation('left')
+                    update(                     'rotation=%d'%rotation,is_prop=True)
+                elif res=='R':
+                    rotation                =   self.exts.set_rotation('right')
+                    update(                     'rotation=%d'%rotation,is_prop=True)
+                elif res=='r':
+                    update(                     -1,is_repeat=True)
                 elif res=='?':
                     print(                      ' ')
-                    print(                      qry)
+                    print(                      sorted_dict_str(RECORD.to_dict(),level=1))
+                    # print(                      qry)
                     print(                      ' ')
                 elif res=='o':  print(          self.exts.get_page_text_content())
                 # elif res=='D':
@@ -307,7 +211,7 @@ class Console:
                     #             self.jump_uid   =   None
                     #             self._idx  +=   1
                     #             self.pg_num     =   1
-                    #             RUN             =  gen_and_goto_pg()
+                    #             RUN             =  gen_and_goto_pg(path_history='add')
                     #         except:
                     #             print(              '\nQRY FAILED: %s\n' % qry)
 
@@ -361,30 +265,229 @@ class Console:
 
                 if   res[0]=='j':
                     self.jump_uid           =   _val if not _val.isdigit() else int(_val)
-                    RUN                     =   gen_and_goto_pg()
+                    RUN                     =   gen_and_goto_pg(path_history='add')
                     new_page                =   True
 
                 elif res[0]=='i':
-                    pg_key                  =   'page%05d' % self.exts.get_page_num()
-                    if self._attr:
-                        if type( self._attr )!=dict:
-                            self._attr      =   json.loads( self._attr )
-                        self.pg_notes       =   [] if not self._attr.has_key(pg_key) else self._attr[pg_key]
-                        self.pg_notes.append(   _val)
-                        self._attr[pg_key]  =   self.pg_notes
-                    else:
-                        self._attr          =   {pg_key:[_val]}
+                    update(                 _val,is_note=True)
 
-                    if type(self._attr)==dict:
-                        self._attr          =   json.dumps( self._attr, indent=4, sort_keys=True)
-                    upd_qry                 =   '\n' + '\n'.join([
-                                                    self.qry_start.lstrip(' ')
-                                                    ,"_attr='" + self._attr + "'::json"
-                                                    ,"WHERE uid=%s;" % self.path_uid_dict[self._path]
-                                                ]) + '\n'
-                    print '\n'.join(['\t'+it for it in upd_qry.split('\n')])
-                    # self.T.to_sql(              upd_qry )
-                    df.set_value(self._idx, self.attr_col, self._attr)
+        def gen_and_goto_pg(path_history='add'):
+            if hasattr(self,'jump_uid') and self.jump_uid:
+                nf                          =   pd.read_sql(self.jump_query % self.jump_uid,eng)
+                nf[self.url_col]            =   nf.fpath.map(lambda s: s.replace(*self.url_substitution))
+                self.RECORD                 =   nf.ix[idx_list[0],:]
+                self.new_path               =   self.RECORD[ self.url_col ]
+            elif self._idx>=len(path_list):
+                print(                          "END OF FILES")
+                return
+            else:
+                self.new_path               =   path_list[self._idx]
+
+            if self._path!=self.new_path:
+                self.RECORD                 =   df.ix[self.path_idx_dict[self.new_path],:]
+                self._attr                  =   self.RECORD[attr_col]
+                self._path                  =   self.RECORD[url_col]
+                br.open_page(                   self._path)
+                if path_history=='add':
+                    self.path_history.append(   {'path':self._path,'page':1})
+                elif path_history=='remove':
+                    self.path_history.pop(      -1)
+
+            return
+        def sorted_dict_str(_dict,max_key_str_len=0,level=0):
+            if type(_dict)==str:
+                _dict                           =   json.loads(_dict)
+            if max_key_str_len:
+                k_v_str                         =   '%-'+str(max_key_str_len+4)+'s : %s'
+            else:
+                k_v_str                         =   '%-'+str(max([len(k) for k in _dict.keys()])+4)+'s : %s'
+            res                                 =   ['\n']
+            for k,v in sorted(_dict.items()):
+                if type(v)==dict:
+                    res.append(                     k_v_str%(k,sorted_dict_str(v,level=level+1)))
+                elif type(v)==str:
+                    try:
+                        json.loads(                 v)
+                        res.append(                 k_v_str%(k,sorted_dict_str(v,level=level+1)))
+                    except:
+                        res.append(                 k_v_str%(k,v))
+                else:
+                    res.append(                     k_v_str%(k,v))
+            indent_level                        =   str('\t' * level)
+            indent_level_new_line               =   '\n%s' % indent_level
+            _return                             =   indent_level_new_line.join(res) + indent_level + '\n'
+            return _return
+        def update(_val,**kwargs):
+            if not _val:                    return
+            is_note                     =   False if not kwargs.has_key('is_note') else kwargs['is_note']
+            is_prop                     =   False if not kwargs.has_key('is_prop') else kwargs['is_prop']
+            is_repeat                   =   False if not kwargs.has_key('is_repeat') else kwargs['is_repeat']
+
+            self._attr                  =   self.RECORD[attr_col] if not hasattr(self,'_attr') else self._attr
+            self._attr                  =   {} if not self._attr else self._attr
+            self._attr                  =   self._attr if type(self._attr)==dict else json.loads( self._attr )
+            pg_num                      =   self.exts.get_page_num()
+            pg_key                      =   'page%05d' % pg_num
+            self.pg_notes               =   {} if not self._attr.has_key(notes_idx_col) else self._attr[notes_idx_col]
+            self.pg_notes               =   self.pg_notes if type(self.pg_notes)==dict else json.loads( self.pg_notes )
+            self.this_pg_notes          =   [] if not self.pg_notes.has_key(pg_key) else self.pg_notes[pg_key]
+            try:
+                self.this_pg_notes      =   self.this_pg_notes if type(self.this_pg_notes)==list else eval( self.this_pg_notes )
+            except:
+                self.this_pg_notes      =   []
+
+            if is_note:
+                pass
+            elif is_prop or str(_val).count('='):
+                k,v                     =   _val.split('=')
+                idx                     =   -1
+                for i in range(len(self.this_pg_notes)):
+                    it                  =   self.this_pg_notes[i]
+                    if it.count('='):
+                        _k,_v=it.split('=')
+                        if k==_k:
+                            self.this_pg_notes.pop( i)
+                            break
+            elif is_repeat:
+
+                is_repeat_idx           =   _val if _val!=-1 else pg_num-1
+                _pg_key                 =   'page%05d' % is_repeat_idx
+                assert self.pg_notes.has_key(_pg_key)
+                for it in self.pg_notes[_pg_key]:
+                    update(                 it)
+                return
+
+            if not self.this_pg_notes.count(_val):
+                self.this_pg_notes.append(  _val)
+            self.pg_notes[pg_key]       =   self.this_pg_notes
+            self._attr[notes_idx_col]   =   self.pg_notes
+
+            if type(self._attr)==dict:
+                self._attr              =   json.dumps( self._attr, indent=4, sort_keys=True)
+            upd_qry                     =   '\n' + '\n'.join([
+                                                self.qry_start.lstrip(' ')
+                                                ,"_attr='" + self._attr + "'::json"
+                                                ,"WHERE uid=%s;" % self.RECORD[uid_col]
+                                            ]) + '\n'
+            print '\n'.join(                ['\t'+it for it in upd_qry.split('\n')])
+            self.T.to_sql(                  upd_qry )
+            self.df.set_value(              self._idx, self.attr_col, self._attr)
+            self.RECORD                 =   self.df.ix[self._idx,:]
+            self._attr                  =   self.RECORD[attr_col]
+
+        def sig_int(signal, frame):
+            self.RUN_LOOP                   =   False
+        self.T.signal.signal(                   self.T.signal.SIGINT, sig_int)
+
+        locals().update(                        **self.__dict__)
+        globals().update(                       **self.__dict__)
+        locals().update(                        **self.T.__dict__)
+        globals().update(                       **self.T.__dict__)
+
+        self._load_dataframe()
+
+        idx_list                            =   df.index.astype(int).tolist()
+        col_list                            =   df.columns.astype(str).tolist()
+        uid_list                            =   df[ uid_col ].astype(str).tolist()
+        path_list                           =   df[ url_col ].astype(str).tolist()
+        attr_list                           =   df[ attr_col ].tolist()
+        self.path_uid_dict                  =   dict(zip(path_list,uid_list))
+        self.path_idx_dict                  =   dict(zip(path_list,idx_list))
+        self.path_attr_dict                 =   dict(zip(path_list,attr_list))
+
+
+        current                             =   self.exts.get_page_path()
+        self._idx                           =   df.first_valid_index().tolist() if not path_list.count(current) else path_list.index(current)
+        self.RECORD                         =   df.ix[self._idx,:]
+        self._attr                          =   self.RECORD[attr_col]
+        # self._path                          =   path_list[self._idx]
+
+        self.qry_clean                      =   self.T.re.sub(r'[\s\n\t][\s\t\n]+',' ',self.select_query.lower())
+        self.tbl_name                       =   self.T.re.sub(r'(.*) from ([^ ]+)(.*)','\\2',self.qry_clean)
+        self.qry_start                      =   " UPDATE " + self.tbl_name + " SET "
+        self.jump_query                     =   self.select_query + ' AND uid = %d ; ' if not hasattr(self,'jump_query') or not self.jump_query else self.jump_query
+        self.jump_uid                       =   None
+        RUN                                 =   gen_and_goto_pg(path_history='add')
+        get_ipython().system(                   u'%(shell)s -c "cd %(script_dir)s; date --iso-8601=seconds >> %(notes_fpath)s"' % self.__dict__)
+
+        # signal.pause()
+
+        self.RUN_LOOP                       =   True
+        new_page                            =   True
+        print('\n\nStarting Loop.\n')
+        while self.RUN_LOOP==True:
+
+            print(                          sorted_dict_str(self.RECORD.to_dict(),level=1))
+
+            res                             =   raw_input(' ')
+            print(                              ' ')
+            OPTS                            =   {
+
+                                                'q'         : 'quit',
+                                                'm'         : 'mark file (append filepath to save file)',
+                                                'P'         : 'goto previous file',
+                                                'N'         : 'goto next file',
+                                                'p'         : 'goto previous page in file',
+                                                'n'         : 'goto next page in file',
+                                                'f'         : 'goto first page of file',
+                                                'e'         : 'goto last page of file',
+                                                'L'         : 'rotate 90 left (counter-clockwise)',
+                                                'R'         : 'rotate 90 right (clockwise)',
+                                                '?'         : 'show info about file and update query',
+                                                'o'         : 'print OCR of file',
+                                                'D'         : 'execute update query and goto next file',
+
+                                                're [str]'  : 'test,save,edit,remove regex queries re: OCR text',
+                                                '! [str]'   : 'execute ipython command in this namespace',
+                                                'j [int]'   : 'jump to file having input uid',
+
+                                                }
+                                                #
+                                                # ? CREATE FUNCTION FOR CUSTOMIZING SHORT-HANDS ON-THE-GO ?
+                                                #   list
+                                                #   new
+                                                #   edit
+                                                #   del
+                                                #
+                                                # 't [str]'   : 'set contract type',
+                                                # 'd [str]'   : 'set contract department',
+                                                # 's [str]'   : 'set contract status',
+                                                # 'n [str]'   : 'set contract title',
+                                                # 'd [str]'   : 'set effective date',
+                                                # 'v [str]'   : 'set vendor name',
+                                                # 'a [str]'   : 'set address',
+                                                # 'x [str]'   : 'set expiration',
+                                                # 'r [str]'   : 'set requestor',
+                                                # 'i [str]'   : 'append/set notes',
+
+            if res.count(':'):
+                idx                         =   res[res.find(':')+1:]
+                res                         =   res[:len(res)-len(idx)-1]
+                idx                         =   idx.split(':')
+                if len(idx)==1:
+                    idx.append(                 self.exts.get_page_count())
+                idx                         =   [int(it) for it in idx]
+
+                orig_res = res
+                for _loop in range(idx[0],idx[1]+1):
+                    print '_loop:',_loop
+                    res = orig_res
+                    LOOP                    =   iter_loop()
+                    if LOOP==False:             return
+                    res = 'n'
+                    LOOP                    =   iter_loop()
+                    if LOOP==False:             return
+
+
+                print idx
+                raise SystemError
+
+            else:
+
+
+                LOOP = iter_loop()
+                if LOOP==False:                 return
+
 
 
             if debug:           print           qry
