@@ -57,3 +57,4 @@ html/webdrivers/chrome/profiles/*/Profile
 
 html/webdrivers/chrome/profiles/*/Default
 !html/webdrivers/chrome/profiles/*/Default/Preferences
+relativity_js
