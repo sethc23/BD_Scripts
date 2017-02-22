@@ -1,0 +1,74 @@
+/*all themes*/
+
+html.markdown-theme-html {
+
+    /*width: auto !important;*/
+    /*max-width: 100% !important;*/
+    padding: 25px !important;
+    margin: 25px !important;
+    margin-left: 25px;
+    margin-right: 25px;
+}
+
+body.markdown-theme {
+    /*width: 90%;*/
+    /*max-width: 100% !important;*/
+    padding-top: 0px;  !important;
+    /*margin: 100px;  !important;*/
+    /*margin: auto !important;*/
+    /*margin-left: 25px;*/
+    /*margin-right: 25px;*/
+    /*padding-left: 25px;*/
+    /*padding-left: 15px;*/
+    /*padding-right: 15px;*/
+    /*-webkit-margin-start: initial;*/
+    -webkit-margin-before: 0px;
+    -webkit-margin-after: 0px;
+    -webkit-margin-start: 0px;
+    -webkit-margin-end: 0px;
+    -webkit-padding-start: 25px;
+}
+
+/*@media (max-width: 767px) {
+  body.markdown-theme { width: auto !important; }
+}
+@media (min-width: 768px) and (max-width: 992px) {
+  body.markdown-theme { width: 713px !important; }
+}
+@media (min-width: 992px) and (max-width: 1200px) {
+  body.markdown-theme { width: 937px !important; }
+}*/
+
+
+/*@media (min-width: 1200px) {
+  body.markdown-theme { width: 1145px !important; }
+}*/
+
+
+/*github theme*/
+
+html.markdown-body-html {
+    /*min-width: 1020px;*/
+}
+
+body.markdown-body {
+    overflow: auto;
+    /*min-width: 200px;*/
+    /*max-width: 488px;*/
+    background-color: #fff;
+    border: 1px solid #ddd;
+    padding: 50px auto;
+    /*margin: 50px auto;*/
+}
+
+body.markdown-body #html>*:first-child {
+    margin-top: 0 !important;
+}
+
+body.markdown-body #html>*:last-child {
+    margin-bottom: 0 !important;
+}
+
+body.markdown-body img {
+    background-color: transparent;
+}

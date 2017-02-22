@@ -1,0 +1,1272 @@
+/* Title: Vostok */
+
+
+/* Author: Jocelyn Richard http://jocelynrichard.com/ */
+
+
+/* Description: Generous x-height and contrasted colors make for highly legible documents. Works best with the free PT fonts: http://www.paratype.com/public/ */
+
+
+/* ================================================ */
+
+
+/* 1. Reset */
+
+
+/* 2. Skeleton */
+
+
+/* 3. Media Queries */
+
+
+/* 4. Print Styles */
+
+
+/* 5. Vostok Overrides */
+
+
+/* ================================================ */
+
+
+/* ================================================ */
+
+
+/* 1. Reset */
+
+
+/* ================================================ */
+
+html,
+body,
+div,
+span,
+applet,
+object,
+iframe,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+blockquote,
+pre,
+a,
+abbr,
+acronym,
+address,
+big,
+cite,
+code,
+del,
+dfn,
+em,
+img,
+ins,
+kbd,
+q,
+s,
+samp,
+small,
+strike,
+strong,
+sub,
+sup,
+tt,
+var,
+b,
+u,
+i,
+center,
+dl,
+dt,
+dd,
+/*ol,*/
+/*ul,*/
+/*li,*/
+fieldset,
+form,
+label,
+legend,
+table,
+caption,
+tbody,
+tfoot,
+thead,
+tr,
+th,
+td,
+article,
+aside,
+canvas,
+details,
+embed,
+figure,
+figcaption,
+footer,
+header,
+hgroup,
+menu,
+nav,
+output,
+ruby,
+section,
+summary,
+time,
+mark,
+audio,
+video {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    /*padding-left:25px;*/
+    /*margin-left:25px;*/
+}
+
+
+/* Edited from http://www.cssreset.com/scripts/eric-meyer-reset-css/ */
+
+article,
+aside,
+details,
+figcaption,
+figure,
+footer,
+header,
+hgroup,
+nav,
+section,
+summary {
+    display: block;
+}
+
+
+/* Semantic tags definition for IE 6/7/8/9 and Firefox 3 */
+
+html {
+    /*-webkit-text-size-adjust: 100%;*/
+    /*-ms-text-size-adjust: 100%;*/
+}
+
+
+/* Prevents iOS text size adjust after orientation change, without disabling user zoom */
+
+
+/* ================================================ */
+
+
+/* 2. Skeleton */
+
+
+/* ================================================ */
+
+
+/* ------------------------------------------------- */
+
+
+/* General */
+
+
+/* ------------------------------------------------- */
+
+html {
+    font-size: 14px;
+}
+
+body {
+    font-family: "Droid Sans Mono";
+    /*font-family: 'Open Sans', sans-serif;*/
+    /*font-family: 'Microsoft YaHei', 'Helvetica','Arial','SimHei', sans-serif;*/
+    /*margin: 1.71rem 1.71rem  3rem 1.71rem ;*/
+    /* Get margins even if the Markdown rendering app doesn't include any */
+    background-color: white;
+    color: #222;
+}
+
+#wrapper {
+    /* #wrapper: ID added by Marked */
+    max-width: 42rem;
+    margin: 0 auto;
+    margin-left: auto !important;
+    /* Countering toc.css added by Marked */
+    padding: 1.71rem 0 !important;
+    /* Countering toc.css added by Marked */
+}
+
+
+/* ------------------------------------------------- */
+
+
+/* Typography */
+
+
+/* ------------------------------------------------- */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    /*margin-bottom: 1.6rem;*/
+}
+
+h1,
+h2 {
+    margin-top: 2.0rem;
+}
+
+h1 {
+    font-size: 2.82rem;
+    /* 42.3px @15px */
+    line-height: 3.2rem;
+    /* 48px @15px */
+}
+
+h2 {
+    font-size: 1.99rem;
+    /* 29.9px @15px */
+    line-height: 2.4rem;
+    /* 36px @15px */
+}
+
+h3 {
+    font-size: 1.41rem;
+    /* 21.2px @15px */
+    line-height: 2rem;
+    /* 30px @15px */
+}
+
+h4 {
+    font-size: 1rem;
+    /* 15px @15px */
+    line-height: 1.6rem;
+    /* 24px @15px */
+}
+
+h5,
+h6 {
+    font-size: 0.8rem;
+    line-height: 1.2rem;
+    text-transform: uppercase;
+}
+
+h6 {
+    /*margin-left: 1.6rem;*/
+}
+
+/*p,*/
+ol,
+ul,
+blockquote {
+    font-size: 1rem;
+    line-height: 1.6rem;
+    /*margin-bottom: 1.6rem;*/
+    /*margin-left: 30px;*/
+    /*-webkit-margin-start: 25px;*/
+}
+
+ul ul,
+ul ol,
+ol ul,
+ol ol {
+    /*margin-left: 1.6rem;*/
+    /*margin-top:  1.6rem;*/
+}
+
+#generated-toc ul ul,
+
+/* #generated-toc: added by Marked for its table of contents */
+
+#generated-toc ul ol,
+#generated-toc ol ul,
+#generated-toc ol ol {
+    margin-top: 0;
+    margin-bottom: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+blockquote {
+    /*margin: 0 0 1.6rem 2.4rem;*/
+    /*padding-left: 0.8rem; /* Voire */
+    border-left: 4px solid rgba(0, 0, 0, 0.08);
+    font-style: normal;
+}
+
+blockquote ul {
+    margin-left: 0.8rem;
+    /* Pour ne pas que les hanging bullets mordent sur le blockquote  */
+}
+
+ol li blockquote,
+
+/* So that blockquote work in lists */
+
+ul li, ol li {
+    /*margin-left: 0;*/
+}
+
+ul li blockquote {
+    /*margin-left: 0;*/
+}
+
+/*a:link {*/
+    /*text-decoration: none;*/
+    /*color: #165BD4;*/
+    /*border-bottom: 1px solid #CCC;*/
+    /*text-decoration: underline;*/
+    /*border-bottom: none;*/
+    /*font-weight: 700;*/
+    /*border-bottom-width: medium;*/
+    /*border-bottom-left-radius: 10px;*/
+    /*border-bottom-right-radius: 10px;*/
+    /*border-bottom-style: groove;*/
+    /*border-bottom-color: chartreuse;*/
+/*}*/
+
+/*a:visited {*/
+    /*color: #7697CF;*/
+    /*border-bottom: 1px solid #CCC;}*/
+
+/*a:hover {border-color: #165BD4;}*/
+
+/*a:active {background-color: #E6E6E6;}*/
+
+
+/* ------------------------------------------------- */
+
+
+/* Tables */
+
+
+/* ------------------------------------------------- */
+
+table {
+    font-size: 0.85rem;
+    margin: 0 0 1.6rem 0;
+    border-spacing: 0;
+    border-collapse: collapse;
+    border: 1px solid #CCC;
+    box-sizing: border-box;
+}
+
+th,
+td {
+    padding: 0.5rem 0.75rem;
+    max-width: 20rem;
+    /* Avoid dropping lines for nothing without having ridiculously wide tables */
+}
+
+th {
+    border-bottom: 2px solid #222;
+}
+
+tr {
+    border-bottom: 1px solid #ccc;
+}
+
+tbody tr:nth-child(odd) {
+    background-color: #f9f9f9;
+}
+
+table code {
+    font-size: 85%;
+}
+
+
+/* ------------------------------------------------- */
+
+
+/* Misc */
+
+
+/* ------------------------------------------------- */
+
+img {
+    max-width: 100%
+}
+
+
+/*caption,
+figcaption {
+  font-size:   0.85rem;
+    line-height: 1.6rem;
+  margin: 0 1.6rem;
+  text-align: left;
+}*/
+
+figcaption {
+    margin-bottom: 1.6rem;
+}
+
+h1,
+
+/* White-space mentions in order to force wrapping */
+
+h2,
+a:link,
+pre {
+    white-space: pre;
+    /* CSS 2.0 */
+    white-space: pre-wrap;
+    /* CSS 2.1 */
+    white-space: pre-line;
+    /* CSS 3.0 */
+    white-space: -pre-wrap;
+    /* Opera 4-6 */
+    white-space: -o-pre-wrap;
+    /* Opera 7 */
+    white-space: -moz-pre-wrap;
+    /* Mozilla */
+    white-space: -hp-pre-wrap;
+    /* HP Printers */
+    word-wrap: break-word;
+    /* IE 5+ */
+}
+
+code {
+    font-family: "Droid Sans Mono";
+    /*font-family: "Menlo", "Courier New", "Courier", monospace;*/
+    /*font-family: 'Microsoft YaHei', 'Helvetica','Arial','SimHei', sans-serif;*/
+    font-size: 85%;
+    color: #666;
+    background-color: rgba(0, 0, 0, 0.08);
+    /*padding-left: 2px 4px;*/
+    padding-top: 2px;
+    padding-bottom: 4px;
+    border-radius: 2px;
+}
+
+pre {
+    background-color: rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
+    /*margin-left: initial;*/
+    margin-left: 25px;
+    margin-right: 25px;
+    padding-left: 10px;
+    padding-top: 0.4rem;
+    padding-bottom: 0.4rem;
+    margin-bottom: 1.6rem;
+}
+
+pre code {
+    /* Counter the code mentions */
+    background-color: transparent;
+    /*padding-top: 0.4rem;*/
+    /*padding-bottom: 0.4rem;*/
+}
+
+sup,
+sub,
+a.footnote {
+    /* Keep line-height from being affected by sub, cf https://gist.github.com/unruthless/413930 */
+    font-size: 75%;
+    height: 0;
+    line-height: 1;
+    position: relative;
+}
+
+sup,
+a.footnote {
+    vertical-align: super;
+}
+
+sub {
+    vertical-align: sub;
+}
+
+dt {
+    font-weight: 600;
+}
+
+dd {
+    font-size: 1rem;
+    line-height: 1.6rem;
+    margin-bottom: 1.6rem;
+}
+
+hr {
+    clear: none;
+    height: 0.2rem;
+    border: none;
+    margin: 0 auto 1.4rem auto;
+    /* 2.4rem auto 2.2rem auto; */
+    width: 100%;
+    color: #ccc;
+    background-color: #ccc;
+}
+
+::selection {
+    background-color: #f8dc77;
+}
+
+::-moz-selection {
+    background-color: #f8dc77;
+}
+
+a:focus {
+    outline: 2px solid;
+    outline-color: #165bd4;
+}
+
+
+/* ------------------------------------------------- */
+
+
+/* Animations */
+
+
+/* ------------------------------------------------- */
+
+/*a:hover {
+    -moz-transition: all 0.2s ease-in-out;
+    -webkit-transition: all 0.2s ease-in-out;
+}*/
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+blockquote {
+    -moz-transition: all 0.2s ease;
+    -webkit-transition: all 0.2s ease;
+}
+
+
+/* ================================================ */
+
+
+/* 3. Media Queries */
+
+
+/* ================================================ */
+
+
+/* Base styles are for smartphones; elements are then tweaked as the viewport grows. */
+
+
+/* ------------------------------------------------- */
+
+
+/* iPad and desktop */
+
+
+/* ------------------------------------------------- */
+
+
+@media only screen and (min-width: 641px) {
+    html {
+        font-size: 15px;
+    }
+    body {
+        margin: 2.4rem 2.4rem 3.2rem 2.4rem;
+    }
+    h1 {
+        font-size: 3.57rem;
+        /* 53.2px @15px */
+        line-height: 4rem;
+        /* 60px @15px */
+    }
+    h2 {
+        font-size: 2.24rem;
+        /* 33.6px @15px */
+        line-height: 2.8rem;
+        /* 42px @15px */
+    }
+}
+
+
+/* ------------------------------------------------- */
+
+
+/* Widescreens */
+
+
+/* ------------------------------------------------- */
+
+@media only screen and (min-width: 1441px) {
+    html {
+        font-size: 22px;
+    }
+}
+
+
+/* ================================================ */
+
+
+/* 4. Print Styles */
+
+
+/* ================================================ */
+
+
+/* Inconsistent and buggy across browsers */
+
+@media print {
+    * {
+        background: transparent !important;
+        color: #000 !important;
+        /* Black text prints faster and browsers are inconsistent in color reproduction anyway: h5bp.com/s */
+    }
+    @page {
+        margin: 1cm;
+        /* Added to any #wrapper margin*/
+    }
+    html {
+        font-size: 15px;
+    }
+    body {
+        margin: 1rem !important;
+        /* Security margins for browser without @page support */
+    }
+    #wrapper {
+        max-width: none;
+    }
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    p {
+        orphans: 3;
+        widows: 3;
+        page-break-after: avoid;
+    }
+    ul,
+    ol {
+        list-style-position: inside !important;
+        padding-right: 0 !important;
+        margin-left: 0 !important;
+    }
+    ul ul,
+    ul ol,
+    ol ul,
+    ol ol,
+    ul p:not(:first-child),
+    ol p:not(:first-child) {
+        margin-left: 2rem !important;
+    }
+    a:link,
+    a:visited {
+        text-decoration: underline !important;
+        font-weight: normal !important;
+    }
+    a[href]:after {
+        content: " (" attr(href) ")";
+    }
+    a[href^="javascript:"]:after,
+    a[href^="#"]:after {
+        content: "";
+        /* Do not show javascript and internal links */
+    }
+    a[href^="#"] {
+        text-decoration: none !important;
+    }
+    th {
+        background-color: rgba(0, 0, 0, 0.2) !important;
+        border-bottom: none !important;
+    }
+    tr {
+        page-break-inside: avoid;
+    }
+    tbody tr:nth-child(even) {
+        background-color: rgba(0, 0, 0, 0.1) !important;
+    }
+    pre {
+        border: 1px solid rgba(0, 0, 0, 0.2);
+        page-break-inside: avoid;
+    }
+    img {
+        max-width: 100% !important;
+        page-break-inside: avoid;
+    }
+    /* #generated-toc: added by Marked for its table of contents */
+    #wrapper #generated-toc ul,
+    /* Table of contents printing in Marked */
+    #wrapper #generated-toc ol {
+        list-style-type: decimal;
+    }
+    #wrapper #generated-toc ul li,
+    #wrapper #generated-toc ol li {
+        margin: 1rem 0;
+    }
+}
+
+
+/* ================================================ */
+
+
+/* 5. Vostok Overrides */
+
+
+/* ================================================ */
+
+
+/* ------------------------------------------------- */
+
+
+/* General */
+
+
+/* ------------------------------------------------- */
+
+html {
+    font-size: 15px;
+}
+
+body {
+    font-family: "Droid Sans Mono";
+    /*font-family: "pt serif", Georgia, serif;*/
+    /*font-family: 'Microsoft YaHei', 'Helvetica','Arial','SimHei', monospace;*/
+    color: rgba(0, 0, 0, 0.7);
+    /*text-shadow: 0 1px 0 white;*/
+    background-color: #ECECEC;
+    /*min-width: 200px;*/
+    /*max-width: 488px;*/
+    /*background-color: rgb(255, 255, 255);*/
+    overflow: auto;
+    border-width: 6px;
+    border-style: solid;
+    border-color: rgb(221, 221, 221);
+    border-image: initial;
+    margin-left: 0px;
+    margin-right: 0px;
+    padding:0px;
+    /*padding: 285px;*/
+    /*margin: 240px auto;*/
+    /*margin-left: 197.5px;*/
+}
+
+#wrapper {
+    max-width: 40rem;
+}
+
+
+/* ------------------------------------------------- */
+
+
+/* Typography */
+
+
+/* ------------------------------------------------- */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: "Droid Sans Mono";
+    /*font-family: "pt sans", "avenir next", sans-serif;*/
+    font-weight: 700;
+    color: rgba(0, 0, 0, 1);
+}
+
+h2,
+h3 {
+    font-family: "Droid Sans Mono";
+    /*font-family: "pt sans narrow", "avenir next condensed", sans-serif;*/
+}
+
+h5 {
+    color: rgba(0, 0, 0, 0.7);
+}
+
+h6 {
+    color: rgba(0, 0, 0, 0.7);
+}
+
+ul {
+    list-style-type: none;
+}
+
+ul > li:before {
+    content: "\2022";
+    float: left;
+    /*margin-left: -1.2rem;*/
+    padding-right: 0.6rem;
+    /* Empirically chosen to align horizontally with the position of standard bullet points */
+}
+
+ul li,
+ol li {
+    /*margin: 0;*/
+    /*margin-left: 25px;*/
+    /*padding-left: 25px;*/
+}
+
+ul ul,
+ul ol,
+ol ul,
+ol ol,
+ul p:not(:first-child),
+ol p:not(:first-child) {
+    /*margin-left: 1.6rem;*/
+}
+
+blockquote {
+    border-left: 2px solid rgba(0, 0, 0, 0.5);
+}
+
+a:link {
+    text-decoration: none;
+    color: #185BC1;
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px;
+    border-bottom-color: chartreuse;
+    border-bottom-width: 2.5px;
+    border-bottom-style: groove;
+}
+
+a:visited {
+    text-decoration: none;
+    color: #185BC1;
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px;
+    border-bottom-color: #E1EDFF;
+    border-bottom-width: 5px;
+    border-bottom-style: dotted;
+}
+
+a:hover {
+    color: #F99A23;
+    font-weight: 900;
+}
+
+
+/* ------------------------------------------------- */
+
+
+/* Tables */
+
+
+/* ------------------------------------------------- */
+
+thead {
+    border: 1px solid black;
+    /*#4C4C4C; /* In hex (= rgba(0,0,0,0.7)) otherwise the alpha gets the border of the tr below  */
+}
+
+th {
+    background-color: #4C4C4C;
+    /* = rgba(0,0,0,0.7) */
+    border-bottom: 1px solid #4C4C4C;
+    /* = rgba(0,0,0,0.7) ; mentionned otherwise the stroke is of the tr below */
+    color: white;
+    /*text-shadow: 0px -1px 0px black;*/
+}
+
+tbody tr:nth-child(even) {
+    background-color: rgba(255, 255, 255, 0.5);
+}
+
+tbody tr:nth-child(odd) {
+    background-color: transparent;
+}
+
+
+/* ------------------------------------------------- */
+
+
+/* Misc */
+
+
+/* ------------------------------------------------- */
+
+table,
+figcaption {
+    font-family: "Droid Sans Mono";
+    /*font-family: "pt sans", "avenir next", sans-serif;*/
+}
+
+code {
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    background-color: rgba(255, 255, 255, 0.5);
+    border-radius: 2px;
+    color: #2DAB5F;
+    text-shadow: none;
+}
+
+pre {
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    background-color: rgba(255, 255, 255, 0.5);
+    border-radius: 2px;
+}
+
+pre code {
+    color: #81A181;
+    border: none;
+}
+
+hr {
+    clear: none;
+    height: 2px;
+    /* height: 0.125rem; */
+    border: none;
+    /*margin: 1.5rem auto;*/
+    width: 14rem;
+    color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+::selection {
+    background-color: #fbfb48;
+}
+
+::-moz-selection {
+    background-color: #fbfb48;
+}
+
+
+/* #generated-toc: added by Marked for its table of contents */
+
+#generated-toc {
+    text-shadow: none;
+}
+
+#generated-toc ul {
+    /* Compensate for the earlier custom bullet point */
+    margin: 0;
+    list-style-type: none;
+}
+
+#generated-toc ul li {
+    /* Compensate for the earlier custom bullet point */
+    margin: 0;
+}
+
+#generated-toc ul > li:before {
+    /* Compensate for the earlier custom bullet point */
+    content: none;
+    margin-left: 0;
+    padding-right: 0;
+}
+
+#generated-toc ul li a {
+    font-weight: normal;
+    display: inline;
+}
+
+#generated-toc ul li ul li ul li a {
+    text-transform: lowercase;
+}
+
+
+/* ------------------------------------------------- */
+
+
+/* iPad and desktop */
+
+
+/* ------------------------------------------------- */
+
+@media only screen and (min-width: 641px) {
+    html {
+        font-size: 17px;
+    }
+    h1 {
+        font-size: 2.81rem;
+    }
+    h2 {
+        font-size: 1.78rem;
+        line-height: 2.21rem;
+    }
+    ul,
+    ol {
+        /*margin-left: 0;*/
+    }
+}
+
+/* ------------------------------------------------- */
+
+
+/* CUSTOMIZATIONS */
+
+/* ------------------------------------------------- */
+
+caption {
+    padding-top: 20px;
+}
+
+
+/*,#html ul li*/
+#html ol li ul
+,#html ol li pre {
+    -webkit-margin-before: 0px;
+    -webkit-margin-after: 0px;
+    -webkit-margin-start: 0px;
+    -webkit-margin-end: 0px;
+    -webkit-padding-start: inherit;
+}
+#html ol li pre{
+    padding-left: 10px;
+}
+
+
+p+ul{
+    margin-left: inherit;
+    /*-webkit-margin-start: 25px;*/
+    -webkit-padding-start: 25px;
+}
+
+/*,h1+ul,h2+ul,h3+ul,h4+ul,h5+ul,h6+ul*/
+li+ul
+,ul>li>ol
+,h1+ol,h2+ol,h3+ol,h4+ol,h5+ol,h6+ol
+,h1+pre,h2+pre,h3+pre,h4+pre,h5+pre,h6+pre {
+    /*margin-left: 25px;*/
+    -webkit-margin-before: 0px;
+    -webkit-margin-after: 0px;
+    -webkit-margin-start: 0px;
+    -webkit-margin-end: 0px;
+    -webkit-padding-start: 4em;
+}
+#html ul li ul
+,h1+ul,h2+ul,h3+ul,h4+ul,h5+ul,h6+ul {
+    /*margin-left: 25px;*/
+    -webkit-margin-before: 0px;
+    -webkit-margin-after: 0px;
+    -webkit-margin-start: 0px;
+    -webkit-margin-end: 0px;
+    -webkit-padding-start: 2em;
+}
+
+/*p+ol,h1+ol,h2+ol,h3+ol,h4+ol,h5+ol,h6+ol {
+    margin-left: 50px;
+}*/
+table {
+    padding-top: 10px;
+    padding-bottom: 10px;
+    padding-left: 0px;
+    margin-left: 25px;
+    border-collapse: collapse;
+}
+td, th {
+    border: 1px solid #DDDDDD;
+}
+h1 {
+    font-family: "Droid Sans Mono";
+    font-size: 24px;
+    font-style: normal;
+    font-variant: small-caps;
+    font-weight: 500;
+    line-height: 26.4px;
+    padding-top: 18px;
+    padding-bottom: 6px;
+}
+h2 {
+    font-family: "Droid Sans Mono";
+    font-style: normal;
+    font-variant: small-caps;
+    font-weight: 500;
+    line-height: 26.4px;
+    /*font-size: 95%;*/
+    padding-top: 15px;
+    padding-bottom: 6px;
+}
+h3 {padding-top: 12px;padding-bottom: 6px;}
+h4 {padding-top: 9px;}
+h5 {padding-top: 6px;}
+h6 {padding-top: 3px;}
+p {
+    font-family: "Droid Sans Mono";
+    font-size: 14px;
+    font-style: normal;
+    font-variant: normal;
+    font-weight: 400;
+    line-height: 20px;
+    padding-top: 2px;
+}
+blockquote {
+    font-family: "Droid Sans Mono";
+    font-size: 21px;
+    font-style: normal;
+    font-variant: normal;
+    font-weight: 400;
+    line-height: 30px;
+    padding-left: 0px;
+    margin-left: 25px;
+}
+pre {
+    font-family: "Droid Sans Mono";
+    font-size: 13px;
+    font-style: normal;
+    font-variant: normal;
+    font-weight: 400;
+    line-height: 18.5714px;
+}
+
+code {
+    /*padding: 2px 4px;*/
+    /*padding: 2px 4px;*/
+    /*font-size: 90%;*/
+    color: #D95D18;
+    background-color: #E4DFDF;
+    /*border-radius: 4px;*/
+}
+
+blockquote pre {
+    margin-left: 25px;
+}
+mark {
+    color: #000;
+    background: #D0FFC4;
+}
+
+.tag,
+.css .rules,
+.css .value,
+.aspectj .function,
+.css .function .preprocessor,
+.pragma {
+    color: #D8D9D1
+}
+
+.strongemphasis,
+.strong,
+.emphasis {
+    color: #53D2FF
+}
+
+.bullet,
+.blockquote,
+.horizontal_rule,
+.number,
+.regexp,
+.alias .keyword,
+.literal,
+.hexcolor {
+    color: #DC44FF
+}
+
+.tag .value,
+.code,
+.title,
+.css .class,
+.class .title:last-child {
+    color: #a6e22e
+}
+
+.link_url {
+    font-size: 80%
+}
+
+.strong,
+.strongemphasis {
+    font-weight: bold
+}
+
+.emphasis,
+.strongemphasis,
+.class .title:last-child,
+.typename {
+    font-style: italic
+}
+
+.keyword,
+.ruby .class .keyword:first-child,
+.ruby .function .keyword,
+.function,
+.change,
+.winutils,
+.flow,
+.nginx .title,
+.tex .special,
+.header,
+.attribute,
+.symbol,
+.symbol .string,
+.tag .title,
+.value,
+.alias .keyword:first-child,
+.css .tag,
+.css .unit,
+.css .important {
+    color: #53D2FF
+}
+
+.function .keyword,
+.class .keyword:first-child,
+.aspect .keyword:first-child,
+.constant,
+.typename,
+.css .attribute {
+    color: #66d9ef
+}
+
+.variable,
+.params,
+.class .title,
+.aspect .title {
+    color: #f8f8f2
+}
+
+.string,
+.css .id,
+.subst,
+.type,
+.ruby .class .parent,
+.built_in,
+.django .template_tag,
+.django .variable,
+.smalltalk .class,
+.django .filter .argument,
+.smalltalk .localvars,
+.smalltalk .array,
+.attr_selector,
+.pseudo,
+.addition,
+.stream,
+.envvar,
+.apache .tag,
+.apache .cbracket,
+.tex .command,
+.prompt,
+.link_label,
+.link_url {
+    color: #1DCF30
+}
+
+.comment,
+.javadoc,
+.annotation,
+.decorator,
+.pi,
+.doctype,
+.deletion,
+.shebang,
+.apache .sqbracket,
+.tex .formula {
+    color: #75715e
+}
+
+.col-branch {
+    width: 10%;
+    font-weight: normal;
+}
+
+.col-message {
+    width: 60%;
+    font-weight: normal;
+}
+
+.col-date {
+    /*width: 110px*/
+    width: 20%;
+    font-weight: normal;
+}
+
+.col-sha {
+    width: 10%;
+    font-weight: normal;
+}
+
+.commit-message {
+    font-weight: normal;
+}

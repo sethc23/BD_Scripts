@@ -1,0 +1,30 @@
+{
+   "background": {
+      "persistent": false,
+      "scripts": [ "/vendor/marked.js", "/background/markdown.js", "/background/background.js" ]
+   },
+   "description": "Markdown Viewer",
+   "homepage_url": "https://chrome.google.com/webstore/detail/markdown-viewer/ckkdlimhmcjmikdlpkmbgfkaikojcbjk",
+   "icons": {
+      "128": "/images/icon128.png",
+      "16": "/images/icon16.png",
+      "48": "/images/icon48.png"
+   },
+   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsbS7x9boW+Lhms2i9kYbJI7UfY+oFUFCAsynpM5r48YEf0yIieXycaZ0aHhjnQ/0/3kyyQmZgt5uvT/1mnWHWC+f95nsn3wiQo12wU5cPZlnjD58pahkSsTBu+Jd0G2/mL0TBLhmfjYJZa7C/BOTqXFjOW0vi1OUiK4ac21LOssG34zWo9Z3tQAb6Sckq84sCk7+TLsPdtnhrwr14d0IQagrV1STRnlA0JU9YnkJBAXXUx0eTFH97YANKReYBGa32GJuPqohoS57vaPgWmq2lpYY6+GT/ZPwqJLq1WYJ893xqQDS0g1RA34KRukOvx1qWBL7pLBmmNWlCEgRPf+JjQIDAQAB",
+   "manifest_version": 2,
+   "name": "Markdown Viewer",
+   "optional_permissions": [ "http://*/", "https://*/" ],
+   "options_page": "/content/options.html",
+   "page_action": {
+      "default_icon": {
+         "19": "/images/icon19.png",
+         "38": "/images/icon38.png"
+      },
+      "default_popup": "/content/popup.html",
+      "default_title": "Markdown Viewer"
+   },
+   "permissions": [ "storage", "file:///*" ],
+   "update_url": "https://clients2.google.com/service/update2/crx",
+   "version": "2.4",
+   "web_accessible_resources": [ "/themes/ub4.css", "/themes/github.css", "/themes/github-dark.css", "/themes/godspeed.css", "/themes/new-modern.css", "/themes/torpedo.css", "/themes/vostok.css", "/themes/ghostwriter.css", "/themes/radar.css", "/themes/foghorn.css", "/themes/markdown.css", "/themes/markedapp-byword.css", "/themes/solarized-dark.css", "/themes/solarized-light.css", "/themes/screen.css", "/themes/markdown5.css", "/themes/markdown6.css", "/themes/markdown7.css", "/themes/markdown8.css", "/themes/markdown9.css", "/themes/markdown-alt.css" ]
+}
