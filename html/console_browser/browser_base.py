@@ -101,7 +101,7 @@ EOF
 
 
 
-    REV00798394  
+    REV00798394
         https://relativity.trustpointintl.com/Relativity/Controls/DocumentReview/DocumentIdentifierFrame.aspx?&AppID=3209893&ArtifactID=2323535&IsRenderedInPopup=False&IsFromReviewTool=False#
         The attached document is a Special
 
@@ -116,7 +116,7 @@ EOF
 
 
 class Hud:
-    
+
     def __init__(self):
         make_display=True
 
@@ -153,13 +153,13 @@ class Hud:
         else:
             display_type = 'float' if display_type=='pager' else 'pager'
         display_type='pager'
-            
+
         try:
             bh
         except NameError:
             bh = browser_hud(display_type).start_hud(make_display=make_display)
         else:
-            bh.close_widget() 
+            bh.close_widget()
             bh = browser_hud(display_type).start_hud(make_display=make_display)
 
         def close_all():
@@ -169,7 +169,7 @@ class Hud:
     class relativity_hud:
 
         def __init__(self,hud=None):
-            
+
             self.bh = hud
 
             from os import environ as os_environ
@@ -189,11 +189,11 @@ class Hud:
             for tag in _html.find_all('div',{'id':'profile'}):
                 tag.attrs['style'] = "width: 100%"
             self.html = _html.renderContents()
-            
+
         def integrate(self,urls=[]):
             self.urls = urls
             self.current_url = self.urls[0]
-            
+
             def general_page():
                 opts = self.T.pd.read_sql("select trait from general_traits",
                                           self.T.eng).trait.tolist()
@@ -203,22 +203,22 @@ class Hud:
                 new_list = fresh_opts
                 new_list.insert(0,current_list[0])
                 new_list.extend(current_list[1:])
-                widget_component.options=tuple(new_list)  
+                widget_component.options=tuple(new_list)
             def trait_pages():
 
                 def get_work_df():
                     qry = """
-                        select 
+                        select
                             company, t_company.rank company_rank,
                             job_title,  t_job_title.rank job_title_rank
                         from (
-                            select 
+                            select
                                 entries->>'company' company,
                                 entries->>'title' job_title
-                            from 
+                            from
                                 (
                                 select jsonb_array_elements((json_info->>'work')::jsonb) entries
-                                from candidates 
+                                from candidates
                                 where json_info->>'url'='%s'
                                 ) f1
                         ) f2
@@ -234,19 +234,19 @@ class Hud:
                     return hud_df
                 def get_school_df():
                     qry = """
-                        select 
+                        select
                             school, t_school.rank school_rank,
                             major,  t_major.rank major_rank,
                             degree, t_degree.rank degree_rank
                         from (
-                            select 
+                            select
                                 entries->>'institution' school,
                                 entries->>'major' major,
                                 entries->>'degree' degree
-                            from 
+                            from
                                 (
                                 select jsonb_array_elements((json_info->>'school')::jsonb) entries
-                                from candidates 
+                                from candidates
                                 where json_info->>'url'='%s'
                                 ) f1
                         ) f2
@@ -273,15 +273,15 @@ class Hud:
 
                 hud_df = get_work_df()
                 push_data_to_hud(hud_df,hud_page='Work')
-                
+
                 hud_df = get_school_df()
                 push_data_to_hud(hud_df,hud_page='School')
-            
+
             general_page()
             trait_pages()
-            
+
         def load_url(self,position=''):
-            
+
             def check_button_style():
                 if self.current_url==self.urls[0]:
                     _prev,_next,_exit = bh.menu_bar.children
@@ -296,7 +296,7 @@ class Hud:
                     _prev._dom_classes = ()
                     _next._dom_classes = ()
                 bh.set_css()
-            
+
             if not position:
                 self.current_url = self.urls[0]
             elif position=='prev':
@@ -314,7 +314,7 @@ class Hud:
             get_ipython().run_cell_magic(u'html', u'',self.html)
 
 class Postgres:
-    
+
     def __init__(self,_parent):
         self                                =   _parent.T.To_Sub_Classes(self,_parent)
         self.T.pgsql_home                   =   self.T.os.environ['HOME_ENV'] + '/BD_Scripts/pgsql'
@@ -322,7 +322,7 @@ class Postgres:
         from pgsql_classes                      import pgSQL
         self.PG                             =   pgSQL(**self.T.__dict__)
         self.T.update(                          self.PG.T.__dict__)
-    
+
     def build(self):
         self.PG.F.functions_run_confirm_extensions()
         self.PG.C.Functions_Create.from_command_line(one_directory=self.T.pgsql_home + '/sql_files/admin')
@@ -365,11 +365,11 @@ class Config:
             ])
         R.cfg.set_conditions(conditions=[{'cond_str':'RESPONSIVENESS','oper_str':'is not set'}])
         R.cfg.set_conditions(conditions=[{'cond_str':'RESPONSIVENESS','oper_str':'any of these','val_str':'Responsive'}])
-        
-        
+
+
         R.cfg.set_batch_category(batch_category='Batch Review - In Progress')
         R.cfg.set_batch_category(batch_category='Batch Review - To Be Reviewed')
-        
+
         if not R.cfg.set_docs_per_page(1000):
             R.T.delay(3)
 
@@ -408,7 +408,7 @@ class Config:
         el = self.br.window.find_elements_by_name('viewMenu')[0]
         _select = self.br.Select(el)
         _select.select_by_visible_text( batch_category )
-        return True 
+        return True
     def set_document_grouping(self,group_type='No Related Items'):
         """relationalMenu"""
         group_type = '+ '+group_type
@@ -425,7 +425,7 @@ class Config:
         el = self.br.window.find_elements_by_name('relationalMenu')[0]
         _select = self.br.Select(el)
         _select.select_by_visible_text( group_type )
-        return True        
+        return True
     def set_docs_per_page(self,doc_num=10):
         doc_num = str(doc_num)
         # cnt = str(self.br.execute("""return $('#_externalPage').contents().find('.items-per-page>select option:selected').text();"""))
@@ -438,11 +438,11 @@ class Config:
             _select = self.br.Select(doc_num_element)
             _select.select_by_visible_text( doc_num )
             return False
-            
+
             # R.br.window.implicitly_wait(5)
             # doc_num_element = self.br.execute("""return $('#_externalPage').contents().find('.page-size-options')[0];""")
             # self.br.execute("""$('#_externalPage').contents().find('.items-per-page>select>select')""")
-            
+
             # try:
             #     self.br.window.find_element_by_class_name('items-per-page').click()
             # except WebDriverException:
@@ -508,7 +508,7 @@ class Config:
         self._parent.switch_to_active_frame()       # works for sorting changes
         # self.br.window.switch_to_window(self.br.window.window_handles[0])
         # self.br.window.switch_to_window(self.br.window.current_window_handle)
-        
+
         # DEFAULTS
         opts = {
             # 'category':'Batch Review - In Progress',
@@ -517,7 +517,7 @@ class Config:
             'count':10,
             'direction':'desc'
             }
-        
+
         for k,v in kwargs.iteritems():
             opts[k] = v
 
@@ -551,7 +551,7 @@ class Config:
 
         self.br.window.implicitly_wait(orig_wait)
         return success
-    
+
     def not_working_set_document_grouping(self,group_type='No Related Items'):
         # group_type='FamilyID';
         group_type='FamilyID';
@@ -589,7 +589,7 @@ class Config:
             //batch error:
             //    $('widget-container-state')[0].innerText == "The query has errored."
             //    $('widget-container-state')[0].attributes.loading.value == "loading"
-            
+
             var select_element = $(document).find('.items-per-page select');
             current_opt = select_element.find('option:selected')[0].text;
             if(current_opt!=input_val){
@@ -613,7 +613,7 @@ class Config:
             //batch error:
             //    $('widget-container-state')[0].innerText == "The query has errored."
             //    $('widget-container-state')[0].attributes.loading.value == "loading"
-            
+
             var column_header = $('.ui-jqgrid-sortable:contains("MasterDateTime")');
             if(input_val=='desc'){
                 var class_info = column_header.parent().find('span[sort="asc"]').attr('class');
@@ -632,7 +632,7 @@ class Config:
             """,
             ])
         return self.br.execute(js)
-    
+
     # REVIEW CONFIGS
     def swap_review(self,display_side='left'):
         swapped = "true" if display_side=="left" else "false"
@@ -682,7 +682,7 @@ class Config:
             if not self.all_conditions[_cond.cond_str]:
                 all_oper = E("""var res=[]; $('div[class*="modal-content"]').find('select[title="Filter operator"]:visible option').each(function(k,v){ res.push(v.attributes.label.value); }); return res""")
                 self.all_conditions[_cond.cond_str] = [str(it) for it in all_oper]
-            
+
             assert self.all_conditions[_cond.cond_str].count(_cond.oper_str), "Unexpected condition operator: " + _cond.oper_str
             oper_element            =   E("""return $('div[class*="modal-content"]').find('select[title="Filter operator"]:visible')[0];""")
             _select                 =   self.br.Select(oper_element)
@@ -731,7 +731,7 @@ class Config:
         E = br.execute
 
         self._toggle_conditions_panel('expand')
-        
+
         # CHECK FOR EXISTING CONDITIONS
 
         if not type(conditions)==list:
@@ -758,20 +758,20 @@ class Config:
         E("""$('button:visible:contains("Run Search")').get(0).click();""")
         # T.delay(2)
         self._toggle_conditions_panel('collapse')
-        
+
         return
     def get_conditions(self):
         self._toggle_conditions_panel('expand')
         res = self.br.execute("""
-            res=[]; 
+            res=[];
             $('.grouped-filter:visible')
                 .find('div[name="userEquation"] .item')
-                .each(function(k,v){ 
-                    d={}; 
+                .each(function(k,v){
+                    d={};
                     d['filter']=$(v).find('.card-title').text().replace(/^\\s*/mig,'').replace(/\\s*$/mig,'').replace(/\\n\\r/mig,'').replace(/[.]\\n/mig,'. ');
                     d['content']=$(v).find('.card-text').text().replace(/^\\s*/mig,'').replace(/\\s*$/mig,'').replace(/\\n\\r/mig,'').replace(/[.]\\n/mig,'. ');
                     if( $(v).find('.filter-enable>input:checked').length>0 ){ d['enabled']=true; } else { d['enabled']=false; }
-                    res.push(d); 
+                    res.push(d);
                     }
                 );
             return res;
@@ -799,7 +799,7 @@ class Data:
 
     def log(self,msg=None,prefix_caller=True):
         I = self.T.I
-        D = {      
+        D = {
             'dt' : self.T.DT.datetime.now().isoformat().replace('T',' '),
             'fx' : I.getouterframes(I.currentframe(),2)[1][3],
             'msg' : '' if not msg else str(msg),
@@ -830,8 +830,8 @@ class Data:
                 'RelativePath','RelativePathParent','Subject',
                 'Title','family_beg','family_end','input_checkbox','url']
             to_str_list_fields = ['Attachments','BCC','CC','ISSUES','Project_Code','To']
-            to_datetime_fields = ['MasterDateTime']            
-            
+            to_datetime_fields = ['MasterDateTime']
+
             conditional_to_str_fields = ['CONFIDENTIALITY']
             for f in conditional_to_str_fields:
                 if data_cols.count(f):
@@ -861,7 +861,7 @@ class Data:
         self.br.execute("data_store('clear','doc_data');")
         self.T.delay(2)
         df = self.T.pd.DataFrame(self.br.execute("return get_doc_data();"))
-        
+
         self._parent.switch_to_active_frame()
         h = self.T.BS(self.br.source())
 
@@ -916,7 +916,7 @@ class Data:
         k = str(self.T.DT.datetime.now().isoformat()).replace('T',' ')
         v = self.T.json.dumps( { k : self.br.execute("return get_doc_data();") } )
         q=  """
-            INSERT INTO batch_info (updates,collected) 
+            INSERT INTO batch_info (updates,collected)
             VALUES ('%(upd)s'::jsonb,'%(timestamp)s'::timestamp without time zone)
             """ % {'upd':v,'timestamp':k}
         self.T.to_sql(q)
@@ -1009,7 +1009,7 @@ class Browser:
         from dateutil                           import parser       as DU               # e.g., DU.parse('some date as str') --> obj(datetime.datetime)
         from urllib                         import quote_plus,unquote
         import                                  urlparse
-        
+
 
         from subprocess                     import Popen            as sub_popen
         from subprocess                     import PIPE             as sub_PIPE
@@ -1049,7 +1049,7 @@ class Browser:
                                                  'today'                :   DT.datetime.now(),
                                                  'growl_notice'         :   True,
                                                  'debug'                :   True,}
-        
+
         self.T                              =   To_Class_Dict(  self,
                                                                 dict_list=[D,locals()],
                                                                 update_globals=True)
@@ -1079,10 +1079,10 @@ class Browser:
         else:
             db_config                       =   dict(zip(
                                                         ['DB_NAME','DB_HOST','DB_PORT','DB_USER','DB_PW'],
-                                                        ['system', 
-                                                        # '0.0.0.0', 
-                                                        # 'elm.sanspaper.com', 
-                                                        '10.0.0.52', 
+                                                        ['system',
+                                                        # '0.0.0.0',
+                                                        # 'elm.sanspaper.com',
+                                                        '10.0.0.52',
                                                         '8800', 'postgres', '']
                                                         ))
         self.T.__dict__.update(                 db_config)
@@ -1092,8 +1092,8 @@ class Browser:
         self.pg                             =   Postgres(self)
         # self.data                           =   Data(self)
         # self.project_name                   =   'Manion - Eversource'
-        
-        
+
+
         self.T.console_config               =   {} if not configs.has_key('console_config') else configs['console_config']
         self.T.console_config['config_name']=   'default' if not configs.has_key('console_config') else self.T.console_config['config_name']
         cfg_mod                             =   import_module("console." + self.T.console_config['config_name'])
@@ -1113,7 +1113,7 @@ class Browser:
         #                                         {'key' : 'documents' , 'value' : 'Documents','DOM' : 'parent'},
         #                                         ])
         # self.status                         =   'initiated'
-              
+
     def _chromedriver_defaults(self,args={}):
         """
             ----------------------------------------------------------
@@ -1128,6 +1128,9 @@ class Browser:
         # self.DOWNLOAD_DIR = self.T.os.path.join(self.T.os.environ['HOME'],'Desktop')
         self.DOWNLOAD_DIR = self.BASE_DIR + '/DOWNLOADS'
         self.EXTENSIONS_DIR = self.T.os.path.join(self.T.os.environ['BD'],'html/webdrivers/chrome/extensions')
+
+
+        # import ipdb as I; I.set_trace()
 
         ext_custom_js =   {
             "settings": {
@@ -1179,7 +1182,7 @@ class Browser:
             }
           }
         ext_proxy_switch =   {
-                "dpplabbmogkhghncfbfdeeokoefdjegm": 
+                "dpplabbmogkhghncfbfdeeokoefdjegm":
                     {
                         "active_permissions": {
                         "api": [
@@ -1219,7 +1222,7 @@ class Browser:
                     }
                 }
         ext_pdf_viewer =   {
-            "oemmndcbldboiebfnladdacbdfmadadm": 
+            "oemmndcbldboiebfnladdacbdfmadadm":
                 {
                     "active_permissions": {
                         "api": [
@@ -1406,8 +1409,8 @@ class Browser:
         if args.has_key('pdf_viewer') and args['pdf_viewer']==True:
             print('USING PDF_VIEWER')
             _ext_imported.update(ext_pdf_viewer)
-        print('USING PDF_VIEWER')
-        _ext_imported.update(ext_pdf_viewer)
+        # print('USING PDF_VIEWER')
+        # _ext_imported.update(ext_pdf_viewer)
         _extensions_dict_val = {'settings':_ext_imported}
 
         d = {       'user-data-dir'                                 :   self.BASE_DIR,
@@ -1434,7 +1437,7 @@ class Browser:
                             'locationContextEnabled'                :   False,
                         },
                     'prefs'                                         :
-                        {   
+                        {
                             "autofill.enabled"                      :   False,
                             "download.default_directory"            :   self.DOWNLOAD_DIR,
                             "download.prompt_for_download"          :   False,
@@ -1484,7 +1487,7 @@ class Browser:
                             'session.restore_on_startup=4',
                         },
                     'true_opts'                                     :
-                        [   
+                        [
                             'allow-cross-origin-auth-prompt',
                             'allow-external-pages',
                             'allow-file-access',
@@ -1517,7 +1520,7 @@ class Browser:
                             'embedded-extension-options',
                             'enable-account-consistency',
                             'enable-devtools-experiments',
-                            
+
                             'enable-logging',
                             'enable-net-benchmarking',
                             'enable-network-information',
@@ -1529,7 +1532,7 @@ class Browser:
                             'enable-tab-switcher',
                             'enable-tcp-fastopen',
                             'enable-web-bluetooth',
-                            'incognito',                            
+                            'incognito',
                             'keep-alive-for-test',
                             'mark-non-secure-as',
                             'restore-last-session',
@@ -1609,8 +1612,8 @@ class Browser:
     def kill(self):
         c = """
             pids=$(bash -c "env ps -awwx -o pid,ppid,tty,comm,args --no-headers
-                       | grep -E [c]hrom 
-                       | cut -d ' ' -f1 
+                       | grep -E [c]hrom
+                       | cut -d ' ' -f1
                        | sort -r | uniq")
             echo $pids
             # do echo $i; done"
@@ -1729,7 +1732,7 @@ class Browser:
         #     if it.is_displayed():
         #         self.br.window.switch_to_frame(frames.index(it))
         #         break
-        
+
         # # Iterate frames and switching to active frame
         # frames = self.br.window.find_elements_by_xpath('//iframe')
         # active_dict={}

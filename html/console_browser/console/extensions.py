@@ -100,7 +100,7 @@ class PDF_Viewer:
                         return page;
                     }
                     page += 1;
-                    PDFViewerApplication.pdfViewer.currentPageNumber = page + 1;
+                    PDFViewerApplication.pdfViewer.currentPageNumber = page;
                     return page;
                     };
                 return goToNextPage();
