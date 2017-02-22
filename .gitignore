@@ -41,6 +41,13 @@ __init__.py
 google_tools/.idea
 Android/android-sdk_r24.4.1-macosx.zip
 Android/android-sdk-macosx/
+html/logs/chromedriver.log
+jobs/law/cookie_file
+html/webdrivers/chrome/profiles/relativity/chrome_shutdown_ms.txt
+jobs/law/mgm_batch_updates
+html/webdrivers/chrome/profiles/relativity/DOWNLOADS/**
+RD/src/cython_exts/*.c
+RD/src/cython_exts/*.so
 
 html/webdrivers/chrome/profiles
 !html/webdrivers/chrome/profiles/*/Profile
@@ -50,4 +57,3 @@ html/webdrivers/chrome/profiles/*/Profile
 
 html/webdrivers/chrome/profiles/*/Default
 !html/webdrivers/chrome/profiles/*/Default/Preferences
-

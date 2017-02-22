@@ -32,6 +32,3 @@
 [submodule "pgsql"]
 	path = pgsql
 	url = git@github.com:sethc23/pgsql_base
-[submodule "jobs/law/relativity"]
-	path = jobs/law/relativity
-	url = git@github.com:sethc23/relativity
