@@ -1,0 +1,8 @@
+*.pyc
+*.log
+chrome_relativity_profile
+chrome_webdriver
+cookiefile
+docs/
+js-document_viewer.py
+localStorage-rela-conditions
